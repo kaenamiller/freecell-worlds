@@ -6,7 +6,7 @@ const root = process.cwd();
 const out = join(root, '_site');
 const version =
   process.env.PAGES_CACHE_VERSION ||
-  `freecell3d-local-${Date.now().toString(36)}`;
+  `freecellworlds-local-${Date.now().toString(36)}`;
 
 const paths = [
   'index.html',

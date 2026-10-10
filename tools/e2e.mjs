@@ -9,7 +9,7 @@ await page.setViewport({ width: 960, height: 540 });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
-await page.evaluateOnNewDocument(() => localStorage.setItem('freecell3d.settings', JSON.stringify({ theme: 'roman', quality: 'medium' })));
+await page.evaluateOnNewDocument(() => localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme: 'roman', quality: 'medium' })));
 await page.goto('http://localhost:8123/');
 await page.waitForFunction(() => !document.getElementById('loader'), { timeout: 90000 });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

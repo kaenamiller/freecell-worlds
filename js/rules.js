@@ -463,6 +463,36 @@ export function safeFoundationMoves(st) {
   return out;
 }
 
+// Every legal move to a foundation right now (column tops and free cells), lowest rank first.
+export function legalFoundationMoves(st) {
+  const out = [];
+  for (let c = 0; c < st.tableau.length; c++) {
+    const col = st.tableau[c];
+    if (col.length && foundationAccepts(st, col[col.length - 1])) out.push({ src: { kind: 'col', i: c }, card: col[col.length - 1] });
+  }
+  for (let f = 0; f < st.free.length; f++) {
+    if (st.free[f] && foundationAccepts(st, st.free[f])) out.push({ src: { kind: 'free', i: f }, card: st.free[f] });
+  }
+  return out.sort((a, b) => rankOf(a.card) - rankOf(b.card));
+}
+
+// True when foundation moves alone can clear the whole table. Playing a legal foundation move never
+// makes another one illegal, so a greedy simulation decides this exactly, regardless of order.
+export function canFinishWithFoundationOnly(st) {
+  const sim = cloneState(st);
+  for (;;) {
+    const moves = legalFoundationMoves(sim);
+    if (!moves.length) break;
+    for (const m of moves) {
+      // Re-check: an earlier move in this batch may have changed the column we meant to pop.
+      const col = m.src.kind === 'col' ? sim.tableau[m.src.i] : null;
+      const card = m.src.kind === 'col' ? col[col.length - 1] : sim.free[m.src.i];
+      if (card === m.card && foundationAccepts(sim, card)) applyMove(sim, { t: 'F', src: m.src, card });
+    }
+  }
+  return sim.tableau.every((c) => c.length === 0) && sim.free.every((f) => !f);
+}
+
 // ---------------------------------------------------------------------------
 // Player-facing game (tracks history for undo)
 // ---------------------------------------------------------------------------

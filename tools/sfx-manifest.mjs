@@ -14,6 +14,27 @@ export const SHARED = [
 ];
 
 export const THEME = {
+  azulejo: {
+    ui: 'a delicate glazed ceramic tile tap, soft and refined, subtle UI click',
+    chime: 'one clear small porcelain cup struck gently with a wooden stick, a musical crystalline ceramic note with a warm short decay, one note only',
+    win: 'an elegant joyful Portuguese guitar flourish with nylon guitar accompaniment and delicate ceramic bell accents, warm sunlit celebration, no voices, 6 seconds',
+    ambience: 'a serene Portuguese seaside courtyard, a faint fountain trickle, soft Atlantic breeze and very occasional distant small birds, no music or speech, quiet seamless loop',
+    music: 'Original gentle Portuguese-guitar-inspired instrumental for a relaxing solitaire game, lyrical plucked Portuguese guitar melody, warm nylon-string classical guitar accompaniment, unhurried and sunlit Mediterranean courtyard atmosphere, subtle tender saudade, sparse arrangement, no drums, no vocals, no recognizable existing melody, seamless ambient bed',
+  },
+  jetset: {
+    ui: 'a muted tactile click of a vintage airport console button, soft clean mechanical snap',
+    chime: 'a single warm rounded electric-piano bell tone reminiscent of a refined 1960s airline cabin notification, short clean sustain, one note only',
+    win: 'a glamorous optimistic early-1960s lounge victory flourish with vibraphone, brushed snare, warm brass and piano, original melody, no voices, 6 seconds',
+    ambience: 'a quiet spacious early-1960s airport first-class lounge, gentle ventilation, very faint distant jet-engine rumble beyond thick glass and an occasional distant soft mechanical click, no announcements, no speech, no music, seamless subtle loop',
+    music: 'Original sophisticated early-1960s jet-set cocktail lounge instrumental for a solitaire game, gentle bossa nova rhythm, warm electric piano, soft vibraphone, nylon guitar and upright bass with restrained brushes, glamorous optimistic mid-century air-travel mood, relaxed tempo, unobtrusive arrangement, no vocals, no recognizable existing melody, seamless ambient bed',
+  },
+  riverboat: {
+    ui: 'a single antique clay poker chip lightly tapped against polished wood, soft satisfying click',
+    chime: 'a single gently ringing antique brass poker-chip clink blended with a warm upright piano note, one note only, soft and musical',
+    win: 'a charming triumphant riverboat saloon victory flourish with upright piano, a short fiddle phrase, warm brass and a scattering of clay poker chips, original melody, no voices, 6 seconds',
+    ambience: 'inside a quiet Victorian Mississippi paddle-steamer salon, low muffled steady steam-engine rhythm, gentle paddle-wheel churn and river water outside, occasional wooden creak, no music or speech, subtle seamless loop',
+    music: 'Original relaxed 19th-century riverboat saloon instrumental for a solitaire game, warm upright piano with a gentle lilting ragtime feel, occasional tender fiddle phrases and soft acoustic bass, charming roguish Victorian poker-salon atmosphere at dusk, restrained dynamics and easy tempo, no vocals, no recognizable film soundtrack or existing melody, seamless ambient bed',
+  },
   roman: {
     ui: 'a soft stone tap with a tiny gold coin tink, subtle UI click',
     chime: 'a single pure struck bronze bell note with warm shimmering golden decay, one note only',

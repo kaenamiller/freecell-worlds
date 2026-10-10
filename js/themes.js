@@ -606,9 +606,126 @@ export const THEMES = {
     confetti: [0xff9966, 0xcc99cc, 0x7aa2ff, 0xffffff, 0xffd166],
     art: artFor('space'),
   },
+  // Additional destinations use existing local font families to keep downloads small.
+  azulejo: {
+    id: 'azulejo', name: 'Azulejo',
+    tagline: 'Cobalt tiles, Atlantic light and hand-painted royalty.',
+    fontFamily: 'Cinzel',
+    css: {
+      '--bg': '#e8edf2', '--panel': 'rgba(250, 248, 241, 0.92)', '--panel-solid': '#faf8f1',
+      '--border': 'rgba(29, 73, 131, 0.35)', '--text': '#17375d', '--muted': '#506a85',
+      '--accent': '#245b9e', '--accent-2': '#ae8744', '--glow': 'rgba(36, 91, 158, 0.18)',
+      '--radius': '6px', '--font-ui': "'Cinzel', Georgia, serif",
+    },
+    card: {
+      paper: ['#fffdf5', '#edf2f7'], edge: 0xf3f3ed, border: '#356aaa', indexFont: 'Cinzel', indexWeight: 700,
+      suits: ['#12233b', '#b02c37', '#b02c37', '#12233b'], outline: '#193b68',
+      fourColor: ['#205bb6', '#ce6811', '#b02c37', '#12233b'], fx: 'none', courtFrame: '#356aaa',
+      courtWash: 0, emissive: 0, clearcoat: 0.12, backFit: 'cover',
+    },
+    scene: {
+      clear: 0xb8cddd, exposure: 0.86, fog: [0xb8cddd, 22, 46], env: 0.7,
+      hemi: [0xf4f7ff, 0x778ba3, 0.55],
+      key: { color: 0xfff1d8, intensity: 1.8, pos: [5.5, 13, 6.5] },
+      fill: { color: 0xb9d8ff, intensity: 0.6, pos: [-7, 8, -5] },
+      rim: { color: 0xffe8bc, intensity: 10, pos: [0, 7, -7] }, accentLights: [],
+      bloom: { strength: 0.12, radius: 0.5, threshold: 1.5 }, vignette: 0.2, grain: 0.02, ao: 0.7,
+    },
+    table: {
+      surface: { roughness: 0.28, metalness: 0, clearcoat: 0.75, clearcoatRoughness: 0.18, normal: 0.35, emissive: 0, env: 0.3 },
+      rail: { color: 0xe9edf3, roughness: 0.22, metalness: 0, clearcoat: 0.85, emissive: 0, emissiveIntensity: 0 },
+      inlay: { color: 0x245b9e, roughness: 0.3, metalness: 0, emissive: 0, emissiveIntensity: 0 },
+      finial: { color: 0xae8744, roughness: 0.3, metalness: 0.8 }, base: 0xabb8c7,
+    },
+    slots: {
+      col: { fill: 'rgba(22,55,95,0.10)', stroke: 'rgba(29,73,131,0.65)', dash: [20, 12], glow: 0 },
+      free: { fill: 'rgba(22,55,95,0.16)', stroke: 'rgba(29,73,131,0.9)', dash: [16, 10], glow: 0, mark: 'rgba(29,73,131,0.65)' },
+      found: { fill: 'rgba(22,55,95,0.12)', stroke: 'rgba(29,73,131,1)', dash: [], glow: 0, inner: 'rgba(29,73,131,0.65)', lightSurface: true, markOpacity: 0.65 },
+    },
+    particles: 'motes', ambientColor: [0.72, 0.85, 1], ambientCount: 28,
+    fx: { spark: [0.35, 0.6, 1], dust: [0.75, 0.85, 1], flash: 0x94bfff },
+    confetti: [0x245b9e, 0x6c9bd2, 0xffffff, 0xe8edf2, 0xae8744], art: artFor('azulejo'),
+  },
+  jetset: {
+    id: 'jetset', name: 'Jet Set',
+    tagline: 'Walnut, wing tips and a first-class tomorrow.', fontFamily: 'Josefin Sans',
+    css: {
+      '--bg': '#19363e', '--panel': 'rgba(250, 242, 225, 0.94)', '--panel-solid': '#faf2e1',
+      '--border': 'rgba(63, 107, 121, 0.42)', '--text': '#203b43', '--muted': '#526e74',
+      '--accent': '#b9362c', '--accent-2': '#427b8c', '--glow': 'rgba(185, 54, 44, 0.2)',
+      '--radius': '14px', '--font-ui': "'Josefin Sans', 'Trebuchet MS', sans-serif",
+    },
+    card: {
+      paper: ['#fff9ed', '#f0e5d0'], edge: 0xf7edda, border: '#568493', indexFont: 'Josefin Sans', indexWeight: 700,
+      suits: ['#182b35', '#bc352c', '#bc352c', '#182b35'], outline: '#243c42',
+      fourColor: ['#205bb6', '#ce6811', '#bc352c', '#182b35'], fx: 'none', courtFrame: '#568493',
+      courtWash: 0, emissive: 0, clearcoat: 0.12, backFit: 'cover',
+    },
+    scene: {
+      clear: 0x3e6977, exposure: 0.9, fog: [0x6b8793, 22, 46], env: 0.7,
+      hemi: [0xffefda, 0x334e60, 0.55],
+      key: { color: 0xffe4bf, intensity: 1.9, pos: [5.5, 13, 6.5] },
+      fill: { color: 0xc0deed, intensity: 0.6, pos: [-7, 8, -5] },
+      rim: { color: 0xff9e78, intensity: 12, pos: [0, 7, -7] }, accentLights: [],
+      bloom: { strength: 0.15, radius: 0.5, threshold: 1.2 }, vignette: 0.28, grain: 0.035, ao: 0.7,
+    },
+    table: {
+      surface: { roughness: 0.65, metalness: 0, clearcoat: 0.22, clearcoatRoughness: 0.4, normal: 0.35, emissive: 0, env: 0.3 },
+      rail: { color: 0x563525, roughness: 0.4, metalness: 0, clearcoat: 0.35, emissive: 0, emissiveIntensity: 0 },
+      inlay: { color: 0xb7c5ca, roughness: 0.38, metalness: 0.85, emissive: 0, emissiveIntensity: 0 },
+      finial: { color: 0xb9362c, roughness: 0.4, metalness: 0 }, base: 0x3d291e,
+    },
+    slots: {
+      col: { fill: 'rgba(19,43,53,0.16)', stroke: 'rgba(250,242,225,0.65)', dash: [24, 10], glow: 0 },
+      free: { fill: 'rgba(19,43,53,0.25)', stroke: 'rgba(250,242,225,0.9)', dash: [20, 8], glow: 0, mark: 'rgba(250,242,225,0.7)' },
+      found: { fill: 'rgba(19,43,53,0.3)', stroke: 'rgba(250,242,225,1)', dash: [], glow: 0, inner: 'rgba(250,242,225,0.7)' },
+    },
+    particles: 'motes', ambientColor: [1, 0.88, 0.7], ambientCount: 22,
+    fx: { spark: [1, 0.6, 0.4], dust: [0.8, 0.9, 1], flash: 0xffbd99 },
+    confetti: [0xb9362c, 0x7eafbd, 0xfaf2e1, 0xb7c5ca, 0xffcb95], art: artFor('jetset'),
+  },
+  riverboat: {
+    id: 'riverboat', name: 'Riverboat Royale',
+    tagline: 'Green felt, river dusk and a gambler’s charm.', fontFamily: 'Cormorant Garamond',
+    css: {
+      '--bg': '#100c08', '--panel': 'rgba(32, 20, 13, 0.88)', '--panel-solid': '#20140d',
+      '--border': 'rgba(201, 166, 92, 0.42)', '--text': '#f8edd4', '--muted': '#c3ab86',
+      '--accent': '#d7b46b', '--accent-2': '#a84b4b', '--glow': 'rgba(215, 180, 107, 0.3)',
+      '--radius': '7px', '--font-ui': "'Cormorant Garamond', Georgia, serif",
+    },
+    card: {
+      paper: ['#fff5df', '#ebddbe'], edge: 0xf0e3c7, border: '#b78d43', indexFont: 'Cormorant Garamond', indexWeight: 700,
+      suits: ['#171b15', '#a1232b', '#a1232b', '#171b15'], outline: '#382817',
+      fourColor: ['#205bb6', '#ce6811', '#a1232b', '#171b15'], fx: 'none', courtFrame: '#b78d43',
+      courtWash: 0.02, emissive: 0, clearcoat: 0.08, backFit: 'cover',
+    },
+    scene: {
+      clear: 0x1c120b, exposure: 0.92, fog: [0x26170d, 18, 40], env: 0.65,
+      hemi: [0xffdfb0, 0x173327, 0.6],
+      key: { color: 0xffddb0, intensity: 2, pos: [5.5, 13, 6.5] },
+      fill: { color: 0xa9cde1, intensity: 0.5, pos: [-7, 8, -5] },
+      rim: { color: 0xffbf71, intensity: 20, pos: [0, 7, -7] },
+      accentLights: [{ color: 0xffba6a, intensity: 8, pos: [-6.5, 1.5, 1], pulse: 0.7 }],
+      bloom: { strength: 0.22, radius: 0.6, threshold: 1 }, vignette: 0.38, grain: 0.045, ao: 0.9,
+    },
+    table: {
+      surface: { roughness: 0.95, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.8, normal: 0.8, emissive: 0, env: 0.2 },
+      rail: { color: 0x4e2116, roughness: 0.22, metalness: 0, clearcoat: 0.85, emissive: 0, emissiveIntensity: 0 },
+      inlay: { color: 0xb78d43, roughness: 0.3, metalness: 0.85, emissive: 0, emissiveIntensity: 0 },
+      finial: { color: 0xd7b46b, roughness: 0.3, metalness: 0.65, emissive: 0xffae55, emissiveIntensity: 0.2 }, base: 0x2d160e,
+    },
+    slots: {
+      col: { fill: 'rgba(0,0,0,0.16)', stroke: 'rgba(247,225,180,0.5)', dash: [20, 14], glow: 0 },
+      free: { fill: 'rgba(0,0,0,0.24)', stroke: 'rgba(247,225,180,0.8)', dash: [18, 10], glow: 0, mark: 'rgba(247,225,180,0.6)' },
+      found: { fill: 'rgba(0,0,0,0.3)', stroke: 'rgba(215,180,107,1)', dash: [], glow: 0, inner: 'rgba(215,180,107,0.65)' },
+    },
+    particles: 'motes', ambientColor: [1, 0.83, 0.5], ambientCount: 40,
+    fx: { spark: [1, 0.8, 0.4], dust: [0.9, 0.8, 0.6], flash: 0xffce83 },
+    confetti: [0xd7b46b, 0x7a2430, 0xf8edd4, 0x285c43, 0xffffff], art: artFor('riverboat'),
+  },
 };
 
-export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'space'];
+export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'space', 'azulejo', 'jetset', 'riverboat'];
 
 // --- asset loading ------------------------------------------------------------
 const imageCache = new Map();

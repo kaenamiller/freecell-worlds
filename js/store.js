@@ -1,5 +1,20 @@
 // Tiny persistent key/value store (localStorage) for settings and stats.
-const PREFIX = 'freecell3d.';
+const PREFIX = 'freecellworlds.';
+const LEGACY_PREFIX = 'freecell3d.';
+
+// One-time migration from the pre-rename namespace so existing players keep
+// their settings, stats and daily progress.
+try {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(LEGACY_PREFIX)) {
+      const migrated = PREFIX + key.slice(LEGACY_PREFIX.length);
+      if (localStorage.getItem(migrated) == null) localStorage.setItem(migrated, localStorage.getItem(key));
+    }
+  }
+} catch {
+  /* storage unavailable (private mode / quota) — ignore */
+}
 
 export function load(key, fallback) {
   try {

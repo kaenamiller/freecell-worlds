@@ -627,14 +627,14 @@ export function foundationTexture(style, suit) {
   ctx.lineWidth = 2.5;
   ctx.strokeStyle = style.inner;
   ctx.stroke();
-  // Dark ink would vanish on a dark table, so watermark those suits in light grey instead.
+  // Light ceramic surfaces keep dark ink; dark tables use a light-grey watermark.
   let wm = suitColor(suit);
   if (/^#[0-9a-f]{6}$/i.test(wm)) {
     const n = parseInt(wm.slice(1), 16);
     const luma = 0.3 * ((n >> 16) & 255) + 0.59 * ((n >> 8) & 255) + 0.11 * (n & 255);
-    if (luma < 70) wm = '#dcdcdc';
+    if (luma < 70 && (!style.lightSurface || highContrast)) wm = '#dcdcdc';
   }
-  ctx.globalAlpha = 0.42;
+  ctx.globalAlpha = style.markOpacity ?? 0.42;
   drawSuit(ctx, suit, SLOT_W / 2, SLOT_H / 2, 158, wm, cardTheme.card.fx === 'glow' ? 'glow' : 'none');
   ctx.globalAlpha = 1;
   return finishSlot(canvas);

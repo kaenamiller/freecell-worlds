@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Game, cloneState, generateMoves, canStackOn, sequenceStart, randomDealNumber, safeFoundationMoves } from './rules.js';
+import { Game, cloneState, generateMoves, canStackOn, sequenceStart, randomDealNumber, safeFoundationMoves, legalFoundationMoves, canFinishWithFoundationOnly } from './rules.js';
 import { buildCardMesh, applyCardStyle, CARD } from './card.js';
 import { setCardTheme } from './textures.js';
 import { Animator, Easing, CardMotion } from './animation.js';
@@ -718,7 +718,10 @@ function stepAuto(tok) {
     return;
   }
   const held = new Set(selection ? selection.ids : []);
-  const mv = safeFoundationMoves(game.state).find((m) => !held.has(m.card));
+  let mv = safeFoundationMoves(game.state).find((m) => !held.has(m.card));
+  // No individually safe card? If foundation moves alone can still clear the table, the win is
+  // guaranteed, so play it out (this is what finishes cross-blocked endgames).
+  if (!mv && canFinishWithFoundationOnly(game.state)) mv = legalFoundationMoves(game.state).find((m) => !held.has(m.card));
   if (!mv) return;
   const m = game.moveToFoundation(mv.src);
   if (!m) return;
@@ -1021,12 +1024,21 @@ function requestSolve(options = {}) {
 // ---------------------------------------------------------------------------
 const setStatus = (t, k) => ui.setStatus(t, k);
 
+// The deal intro ("Deal #… — drag cards…") is dismissed once the player makes
+// their first manual move; restored games start already dismissed.
+let introDismissed = true;
+
 function updateHUD() {
   if (!game) return;
   const st = game.state;
   const total = st.found[0] + st.found[1] + st.found[2] + st.found[3];
-  ui.updateHUD({ moves: manualMoves(), found: total, deal: game.dealNumber });
-  if (manualMoves() > 0 && !run.timerOn && !won) {
+  const moves = manualMoves();
+  ui.updateHUD({ moves, found: total, deal: game.dealNumber });
+  if (moves > 0 && !introDismissed) {
+    introDismissed = true;
+    ui.clearStatus();
+  }
+  if (moves > 0 && !run.timerOn && !won) {
     run.timerOn = true;
     run.t0 = performance.now() - run.elapsed * 1000;
     if (!run.counted) {
@@ -1212,6 +1224,7 @@ function newGame(dealNumber, opts = {}) {
   run.counted = opts.restore ? !!opts.restore.counted : false;
   run.timerOn = false;
   run.solved = false;
+  introDismissed = !!opts.restore;
   lastTimerText = -1;
   tickTimer();
   save('game', null);
@@ -1620,10 +1633,17 @@ window.FreeCell = {
   async advance(n) {
     const r = await requestSolve({ timeLimitMs: 20000 });
     const sol = r.solution || [];
-    const k = Math.max(0, Math.min(sol.length, n < 0 ? sol.length + n : n));
+    let k;
+    if (n === 'endgame') {
+      // Stop where only foundation moves remain in the solution.
+      k = sol.length;
+      while (k > 0 && sol[k - 1].t === 'F') k--;
+    } else {
+      k = Math.max(0, Math.min(sol.length, n < 0 ? sol.length + n : n));
+    }
     for (let i = 0; i < k; i++) game.applyDescriptor(sol[i]);
     afterMove();
-    return { applied: k, total: sol.length };
+    return { applied: k, total: sol.length, remaining: sol.length - k };
   },
   historyInfo() {
     const auto = game.history.filter((m) => m.auto).length;

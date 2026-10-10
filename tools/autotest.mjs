@@ -10,7 +10,8 @@ await page.setViewport({ width: 800, height: 450 });
 const errors = [];
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
-await page.evaluateOnNewDocument((auto) => localStorage.setItem('freecell3d.settings', JSON.stringify({ theme: 'roman', quality: 'low', autoFoundation: auto })), AUTO);
+page.on('response', (r) => { if (r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url()}`); });
+await page.evaluateOnNewDocument((auto) => localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme: 'roman', quality: 'low', autoFoundation: auto })), AUTO);
 await page.goto('http://localhost:8123/');
 await page.waitForFunction(() => !document.getElementById('loader'), { timeout: 90000 });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -39,7 +40,7 @@ const hud = async () => Number(await page.$eval('#moves', (e) => e.textContent))
 let stalls = 0;
 let undoChecked = false;
 let sawAuto = false;
-for (let step = 0; step < (AUTO ? 16 : 40); step++) {
+for (let step = 0; step < 30; step++) {
   if (await page.evaluate(() => FreeCell.isWon())) break;
   const sol = await page.evaluate(async () => (await FreeCell.solve({ timeLimitMs: 5000 })).solution);
   if (!sol || !sol.length) { log('no solution found at step', step); break; }
@@ -78,8 +79,8 @@ for (let step = 0; step < (AUTO ? 16 : 40); step++) {
     check('replaying the move reproduces the same state', (await state()) === mid);
   }
 }
-// Phase 2: fast-forward with the solver, leaving the last 30 moves for auto-play to finish on its own.
-const adv = await page.evaluate(() => FreeCell.advance(-30));
+// Phase 2: fast-forward with the solver, stopping where only foundation moves remain, which auto-play must finish on its own.
+const adv = await page.evaluate(() => FreeCell.advance('endgame'));
 log('fast-forwarded', JSON.stringify(adv));
 await settle();
 for (let i = 0; i < 40 && !(await page.evaluate(() => FreeCell.isWon())); i++) await sleep(1500);
@@ -88,13 +89,14 @@ const fin = await info();
 const shownMoves = await hud();
 log('final history', JSON.stringify(fin), 'HUD moves', shownMoves, 'won', won);
 if (AUTO) {
-  check('auto-play moved cards on its own', sawAuto && fin.auto > 0);
+  check('auto-play moved cards on its own', fin.auto > 0, JSON.stringify(fin));
   check('HUD Moves counts only the player moves', shownMoves === fin.manual, `${shownMoves} vs ${fin.manual}`);
   check('game finished (endgame auto-completed)', won);
   const tail = await page.evaluate(() => { const h = []; return FreeCell.historyInfo(); });
   check('the finish was driven by auto-play (many auto moves at the end)', fin.auto >= 10, JSON.stringify(fin));
 } else {
   check('with the option OFF no auto-plays happen', fin.auto === 0, JSON.stringify(fin));
+  check('with the option OFF the endgame is NOT auto-finished', !won);
 }
 log(fails ? `${fails} FAILURES` : 'ALL PASS', errors.length ? '\nERRORS:\n' + errors.join('\n') : '(no console errors)');
 await browser.close();

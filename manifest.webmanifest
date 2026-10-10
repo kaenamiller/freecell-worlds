@@ -1,7 +1,7 @@
 {
-  "name": "FreeCell 3D",
-  "short_name": "FreeCell",
-  "description": "A premium 3D FreeCell with themes, spring-physics cards and a built-in solver.",
+  "name": "FreeCell Worlds",
+  "short_name": "FreeCell Worlds",
+  "description": "FreeCell Worlds — a premium 3D FreeCell with eleven themed tables, spring-physics cards and a built-in solver.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",

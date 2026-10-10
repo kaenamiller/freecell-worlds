@@ -227,7 +227,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     });
   }
 
-  if (theme.id === 'muertos' || theme.id === 'forest') {
+  if (theme.id === 'muertos' || theme.id === 'forest' || theme.id === 'riverboat') {
     // Candle / lantern flicker on the corner finials.
     updaters.push((dt, t) => {
       finMat.emissiveIntensity = (F.emissiveIntensity || 1) * (0.78 + 0.22 * Math.sin(t * 9 + 1.3) * Math.sin(t * 5.1));
@@ -238,7 +238,8 @@ export function buildTableLayer(theme, art, L, opts = {}) {
   if (HC) {
     /* high contrast: no ambient effects over the cards */
   } else if (theme.particles === 'motes') {
-    const N = 160;
+    const N = theme.ambientCount || 160;
+    const baseColor = theme.ambientColor;
     const pos = new Float32Array(N * 3);
     const col = new Float32Array(N * 3);
     const size = new Float32Array(N);
@@ -248,7 +249,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
       pos[i * 3] = (Math.random() - 0.5) * 13;
       pos[i * 3 + 1] = Math.random() * 6;
       pos[i * 3 + 2] = cz + (Math.random() - 0.5) * 8;
-      col.set([1, 0.82 + Math.random() * 0.1, 0.5], i * 3);
+      col.set(baseColor || [1, 0.82 + Math.random() * 0.1, 0.5], i * 3);
       size[i] = 0.035 + Math.random() * 0.06;
       seed[i] = Math.random() * 10;
     }

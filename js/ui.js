@@ -92,6 +92,24 @@ export const ui = {
       });
       grid.appendChild(big);
     }
+
+    const random = document.createElement('button');
+    random.type = 'button';
+    random.className = 'theme-card theme-random';
+    random.title = 'Choose a different theme at random';
+    random.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h3c4 0 8 12 12 12h3m-4-4 4 4-4 4M3 18h3c1.5 0 3-1.7 4.5-4M13.5 10C15 7.7 16.5 6 18 6h3m-4-4 4 4-4 4" /></svg><span>Random theme</span>`;
+    random.addEventListener('click', async () => {
+      const others = THEME_ORDER.filter((id) => id !== document.body.dataset.theme);
+      const choices = others.length ? others : THEME_ORDER;
+      const id = choices[Math.floor(Math.random() * choices.length)];
+      random.disabled = true;
+      try {
+        await this.handlers.theme?.(id);
+      } finally {
+        random.disabled = false;
+      }
+    });
+    row.appendChild(random);
   },
 
   refreshDaily() {
@@ -142,6 +160,10 @@ export const ui = {
   setStatus(text, kind = '') {
     this.els.status.textContent = text;
     this.els.status.className = 'status ' + kind;
+    this.els.statusBar.classList.remove('hidden');
+  },
+  clearStatus() {
+    this.els.statusBar.classList.add('hidden');
   },
   setSolverBusy(b) {
     this.els.solver.classList.toggle('active', b);

@@ -1,0 +1,22 @@
+// Logs every failed/404 request while playing through to a win.
+import { createRequire } from 'node:module';
+import { homedir } from 'node:os';
+const require = createRequire(homedir() + '/Documents/mahjpods/film/package.json');
+const puppeteer = require('puppeteer-core');
+const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--autoplay-policy=no-user-gesture-required'] });
+const page = await browser.newPage();
+await page.setViewport({ width: 640, height: 360 });
+const bad = [];
+page.on('response', (r) => { if (r.status() >= 400) bad.push(`${r.status()} ${r.url()} (${r.request().resourceType()})`); });
+page.on('requestfailed', (r) => bad.push(`FAILED ${r.url()} ${r.failure()?.errorText}`));
+await page.evaluateOnNewDocument(() => localStorage.setItem('freecell3d.settings', JSON.stringify({ theme: 'roman', quality: 'low' })));
+await page.goto('http://localhost:8123/');
+await page.waitForFunction(() => !document.getElementById('loader'), { timeout: 90000 });
+console.log('after load:', bad.length ? bad.join('\n') : 'none');
+await page.click('#btn-play');
+await page.waitForFunction(() => !window.FreeCell.busy, { timeout: 150000 });
+await page.evaluate(() => FreeCell.advance('endgame'));
+await page.waitForFunction(() => FreeCell.isWon(), { timeout: 240000 }).catch(() => console.log('not won'));
+await new Promise((r) => setTimeout(r, 5000));
+console.log('after win:', bad.length ? [...new Set(bad)].join('\n') : 'none');
+await browser.close();

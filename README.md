@@ -1,6 +1,6 @@
-# FreeCell 3D
+# FreeCell Worlds
 
-FreeCell in three.js with eight fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
+FreeCell Worlds — FreeCell in three.js with eleven fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
 
 ```
 npm run serve        # http://localhost:8080  (any static server works)
@@ -18,6 +18,9 @@ npm run serve        # http://localhost:8080  (any static server works)
 | **Art Deco** | black-emerald lacquer with brass sunbursts, jazz-age court | rising champagne bubbles | vibraphone, 1920s swing, speakeasy room tone |
 | **Día de Muertos** | embroidered indigo cloth, papel picado, sugar-skull court, candle flicker | marigold petals | hand bell, nylon guitar + marimba, candlelit ofrenda |
 | **Deep Space Station** | bright starship observation lounge, holo-table with scan sweep | twinkling stars | clean synth chirps, sci-fi strings, bridge hum |
+| **Azulejo** | ivory ceramic + cobalt tile border, hand-painted blue maritime court | sparse cool dust motes | porcelain chimes, Portuguese guitar, seaside courtyard |
+| **Jet Set** | powder-blue laminate + walnut, 1960s travel-poster court | sparse warm dust motes | cabin bell, bossa nova lounge, quiet airport |
+| **Riverboat Royale** | bottle-green felt + mahogany and brass, engraved Victorian court | lamplit dust motes + gentle lamp flicker | chip clinks, saloon piano + fiddle, paddle-steamer river ambience |
 
 Themes live in `js/themes.js` (palette, card style, lighting, bloom, materials, art + audio names). Adding one means: an entry in `js/themes.js`, prompts in `tools/art-manifest.mjs` and `tools/sfx-manifest.mjs`, then `node tools/gen-art.mjs`, `node tools/gen-sfx.mjs`, `node tools/gen-sfx.mjs --music`, `bash tools/optimize-assets.sh`. Fonts are declared in `css/style.css`; UI skinning is `body[data-theme=…]` rules at the end of that file.
 
@@ -36,6 +39,14 @@ Themes live in `js/themes.js` (palette, card style, lighting, bloom, materials, 
 | `js/ui.js`, `js/stats.js`, `js/store.js` | title screen, HUD, modals, toasts; stats/achievements/daily; persistence |
 | `js/rules.js`, `js/solver.worker.js` | game rules and solver (unchanged) |
 | `sw.js`, `manifest.webmanifest` | offline + installable |
+
+## Auto-play to foundations
+
+Settings → Gameplay → *Auto-play to foundations* (on by default). A card goes home on its own when it is the next card its foundation needs **and** it is *safe*: its rank is at most 2, or both opposite-colour foundations already hold rank ≥ (rank − 1), so nothing left on the table can still need it as a base. Only column tops and free cells are considered (`safeFoundationMoves` in `js/rules.js`).
+
+Because that rule alone can stall in cross-blocked endgames (e.g. an unsafe 8♥ sitting on the 3♠ you need), there is one extension under the same toggle: once foundation moves *alone* can clear the whole table, the win is guaranteed and order-independent, so the remaining cards are played out (`canFinishWithFoundationOnly`).
+
+Auto-played moves are tagged in the history: **Undo** takes them back together with the move that triggered them, and the Moves counter and stats only count the player's own moves. Auto-play pauses while a card is held, during the deal and during auto-solve.
 
 ## Quality tiers
 

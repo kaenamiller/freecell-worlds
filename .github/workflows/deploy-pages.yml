@@ -23,7 +23,7 @@ jobs:
 
       - name: Prepare site and bust service-worker cache
         env:
-          PAGES_CACHE_VERSION: freecell3d-${{ github.run_number }}-${{ github.sha }}
+          PAGES_CACHE_VERSION: freecell-worlds-${{ github.run_number }}-${{ github.sha }}
         run: node tools/prepare-pages.mjs
 
       - name: Upload Pages artifact

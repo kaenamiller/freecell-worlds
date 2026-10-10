@@ -18,9 +18,30 @@ export const STYLE = {
     'Día de los Muertos aesthetic: glowing orange marigolds, candlelight, colorful papel picado banners, painted sugar skulls, embroidered flowers in magenta teal and purple, deep indigo night, warm celebratory and reverent mood, highly detailed, AAA game art.',
   space:
     'clean optimistic sci-fi starship aesthetic: bright orbital station and bridge interiors, smooth white and light-grey panels, rounded console shapes with orange, lavender and blue accent lighting, big observation windows onto stars, planets and nebulae, crisp hopeful 1990s-inspired future, highly detailed, AAA game art.',
+  azulejo:
+    'Portuguese azulejo aesthetic: hand-painted cobalt-blue botanical and maritime ornament on warm white glazed ceramic, traditional Lisbon courtyard architecture, limestone arches, subtle glaze crazing and imperfect brush strokes, Atlantic sea light, predominantly white and blue with restrained aged brass, refined sunlit luxury, highly detailed game art.',
+  jetset:
+    '1962 jet-set mid-century modern retro-futurism: sweeping sculptural airport architecture, curved panoramic windows, elegant walnut furniture, cream terrazzo, satin aluminum, tomato-red upholstery and powder-blue accents, optimistic glamorous golden age of air travel, sophisticated cinematic travel-poster mood, highly detailed game art, fictional airline with no real branding.',
+  riverboat:
+    '1870s Mississippi paddle-steamer casino aesthetic: lavish Victorian riverboat salon, polished mahogany, deep bottle-green felt, oxblood velvet, engraved antique brass, tobacco-cream paper, warm oil lamps and chandeliers, charming roguish high-stakes poker atmosphere, rich cinematic period detail, original characters rather than film actors.',
 };
 
 const COURT = {
+  azulejo: {
+    j: 'a Portuguese maritime navigator with a period cap and a small brass compass, rendered entirely in expressive cobalt-blue hand-painted ceramic brushwork on ivory glaze, strong traditional mirrored-card silhouette',
+    q: 'a regal Portuguese queen wearing a delicate crown and richly patterned robes, framed by blue botanical scrollwork, rendered entirely in cobalt-blue hand-painted ceramic brushwork on ivory glaze',
+    k: 'a dignified Portuguese maritime king with a beard and ornate crown, holding a ship-shaped ceremonial ornament, rendered entirely in cobalt-blue hand-painted ceramic brushwork on ivory glaze',
+  },
+  jetset: {
+    j: 'a handsome early-1960s airline navigator in a powder-blue uniform with a wing pin and peaked cap, holding a folded route chart without writing, flat mid-century travel-poster illustration with bold clean shapes and limited shading',
+    q: 'a glamorous early-1960s jet-set traveler with a sculptural coiffure, ivory silk scarf, tomato-red coat and pearl earrings, flat mid-century travel-poster illustration with bold clean shapes and limited shading',
+    k: 'a distinguished silver-haired airline captain in a navy uniform with satin-gold wings and a white peaked cap, flat mid-century travel-poster illustration with bold clean shapes and limited shading',
+  },
+  riverboat: {
+    j: 'a charming young riverboat gambler with a rakish smile, dark wavy hair, oxblood waistcoat, silk cravat and pocket-watch chain, original character, finely engraved Victorian playing-card illustration with hand-tinted colors',
+    q: 'a commanding elegant riverboat casino hostess with a dark updo, emerald silk gown, lace collar, pearl earrings and an ornate folding fan, original character, finely engraved Victorian playing-card illustration with hand-tinted colors',
+    k: 'a silver-haired riverboat casino proprietor with a neat moustache and beard, black frock coat, bottle-green waistcoat and gold watch chain, original character, finely engraved Victorian playing-card illustration with hand-tinted colors',
+  },
   roman: {
     j: 'a young heroic Roman legionary in a crested helmet, rendered as a gold statue bust, polished metallic gold with marble-pedestal feel',
     q: 'a regal Greek goddess in the manner of Athena with a laurel diadem and draped chiton, rendered as a gold statue bust, polished metallic gold',
@@ -64,6 +85,9 @@ const COURT = {
 };
 
 const BG = {
+  azulejo: 'against a plain ivory glazed-ceramic background with very faint blue brushwork',
+  jetset: 'against a plain warm cream background with a restrained powder-blue abstract arc',
+  riverboat: 'against a plain tobacco-cream paper background with faint engraved hatching',
   roman: 'against a plain flat dark burgundy background',
   cyber: 'against a plain flat dark indigo background with faint magenta rim light',
   aero: 'against a plain flat soft aqua-blue background',
@@ -76,6 +100,24 @@ const BG = {
 
 // Per-theme scene descriptions.
 const DESC = {
+  azulejo: {
+    board: 'An ivory glazed ceramic tabletop, a quiet continuous warm-white central field with extremely subtle glaze crazing. Elaborate hand-painted cobalt-blue azulejo tile borders with maritime waves, botanical scrolls and tiny compass rosettes ONLY along the outermost edges. Thin blue grout lines only in the decorative border, no central grid or medallion. Soft ivory centre, no baked-in harsh reflections or shadows.',
+    backdrop: 'A sunlit Portuguese seaside courtyard with cobalt-and-white azulejo walls, pale limestone arches, climbing bougainvillea at the margins and a distant blue Atlantic harbor through an arch, warm afternoon light, airy and serene.',
+    hero: 'A beautiful sunlit Portuguese tiled terrace overlooking a blue harbor, a magnificent cobalt-and-white ceramic vase and a neat fan of blue-backed ivory playing cards on a small tiled table on the RIGHT half of the frame, limestone arches and flowering greenery, the LEFT third is quiet whitewashed wall and soft shadow for title readability.',
+    back: 'Warm-white glazed ceramic field with intricate cobalt-blue botanical scrollwork, mirrored maritime wave motifs and an elegant symmetrical compass-rose medallion. Exclusively blue and white, handmade painted edges, crisp ornamental azulejo tile border.',
+  },
+  jetset: {
+    board: 'An elegant walnut-rimmed tabletop with a continuous muted powder-blue satin laminate central inset, extremely faint fine material grain, a cream-and-satin-aluminum border at the outer edges with tiny tomato-red mid-century starburst accents only in the extreme corners. No runway, no buildings, no aircraft and no bright lines across the centre. Even low-contrast medium-blue centre for ivory card readability.',
+    backdrop: 'A glamorous early-1960s sculptural airport first-class lounge, sweeping curved panoramic windows, cream terrazzo, walnut and red lounge chairs, a polished silver passenger jet parked beyond the glass, peach sunset fading into powder-blue sky, no lettering or logos.',
+    hero: 'A glamorous early-1960s traveler with a silk scarf and tomato-red coat standing on the RIGHT of a sweeping sculptural airport lounge, holding a neat fan of ivory playing cards, a silver jet through curved windows and peach sunset beyond, LEFT third calm cream architecture in shade for title readability, vintage travel-poster composition.',
+    back: 'Muted powder-blue field with ivory sweeping flight-path arcs, paired abstract satin-aluminum aircraft silhouettes, tomato-red starbursts and a symmetrical central winged geometric medallion for an invented airline. Flat screen-printed mid-century modern graphic design with simple geometric linework, no scrollwork, no filigree, no Victorian ornament, no gradients, no three-dimensional bevels, no branding.',
+  },
+  riverboat: {
+    board: 'A continuous deep bottle-green wool felt playing surface with subtle fine fibres, polished dark mahogany border with engraved antique-brass filigree only at the outermost edges, small oxblood velvet corner accents. Centre stays uninterrupted, dark and even, no chips, cards, money, lamps, objects or central medallion.',
+    backdrop: 'A lavish 1870s Mississippi paddle-steamer casino salon with tall river-facing windows, mahogany paneling, oxblood curtains, brass chandeliers and glowing oil lamps. Beyond the windows a broad river at dusk with shoreline lights and another distant paddle steamer, atmospheric warm amber light.',
+    hero: 'A charming original riverboat gambler with a rakish smile, oxblood waistcoat and black frock coat on the RIGHT, fanning traditional playing cards beside a green-felt poker table in a magnificent Victorian paddle-steamer salon. Tall windows reveal the Mississippi at sunset and a paddle wheel outside, LEFT third subdued dark mahogany for title readability. No resemblance to any actor.',
+    back: 'Traditional oxblood-red engraved card back with tobacco-cream Victorian scrollwork, a paired symmetrical paddle-wheel and river-wave medallion, intricate fine guilloche patterns and antique-gold keylines, perfectly balanced historical playing-card print.',
+  },
   roman: {
     board:
       'The surface is deep green-black marble with fine gold veining and a subtle inlaid gold-leaf meander (Greek key) border near the edges and a faint laurel-wreath medallion at the very centre. Dark vignette at the corners.',
@@ -168,7 +210,7 @@ export function manifest() {
       id: 'back',
       aspect: '3:4',
       size: '2K',
-      prompt: `Design for the back of a premium playing card, perfectly symmetrical (point-symmetric through the centre), full-bleed pattern with an ornamental border, in a ${s} ${d.back} Flat, straight-on, orthographic artwork that fills the entire frame edge to edge: no card edges, no table, no perspective, no shadows, no blurred background.` + NO_TEXT,
+      prompt: `Design for the back of a premium playing card, perfectly symmetrical (point-symmetric through the centre), full-bleed pattern with ${t === 'jetset' ? 'a simple geometric line border' : 'an ornamental border'}, in a ${s} ${d.back} Flat, straight-on, orthographic artwork that fills the entire frame edge to edge: no card edges, no table, no perspective, no shadows, no blurred background.` + NO_TEXT,
     });
     for (const [r, desc] of Object.entries(COURT[t])) {
       out.push({
