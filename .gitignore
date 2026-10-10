@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Local secrets (asset generation only; never needed at runtime)
+.env
+.env.*
+!.env.example
+
+# Full-resolution art originals (~160MB); served tree is assets/
+assets-src/
+
+# CI build output
+_site/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Dev screenshots
+tools/screenshots/
