@@ -52,8 +52,20 @@ export const ui = {
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.css['--bg']);
     $('#title-tagline').textContent = theme.tagline;
     $('#brand-theme').textContent = theme.name;
-    document.querySelectorAll('.theme-card, .theme-big').forEach((c) => c.classList.toggle('selected', c.dataset.theme === theme.id));
+    this.syncThemeSelection();
     this.setHero(theme.art.hero);
+  },
+
+  syncThemeSelection() {
+    const id = document.body.dataset.theme;
+    document.querySelectorAll('.theme-card, .theme-big').forEach((c) => {
+      const selected = c.classList.contains('theme-big') || !settings.autoRandomTheme
+        ? c.dataset.theme === id
+        : c.classList.contains('theme-random');
+      c.classList.toggle('selected', selected);
+      c.setAttribute('aria-pressed', String(selected));
+    });
+    $('#set-random-theme').checked = settings.autoRandomTheme;
   },
 
   heroFlip: false,
@@ -73,19 +85,29 @@ export const ui = {
   buildThemeUI() {
     const row = $('#theme-row');
     const grid = $('#theme-grid');
-    for (const id of THEME_ORDER) {
+    // Sample without replacement once per launch so the shortcuts stay stable.
+    const featured = [...THEME_ORDER];
+    for (let i = featured.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [featured[i], featured[j]] = [featured[j], featured[i]];
+    }
+    for (const id of featured.slice(0, 3)) {
       const t = THEMES[id];
       const small = document.createElement('button');
+      small.type = 'button';
       small.className = 'theme-card';
       small.dataset.theme = id;
       small.innerHTML = `<img src="${t.art.thumb}" alt="" loading="lazy" /><span>${t.name}</span>`;
       small.addEventListener('click', () => this.handlers.theme && this.handlers.theme(id));
       row.appendChild(small);
-
+    }
+    for (const id of THEME_ORDER) {
+      const t = THEMES[id];
       const big = document.createElement('button');
+      big.type = 'button';
       big.className = 'theme-big';
       big.dataset.theme = id;
-      big.innerHTML = `<img src="${t.art.thumb}" alt="" /><div class="meta"><b>${t.name}</b><small>${t.tagline}</small></div>`;
+      big.innerHTML = `<img src="${t.art.thumb}" alt="" loading="lazy" /><div class="meta"><b>${t.name}</b><small>${t.tagline}</small></div>`;
       big.addEventListener('click', () => {
         this.closeModals();
         this.handlers.theme && this.handlers.theme(id);
@@ -96,20 +118,17 @@ export const ui = {
     const random = document.createElement('button');
     random.type = 'button';
     random.className = 'theme-card theme-random';
-    random.title = 'Choose a different theme at random';
+    random.title = 'Use a random theme for each new game';
     random.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h3c4 0 8 12 12 12h3m-4-4 4 4-4 4M3 18h3c1.5 0 3-1.7 4.5-4M13.5 10C15 7.7 16.5 6 18 6h3m-4-4 4 4-4 4" /></svg><span>Random theme</span>`;
     random.addEventListener('click', async () => {
-      const others = THEME_ORDER.filter((id) => id !== document.body.dataset.theme);
-      const choices = others.length ? others : THEME_ORDER;
-      const id = choices[Math.floor(Math.random() * choices.length)];
       random.disabled = true;
       try {
-        await this.handlers.theme?.(id);
+        await this.handlers.randomTheme?.();
       } finally {
         random.disabled = false;
       }
     });
-    row.appendChild(random);
+    row.prepend(random);
   },
 
   refreshDaily() {
@@ -262,6 +281,7 @@ export const ui = {
     $('#title-deal').addEventListener('keydown', (e) => e.key === 'Enter' && $('#btn-title-deal').click());
     on('#btn-title-stats', () => this.openModal('modal-stats'));
     on('#btn-title-settings', () => this.openModal('modal-settings'));
+    on('#btn-title-themes', () => this.openModal('modal-themes'));
 
     on('#btn-home', () => H().home());
     on('#btn-new', () => H().newGame());
@@ -324,10 +344,11 @@ export const ui = {
       });
     };
     bindCheck('#set-autofound', 'autoFoundation');
+    bindCheck('#set-random-theme', 'autoRandomTheme');
     bindCheck('#set-fourcolor', 'fourColor');
     bindCheck('#set-contrast', 'highContrast');
     bindCheck('#set-reduced', 'reducedMotion');
-    bindCheck('#set-parallax', 'parallax');
+    bindCheck('#set-cursor-light', 'cursorLight');
     this.setMuteIcon(settings.muted);
   },
 

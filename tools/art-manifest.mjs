@@ -2,6 +2,12 @@
 const NO_TEXT = ' Absolutely no text, letters, numbers, writing, logos, watermarks or UI.';
 
 export const STYLE = {
+  carvings:
+    'Northwest Coast Indigenous-art-inspired painted cedar sculpture and bold formline-inspired graphic animal art, original contemporary compositions rather than copies of existing family crests or specific artworks, carved red cedar with visible chisel marks, charcoal black, vermilion, warm ivory and restrained blue-green, misty Pacific coastal forest atmosphere, grounded and sculptural, detailed premium game art.',
+  varsity:
+    'nostalgic collegiate varsity clubhouse aesthetic for an invented university, deep navy wool, chenille athletic patches, cream stitching, oxblood leather, collegiate gold and aged brass, letterman jackets and pennants, vintage mid-century athletic-poster illustration, warm autumn game-day afternoon, original fictional insignia and no real school logos, detailed premium game art.',
+  driftwood:
+    'sleepy fishing-village nautical aesthetic, silvered driftwood and worn seafoam paint, slate blue, chalk white, small rust-red accents and aged brass, rope knots, wool sweaters and yellow oilskin coats, weathered timber waterfront cottages, small working fishing boats, serene early-morning sea mist, cozy pen-and-watercolor illustration mixed with cinematic material detail, premium game art.',
   roman:
     'neo-classical ancient Roman and Greek aesthetic: polished white and green-veined marble architecture, fluted columns, gold-leaf statues and ornaments, warm Mediterranean sunlight, deep burgundy and ivory and antique gold palette, cinematic and luxurious, highly detailed, AAA game art.',
   cyber:
@@ -27,6 +33,21 @@ export const STYLE = {
 };
 
 const COURT = {
+  carvings: {
+    j: 'a bold stylized raven rendered as an original painted red-cedar animal carving, charcoal beak and vermilion and ivory geometric detailing with blue-green accents, highly readable sculptural silhouette, not a human figure, no human costume, no specific clan crest',
+    q: 'a powerful stylized bear rendered as an original painted red-cedar animal carving, rounded ears and strong expressive animal silhouette with charcoal, vermilion and ivory geometric detailing, not a human figure, no human costume, no specific clan crest',
+    k: 'a majestic stylized orca rendered as an original painted red-cedar animal carving, bold black-and-ivory sweeping shape with vermilion detailing and a distinctive dorsal fin, highly readable sculptural silhouette, not a human figure, no human costume, no specific clan crest',
+  },
+  varsity: {
+    j: 'a confident young track athlete wearing a navy-and-cream letterman jacket with a small abstract athletic patch and holding a relay baton, original fictional university athlete, vintage screen-printed athletic-poster illustration with crisp navy, cream, gold and oxblood color shapes',
+    q: 'a confident collegiate tennis champion with a short vintage waved haircut, a cream tennis sweater and navy-and-gold varsity jacket draped over her shoulders, holding a wooden tennis racket, original fictional university athlete, vintage screen-printed athletic-poster illustration with crisp navy, cream, gold and oxblood color shapes',
+    k: 'a broad-shouldered collegiate football captain wearing an oxblood-and-navy letterman jacket with cream leather sleeves and holding a vintage brown leather football, original fictional university athlete, vintage screen-printed athletic-poster illustration with crisp navy, cream, gold and oxblood color shapes',
+  },
+  driftwood: {
+    j: 'a friendly young fishing-boat deckhand wearing a navy wool watch cap, striped sweater and faded seafoam work jacket, holding a coil of rope, warm expressive pen-and-watercolor portrait with visible paper texture and clean readable silhouette',
+    q: 'a seasoned female harbor skipper wearing a mustard-yellow oilskin coat and a blue wool scarf, wind-tousled hair and a quiet confident smile, holding a small nautical chart without writing, warm expressive pen-and-watercolor portrait with visible paper texture and clean readable silhouette',
+    k: 'a kindly old fisherman with a grey beard, navy wool cap, weathered face and chunky cream cable-knit sweater beneath a slate-blue coat, warm expressive pen-and-watercolor portrait with visible paper texture and clean readable silhouette',
+  },
   azulejo: {
     j: 'a Portuguese maritime navigator with a period cap and a small brass compass, rendered entirely in expressive cobalt-blue hand-painted ceramic brushwork on ivory glaze, strong traditional mirrored-card silhouette',
     q: 'a regal Portuguese queen wearing a delicate crown and richly patterned robes, framed by blue botanical scrollwork, rendered entirely in cobalt-blue hand-painted ceramic brushwork on ivory glaze',
@@ -85,6 +106,9 @@ const COURT = {
 };
 
 const BG = {
+  carvings: 'against a plain dark charcoal-cedar background with soft side light revealing carving depth',
+  varsity: 'against a plain warm cream paper background with one restrained navy-and-gold pennant shape',
+  driftwood: 'against a plain chalk-white watercolor-paper background with a faint slate-blue wash',
   azulejo: 'against a plain ivory glazed-ceramic background with very faint blue brushwork',
   jetset: 'against a plain warm cream background with a restrained powder-blue abstract arc',
   riverboat: 'against a plain tobacco-cream paper background with faint engraved hatching',
@@ -100,6 +124,24 @@ const BG = {
 
 // Per-theme scene descriptions.
 const DESC = {
+  carvings: {
+    board: 'A continuous dark smoked-cedar playing surface with subtle long wood grain, a broad hand-carved red-cedar border confined to the outermost edges, original interlocking abstract animal-inspired relief with charcoal-black, vermilion and ivory painted details and a little blue-green. Raking light reveals gentle chisel marks. Centre remains flat, evenly dark and unornamented, no animal figures, symbols or strong lines in the central playing area.',
+    backdrop: 'A sheltered open-sided cedar pavilion beside a misty Pacific coastal inlet, two large original painted animal-carving poles standing at the far margins, dark evergreen forest and distant mountains across the still water, pale overcast morning light, quiet atmospheric composition. No ceremonial performance or people.',
+    hero: 'A beautifully carved and painted original cedar raven sculpture on the RIGHT side of a cedar pavilion, a neat fan of ivory playing cards with bold red-and-black backs on a wooden ledge below, larger carved animal poles at the edge of a misty coastal inlet and evergreen forest beyond. LEFT third calm dark cedar paneling for title readability. Strong sculptural lighting and painted relief, no human figures.',
+    back: 'A bold flat original symmetrical animal-inspired graphic with interlocking raven-like wings and abstract wave forms, charcoal-black field with vermilion, warm ivory and a small blue-green accent, clean thick flowing lines and carved-wood-inspired border. Do not reproduce an existing family crest or named artwork. No human figures, feathers as costume or lettering.',
+  },
+  varsity: {
+    board: 'A continuous deep navy wool-felt playing surface with subtle woven fibres. Cream double-stitched seams run only around the outermost border, oxblood leather edging, small gold-and-cream chenille athletic patches only at the extreme corners, a restrained brass line at the edge. Centre is uninterrupted navy with even low contrast, no central crest, no balls, jackets, equipment, gridiron lines or objects on the playing area.',
+    backdrop: 'A cozy vintage university athletics clubhouse with walnut paneling, oxblood leather benches, navy-and-cream letterman jackets hanging on hooks, wool pennants and a glass trophy cabinet. Tall windows show autumn trees and a distant football stadium under warm afternoon sunlight. All athletic symbols are fictional abstract shapes without lettering.',
+    hero: 'A charismatic vintage college athlete in a navy wool letterman jacket with cream leather sleeves on the RIGHT, casually holding a neat fan of playing cards beside a navy-felt clubhouse table, autumn campus and stadium beyond the windows, pennants and trophy case behind. LEFT third calm dark navy-and-walnut interior for title readability. Warm nostalgic collegiate atmosphere.',
+    back: 'An original embroidered varsity athletic patch composition: deep navy wool field, cream double stitching, gold chenille star and laurel forms, paired symmetrical oxblood pennants and a bold central abstract winged ball emblem. Clearly tactile fabric and embroidery, crisp clean collegiate geometry, no lettering, no real university or professional team logo.',
+  },
+  driftwood: {
+    board: 'A weathered driftwood-rimmed tabletop with a continuous muted medium-dark slate-blue painted central inset, fine quiet brush texture and subtle wear only at the edges. Silvered driftwood and neatly laid pale rope edging form the outermost border, small aged-brass fasteners and tiny rust-red corner accents. Centre stays uninterrupted and evenly slate blue, no central compass, grid, rope, boats, shells, maps or objects.',
+    backdrop: 'A sheltered waterfront cafe porch in a sleepy fishing village at dawn, silvered timber railings and faded seafoam-painted cottages, small working fishing boats gently moored among pilings, rope coils and lobster pots at the margins, a distant lighthouse softened by pale sea mist, quiet slate-blue harbor water and warm light from one cottage window.',
+    hero: 'A peaceful waterfront cafe porch with a kindly old fisherman in a navy wool cap and cream sweater on the RIGHT, a fan of ivory playing cards on a small driftwood table beside a ceramic mug. Small fishing boats, crooked seafoam timber cottages and a distant lighthouse across a sleepy misty harbor. LEFT third quiet shaded slate-blue porch wall for title readability. Cozy contemplative morning atmosphere.',
+    back: 'Slate-blue and seafoam flat nautical card-back artwork with mirrored chalk-white rope knots and gentle wave lines, a small perfectly symmetric compass medallion, rust-red accents and a weathered cream rope border, hand-drawn pen-and-watercolor print texture, understated elegant working-harbor feel, no skulls, pirate motifs or lettering.',
+  },
   azulejo: {
     board: 'An ivory glazed ceramic tabletop, a quiet continuous warm-white central field with extremely subtle glaze crazing. Elaborate hand-painted cobalt-blue azulejo tile borders with maritime waves, botanical scrolls and tiny compass rosettes ONLY along the outermost edges. Thin blue grout lines only in the decorative border, no central grid or medallion. Soft ivory centre, no baked-in harsh reflections or shadows.',
     backdrop: 'A sunlit Portuguese seaside courtyard with cobalt-and-white azulejo walls, pale limestone arches, climbing bougainvillea at the margins and a distant blue Atlantic harbor through an arch, warm afternoon light, airy and serene.',

@@ -723,9 +723,130 @@ export const THEMES = {
     fx: { spark: [1, 0.8, 0.4], dust: [0.9, 0.8, 0.6], flash: 0xffce83 },
     confetti: [0xd7b46b, 0x7a2430, 0xf8edd4, 0x285c43, 0xffffff], art: artFor('riverboat'),
   },
+  carvings: {
+    id: 'carvings', name: 'Coastal Carvings',
+    tagline: 'Painted cedar, bold animal forms and a misty coast.', fontFamily: 'Cinzel',
+    css: {
+      '--bg': '#100e0b', '--panel': 'rgba(31, 23, 17, 0.9)', '--panel-solid': '#1f1711',
+      '--border': 'rgba(232, 191, 150, 0.35)', '--text': '#fff0d9', '--muted': '#cbb296',
+      '--accent': '#f09b75', '--accent-2': '#83b6b0', '--glow': 'rgba(240, 155, 117, 0.24)',
+      '--radius': '4px', '--font-ui': "'Cinzel', Georgia, serif",
+    },
+    card: {
+      paper: ['#fff5e2', '#eddec3'], edge: 0xf0e3cd, border: '#a04432', indexFont: 'Cinzel', indexWeight: 700,
+      suits: ['#17231f', '#b7352b', '#b7352b', '#17231f'], outline: '#362519',
+      fourColor: ['#205bb6', '#ce6811', '#b7352b', '#17231f'], fx: 'none', courtFrame: '#a04432',
+      courtWash: 0, emissive: 0, clearcoat: 0.08, backFit: 'cover',
+    },
+    scene: {
+      clear: 0x171c19, exposure: 0.94, fog: [0x34423f, 18, 42], env: 0.55,
+      hemi: [0xdde9e5, 0x322116, 0.6],
+      key: { color: 0xffe8ca, intensity: 2, pos: [5.5, 13, 6.5] },
+      fill: { color: 0xb5d8db, intensity: 0.65, pos: [-7, 8, -5] },
+      rim: { color: 0x83b6b0, intensity: 14, pos: [0, 7, -7] }, accentLights: [],
+      bloom: { strength: 0.12, radius: 0.6, threshold: 1.3 }, vignette: 0.32, grain: 0.035, ao: 0.85,
+    },
+    table: {
+      surface: { roughness: 0.88, metalness: 0, clearcoat: 0.08, clearcoatRoughness: 0.65, normal: 0.85, emissive: 0, env: 0.2 },
+      rail: { color: 0x763e29, roughness: 0.75, metalness: 0, clearcoat: 0.12, emissive: 0, emissiveIntensity: 0 },
+      inlay: { color: 0xae3e2d, roughness: 0.7, metalness: 0, emissive: 0, emissiveIntensity: 0 },
+      finial: { color: 0x83b6b0, roughness: 0.6, metalness: 0 }, base: 0x3d281a,
+    },
+    slots: {
+      col: { fill: 'rgba(0,0,0,0.12)', stroke: 'rgba(255,240,217,0.48)', dash: [22, 12], glow: 0 },
+      free: { fill: 'rgba(0,0,0,0.2)', stroke: 'rgba(255,240,217,0.8)', dash: [18, 10], glow: 0, mark: 'rgba(255,240,217,0.65)' },
+      found: { fill: 'rgba(0,0,0,0.24)', stroke: 'rgba(131,182,176,1)', dash: [], glow: 0, inner: 'rgba(255,240,217,0.6)' },
+    },
+    particles: 'motes', ambientColor: [0.9, 0.86, 0.7], ambientCount: 24,
+    fx: { spark: [0.7, 0.9, 0.85], dust: [0.8, 0.7, 0.5], flash: 0xb9dbcd },
+    confetti: [0xb7352b, 0x83b6b0, 0xfff0d9, 0x763e29, 0x22231f], art: artFor('carvings'),
+  },
+  varsity: {
+    id: 'varsity', name: 'Varsity Club',
+    tagline: 'Wool, leather and a little homecoming spirit.', fontFamily: 'Antonio',
+    css: {
+      '--bg': '#0b1426', '--panel': 'rgba(15, 27, 48, 0.9)', '--panel-solid': '#0f1b30',
+      '--border': 'rgba(238, 207, 143, 0.4)', '--text': '#fff4da', '--muted': '#c1b395',
+      '--accent': '#edc56e', '--accent-2': '#b95862', '--glow': 'rgba(237, 197, 110, 0.24)',
+      '--radius': '8px', '--font-ui': "'Antonio', 'Arial Narrow', sans-serif",
+    },
+    card: {
+      paper: ['#fff8e9', '#eee3cb'], edge: 0xf3e9d4, border: '#9d793b', indexFont: 'Antonio', indexWeight: 700,
+      suits: ['#152238', '#a72e39', '#a72e39', '#152238'], outline: '#1b2939',
+      fourColor: ['#205bb6', '#ce6811', '#a72e39', '#152238'], fx: 'none', courtFrame: '#9d793b',
+      courtWash: 0, emissive: 0, clearcoat: 0.08, backFit: 'cover',
+    },
+    scene: {
+      clear: 0x152033, exposure: 0.93, fog: [0x152033, 20, 42], env: 0.55,
+      hemi: [0xffeacf, 0x142239, 0.6],
+      key: { color: 0xffe7bf, intensity: 2.1, pos: [5.5, 13, 6.5] },
+      fill: { color: 0xb6c9ea, intensity: 0.6, pos: [-7, 8, -5] },
+      rim: { color: 0xffcc84, intensity: 14, pos: [0, 7, -7] }, accentLights: [],
+      bloom: { strength: 0.16, radius: 0.5, threshold: 1.2 }, vignette: 0.32, grain: 0.03, ao: 0.85,
+    },
+    table: {
+      surface: { roughness: 0.97, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.8, normal: 0.75, emissive: 0, env: 0.15 },
+      rail: { color: 0x57272b, roughness: 0.7, metalness: 0, clearcoat: 0.1, emissive: 0, emissiveIntensity: 0 },
+      inlay: { color: 0xe5d4ad, roughness: 0.75, metalness: 0, emissive: 0, emissiveIntensity: 0 },
+      finial: { color: 0xc8a257, roughness: 0.38, metalness: 0.65 }, base: 0x352719,
+    },
+    slots: {
+      col: { fill: 'rgba(0,0,0,0.14)', stroke: 'rgba(255,244,218,0.5)', dash: [12, 8], glow: 0 },
+      free: { fill: 'rgba(0,0,0,0.24)', stroke: 'rgba(255,244,218,0.8)', dash: [12, 8], glow: 0, mark: 'rgba(255,244,218,0.65)' },
+      found: { fill: 'rgba(0,0,0,0.3)', stroke: 'rgba(237,197,110,1)', dash: [], glow: 0, inner: 'rgba(237,197,110,0.6)' },
+    },
+    particles: 'motes', ambientColor: [1, 0.88, 0.64], ambientCount: 28,
+    fx: { spark: [1, 0.83, 0.4], dust: [0.9, 0.8, 0.6], flash: 0xf7cf7f },
+    confetti: [0xedc56e, 0xfff4da, 0x243f6c, 0xa72e39, 0xffffff], art: artFor('varsity'),
+  },
+  driftwood: {
+    id: 'driftwood', name: 'Driftwood Bay',
+    tagline: 'Salt-worn timber, quiet boats and a morning tide.', fontFamily: 'Cormorant Garamond',
+    css: {
+      '--bg': '#16252d', '--panel': 'rgba(23, 42, 51, 0.9)', '--panel-solid': '#172a33',
+      '--border': 'rgba(176, 207, 197, 0.4)', '--text': '#f5f0e2', '--muted': '#b0c5c6',
+      '--accent': '#b0cfc5', '--accent-2': '#d89e7a', '--glow': 'rgba(176, 207, 197, 0.22)',
+      '--radius': '9px', '--font-ui': "'Cormorant Garamond', Georgia, serif",
+    },
+    card: {
+      paper: ['#fff9ec', '#e8e8dc'], edge: 0xf0eee1, border: '#65858d', indexFont: 'Cormorant Garamond', indexWeight: 700,
+      suits: ['#162a32', '#b44236', '#b44236', '#162a32'], outline: '#243d45',
+      fourColor: ['#205bb6', '#ce6811', '#b44236', '#162a32'], fx: 'none', courtFrame: '#65858d',
+      courtWash: 0, emissive: 0, clearcoat: 0.08, backFit: 'cover',
+    },
+    scene: {
+      clear: 0x5d7a85, exposure: 0.93, fog: [0x819ba2, 20, 46], env: 0.5,
+      hemi: [0xe4f0ee, 0x30434d, 0.6],
+      key: { color: 0xffefd5, intensity: 1.9, pos: [5.5, 13, 6.5] },
+      fill: { color: 0xb9d7e1, intensity: 0.65, pos: [-7, 8, -5] },
+      rim: { color: 0xddecea, intensity: 10, pos: [0, 7, -7] }, accentLights: [],
+      bloom: { strength: 0.12, radius: 0.6, threshold: 1.4 }, vignette: 0.25, grain: 0.025, ao: 0.75,
+    },
+    table: {
+      surface: { roughness: 0.88, metalness: 0, clearcoat: 0.05, clearcoatRoughness: 0.65, normal: 0.7, emissive: 0, env: 0.2 },
+      rail: { color: 0x8e9790, roughness: 0.9, metalness: 0, clearcoat: 0, emissive: 0, emissiveIntensity: 0 },
+      inlay: { color: 0xd1c5a8, roughness: 0.85, metalness: 0, emissive: 0, emissiveIntensity: 0 },
+      finial: { color: 0x9a8660, roughness: 0.6, metalness: 0.55 }, base: 0x59676b,
+      caustics: { color: 0x93bac1, opacity: 0.055 },
+    },
+    slots: {
+      col: { fill: 'rgba(12,30,40,0.12)', stroke: 'rgba(245,240,226,0.5)', dash: [20, 12], glow: 0 },
+      free: { fill: 'rgba(12,30,40,0.22)', stroke: 'rgba(245,240,226,0.85)', dash: [18, 10], glow: 0, mark: 'rgba(245,240,226,0.65)' },
+      found: { fill: 'rgba(12,30,40,0.28)', stroke: 'rgba(176,207,197,1)', dash: [], glow: 0, inner: 'rgba(245,240,226,0.65)' },
+    },
+    particles: 'motes', ambientColor: [0.74, 0.87, 0.9], ambientCount: 20,
+    fx: { spark: [0.72, 0.92, 0.88], dust: [0.8, 0.9, 0.85], flash: 0xc0e0d5 },
+    confetti: [0xb0cfc5, 0x65858d, 0xf5f0e2, 0xd89e7a, 0xffffff], art: artFor('driftwood'),
+  },
 };
 
-export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'space', 'azulejo', 'jetset', 'riverboat'];
+export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'space', 'azulejo', 'jetset', 'riverboat', 'carvings', 'varsity', 'driftwood'];
+
+export function randomThemeId(currentId) {
+  const others = THEME_ORDER.filter((id) => id !== currentId);
+  const choices = others.length ? others : THEME_ORDER;
+  return choices[Math.floor(Math.random() * choices.length)];
+}
 
 // --- asset loading ------------------------------------------------------------
 const imageCache = new Map();

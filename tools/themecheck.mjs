@@ -11,7 +11,7 @@ const errors = [];
 const failures = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
-await page.evaluateOnNewDocument(() => localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme: 'roman', quality: 'low' })));
+await page.evaluateOnNewDocument(() => localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme: 'roman', autoRandomTheme: false, quality: 'low' })));
 await page.goto('http://localhost:8123/');
 await page.waitForFunction(() => !document.getElementById('loader'), { timeout: 90000 });
 await page.click('#btn-play');

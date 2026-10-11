@@ -46,7 +46,10 @@
         <button class="btn big" id="btn-daily"><svg viewBox="0 0 24 24"><path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zM5 9h14v10H5z"/></svg>Daily Challenge<em id="daily-badge"></em></button>
         <label class="deal-pick"><span>Deal&nbsp;#</span><input id="title-deal" type="number" min="1" max="1000000" placeholder="random" /><button class="btn" id="btn-title-deal">Go</button></label>
       </div>
-      <div class="theme-row" id="theme-row"></div>
+      <div class="title-themes">
+        <div class="theme-row" id="theme-row" role="group" aria-label="Featured themes"></div>
+        <button class="btn" id="btn-title-themes" aria-haspopup="dialog" aria-controls="modal-themes">All themes</button>
+      </div>
       <div class="title-foot">
         <button class="link" id="btn-title-stats">Stats</button>
         <button class="link" id="btn-title-settings">Settings</button>
@@ -130,21 +133,22 @@
         </label>
         <p class="note" id="perf-readout"></p>
         <h4>Gameplay</h4>
+        <label class="row check"><input type="checkbox" id="set-random-theme" />Automatic random theme<small>Start with a random theme and choose a different one for each new game. Turn off to keep your current theme.</small></label>
         <label class="row check"><input type="checkbox" id="set-autofound" />Auto-play to foundations<small>Safe cards go home on their own: aces, 2s, and any card the opposite colour no longer needs. Undo takes them back with your move.</small></label>
         <h4>Accessibility</h4>
         <label class="row check"><input type="checkbox" id="set-fourcolor" />Four-colour suits<small>Spades black, hearts red, clubs blue, diamonds orange</small></label>
         <label class="row check"><input type="checkbox" id="set-contrast" />High-contrast cards<small>Classic white faces, black and red ink, heavy outlines, dimmed table</small></label>
-        <label class="row check"><input type="checkbox" id="set-reduced" />Reduce motion<small>Calmer cards, no camera drift or particles</small></label>
-        <label class="row check"><input type="checkbox" id="set-parallax" />Camera parallax<small>The view gently follows your pointer</small></label>
+        <label class="row check"><input type="checkbox" id="set-reduced" />Reduce motion<small>Calmer cards, immediate cursor light, fewer effects</small></label>
+        <label class="row check"><input type="checkbox" id="set-cursor-light" />Cursor light<small>A soft light follows your pointer or finger across the table</small></label>
         <h4>Data</h4>
         <button class="btn" id="btn-reset-stats">Reset statistics</button>
       </div>
     </div>
   </div>
 
-  <div class="modal" id="modal-themes">
+  <div class="modal" id="modal-themes" role="dialog" aria-modal="true" aria-labelledby="theme-picker-title">
     <div class="modal-card panel wide">
-      <header><h3>Choose a table</h3><button class="icon-btn close" data-close>&times;</button></header>
+      <header><h3 id="theme-picker-title">Choose a table</h3><button class="icon-btn close" data-close aria-label="Close theme picker">&times;</button></header>
       <div class="modal-body"><div class="theme-grid" id="theme-grid"></div></div>
     </div>
   </div>

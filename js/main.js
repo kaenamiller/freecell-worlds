@@ -6,7 +6,7 @@ import { Animator, Easing, CardMotion } from './animation.js';
 import { Post } from './post.js';
 import { Particles, Pulses } from './fx.js';
 import { buildTableLayer } from './table.js';
-import { THEMES, loadThemeAssets } from './themes.js';
+import { THEMES, loadThemeAssets, randomThemeId } from './themes.js';
 import { audio, SHARED_SOUNDS } from './audio.js';
 import { settings, saveSettings, load, save } from './store.js';
 import { stats, recordStart, recordWin, recordLoss, resetStats, dailyDealNumber } from './stats.js';
@@ -73,9 +73,6 @@ let post = null;
 // Camera framing
 // ---------------------------------------------------------------------------
 const FIELD = { minX: -4.975, maxX: 4.975, minZ: -3.775, maxZ: 2.175, centerZ: -0.8 };
-const lookTarget = new THREE.Vector3(0, 0, FIELD.centerZ);
-const camBase = new THREE.Vector3();
-const camLook = new THREE.Vector3();
 
 function frameBoard() {
   const elevation = THREE.MathUtils.degToRad(60);
@@ -142,36 +139,9 @@ function frameBoard() {
     D = fitDistance(tz);
   }
   evalView(D, tz);
-  lookTarget.copy(target);
-  camBase.copy(camera.position);
   camera.updateProjectionMatrix();
 }
 frameBoard();
-
-// Pointer-driven parallax (smoothed) + win-time dolly.
-const parallax = { x: 0, y: 0, tx: 0, ty: 0, dolly: 0 };
-window.addEventListener('pointermove', (e) => {
-  parallax.tx = (e.clientX / window.innerWidth) * 2 - 1;
-  parallax.ty = (e.clientY / window.innerHeight) * 2 - 1;
-});
-
-function updateCamera(dt) {
-  const on = settings.parallax && !settings.reducedMotion && !drag;
-  parallax.x += ((on ? parallax.tx : 0) - parallax.x) * Math.min(1, dt * 2.5);
-  parallax.y += ((on ? parallax.ty : 0) - parallax.y) * Math.min(1, dt * 2.5);
-  const t = performance.now() / 1000;
-  const breathe = settings.reducedMotion ? 0 : Math.sin(t * 0.35) * 0.05;
-  camera.position.set(
-    camBase.x + parallax.x * 0.2,
-    camBase.y - parallax.y * 0.08 + breathe,
-    camBase.z + parallax.y * 0.08
-  );
-  if (parallax.dolly) camera.position.lerp(lookTarget, parallax.dolly);
-  // Aim partly along with the move so the board stays squared up instead of skewing.
-  camLook.copy(lookTarget);
-  camLook.x += parallax.x * 0.12;
-  camera.lookAt(camLook);
-}
 
 // ---------------------------------------------------------------------------
 // Lighting (colours / intensities are set per theme)
@@ -198,6 +168,106 @@ const fill = new THREE.DirectionalLight(0xffffff, 0.5);
 scene.add(fill);
 const rim = new THREE.PointLight(0xffffff, 30, 30, 2);
 scene.add(rim);
+
+// A local light follows the pointer on the playing plane; the camera stays fixed.
+// Keep it in the scene so theme rebuilds do not recreate it. No extra shadow pass.
+// Raising the source spreads the illumination and softens its central hotspot.
+const CURSOR_LIGHT = { height: 1.75, intensity: 1.8, range: 5.5 };
+const cursorLight = new THREE.PointLight(0xfff5e8, 0, CURSOR_LIGHT.range, 2);
+cursorLight.position.set(0, SURFACE_Y + CURSOR_LIGHT.height, FIELD.centerZ);
+scene.add(cursorLight);
+const cursorGlow = {
+  pointer: new THREE.Vector2(),
+  ray: new THREE.Raycaster(),
+  plane: new THREE.Plane(new THREE.Vector3(0, 1, 0), -SURFACE_Y),
+  hit: new THREE.Vector3(),
+  target: new THREE.Vector3(),
+  active: false,
+  tracking: false,
+  touchId: null,
+  releaseRemaining: 0,
+};
+function setCursorLightPointer(e) {
+  const rect = canvas.getBoundingClientRect();
+  cursorGlow.pointer.set(
+    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+    -((e.clientY - rect.top) / rect.height) * 2 + 1
+  );
+}
+const hideCursorLight = () => {
+  cursorGlow.active = false;
+  cursorGlow.touchId = null;
+  cursorGlow.releaseRemaining = 0;
+};
+// Capture phase also sees card taps whose game handler stops propagation.
+window.addEventListener('pointerdown', (e) => {
+  if (e.isPrimary === false) return;
+  if (e.target !== canvas) {
+    hideCursorLight();
+    return;
+  }
+  if (e.pointerType !== 'touch') return;
+  cursorGlow.touchId = e.pointerId;
+  cursorGlow.releaseRemaining = 0;
+  cursorGlow.active = true;
+  cursorGlow.tracking = false; // each tap lights its new position immediately
+  setCursorLightPointer(e);
+  updateCursorLight(0);
+  // Even a quick tap should be visible before its release fade starts.
+  if (settings.cursorLight && cursorGlow.tracking) cursorLight.intensity = CURSOR_LIGHT.intensity;
+}, true);
+window.addEventListener('pointermove', (e) => {
+  if (e.isPrimary === false) return;
+  if (e.pointerType === 'touch') {
+    if (e.pointerId !== cursorGlow.touchId) return;
+    setCursorLightPointer(e);
+    return;
+  }
+  cursorGlow.releaseRemaining = 0;
+  cursorGlow.active = e.target === canvas;
+  if (cursorGlow.active) setCursorLightPointer(e);
+}, true);
+window.addEventListener('pointerup', (e) => {
+  if (e.pointerId !== cursorGlow.touchId) return;
+  setCursorLightPointer(e);
+  cursorGlow.touchId = null;
+  cursorGlow.releaseRemaining = settings.reducedMotion ? 0 : 0.35;
+  if (!cursorGlow.releaseRemaining) cursorGlow.active = false;
+}, true);
+canvas.addEventListener('pointerleave', (e) => {
+  // Touch emits pointerleave after release; allow the tap glow to finish.
+  if (e.pointerType !== 'touch') hideCursorLight();
+});
+window.addEventListener('blur', hideCursorLight);
+document.addEventListener('visibilitychange', hideCursorLight);
+window.addEventListener('pointercancel', hideCursorLight, true);
+
+function updateCursorLight(dt) {
+  if (cursorGlow.releaseRemaining > 0) {
+    cursorGlow.releaseRemaining = Math.max(0, cursorGlow.releaseRemaining - dt);
+    if (!cursorGlow.releaseRemaining) cursorGlow.active = false;
+  }
+  let on = settings.cursorLight && cursorGlow.active;
+  if (on) {
+    cursorGlow.ray.setFromCamera(cursorGlow.pointer, camera);
+    const hit = cursorGlow.ray.ray.intersectPlane(cursorGlow.plane, cursorGlow.hit);
+    const { w, h, cz } = LAYOUT.surf;
+    on = !!hit && Math.abs(hit.x) <= w / 2 && Math.abs(hit.z - cz) <= h / 2;
+    if (on) {
+      cursorGlow.target.set(hit.x, SURFACE_Y + CURSOR_LIGHT.height, hit.z);
+      if (!cursorGlow.tracking || settings.reducedMotion) {
+        cursorLight.position.copy(cursorGlow.target);
+      } else {
+        cursorLight.position.lerp(cursorGlow.target, 1 - Math.exp(-18 * dt));
+      }
+    }
+  }
+  cursorGlow.tracking = on;
+  const intensity = on ? CURSOR_LIGHT.intensity : 0;
+  cursorLight.intensity = settings.reducedMotion
+    ? intensity
+    : THREE.MathUtils.lerp(cursorLight.intensity, intensity, 1 - Math.exp(-12 * dt));
+}
 
 function applyLights(cfg) {
   renderer.toneMappingExposure = cfg.exposure;
@@ -329,7 +399,7 @@ const panOf = (x) => clamp((x / 5) * 0.65, -0.8, 0.8);
 // ---------------------------------------------------------------------------
 // Theme manager
 // ---------------------------------------------------------------------------
-let currentTheme = THEMES[settings.theme] || THEMES.roman;
+let currentTheme = THEMES[settings.autoRandomTheme ? randomThemeId(settings.theme) : settings.theme] || THEMES.roman;
 let currentArt = null;
 let envTarget = null;
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -1066,6 +1136,7 @@ function persistGame() {
   if (manualMoves() === 0) return;
   save('game', {
     deal: game.dealNumber,
+    theme: currentTheme.id,
     moves: game.history,
     elapsed: run.elapsed,
     undos: run.undos,
@@ -1194,7 +1265,26 @@ function disposeCard(g) {
   g.userData.backMat && g.userData.backMat.dispose();
 }
 
-function newGame(dealNumber, opts = {}) {
+let startingGame = false;
+async function newGame(dealNumber, opts = {}) {
+  if (startingGame) return;
+  startingGame = true;
+  try {
+    autoTok++;
+    stopSolve();
+    if (settings.autoRandomTheme && opts.restore && THEMES[opts.restore.theme]) {
+      await switchTheme(opts.restore.theme);
+    }
+    if (settings.autoRandomTheme && !opts.restore) {
+      await switchTheme(randomThemeId(currentTheme.id));
+    }
+    dealGame(dealNumber, opts);
+  } finally {
+    startingGame = false;
+  }
+}
+
+function dealGame(dealNumber, opts = {}) {
   // Walking away from a game in progress breaks the streak.
   if (game && !won && run.counted && !opts.restore) recordLoss();
   autoTok++; // cancel any pending auto-play from the previous deal
@@ -1316,12 +1406,10 @@ function cancelCascade() {
     m.material.dispose();
   }
   confetti.length = 0;
-  parallax.dolly = 0;
 }
 function updateCascade(dt) {
   if (!cascade) return;
   cascade.t += dt;
-  parallax.dolly = Math.min(0.12, parallax.dolly + dt * 0.03);
   while (cascade.i < cascade.order.length && cascade.t > 0.5 + cascade.i * 0.2) {
     const id = cascade.order[cascade.i++];
     const g = cardGroups.get(id);
@@ -1412,7 +1500,7 @@ function updateConfetti(dt) {
 function startGameFromTitle(num, opts) {
   audio.unlock();
   ui.hideTitle();
-  newGame(num ?? randomDealNumber(), opts);
+  return newGame(num ?? randomDealNumber(), opts);
 }
 
 function doUndo() {
@@ -1469,7 +1557,18 @@ ui.handlers = {
     if (onTitle) startGameFromTitle(n);
     else newGame(n);
   },
-  theme: (id) => switchTheme(id),
+  theme: (id) => {
+    settings.autoRandomTheme = false;
+    saveSettings();
+    ui.syncThemeSelection();
+    return switchTheme(id);
+  },
+  randomTheme: () => {
+    settings.autoRandomTheme = true;
+    saveSettings();
+    ui.syncThemeSelection();
+    return switchTheme(randomThemeId(currentTheme.id));
+  },
   home: () => ui.showTitle(),
   newGame: () => newGame(randomDealNumber()),
   undo: doUndo,
@@ -1484,6 +1583,7 @@ ui.handlers = {
   },
   settings: (k) => {
     audio.applyVolumes();
+    if (k === 'autoRandomTheme') ui.syncThemeSelection();
     if (k === 'quality') {
       perf.downgraded = false;
       perf.tier = settings.quality === 'auto' ? (isTouch ? 'medium' : 'high') : settings.quality;
@@ -1573,7 +1673,7 @@ function loop() {
   particles.update(dt);
   pulses.update(dt);
   layer && layer.update(dt, t);
-  updateCamera(dt);
+  updateCursorLight(dt);
   tickTimer();
   adapt(raw);
   if (perf.tier === 'low') renderer.render(scene, camera);
@@ -1596,9 +1696,9 @@ window.FreeCell = {
   getDealNumber() {
     return game.dealNumber;
   },
-  newGame(dealNumber) {
+  async newGame(dealNumber) {
     ui.els.title.classList.contains('hidden') || ui.hideTitle();
-    newGame(dealNumber ?? randomDealNumber());
+    await newGame(dealNumber ?? randomDealNumber());
     return game.dealNumber;
   },
   undo() {
@@ -1650,7 +1750,7 @@ window.FreeCell = {
     return { total: game.history.length, auto, manual: game.history.length - auto };
   },
   get busy() {
-    return motion.busy || animator.busy || dealing;
+    return startingGame || motion.busy || animator.busy || dealing;
   },
   setTheme: (id) => switchTheme(id),
   stats,
@@ -1666,7 +1766,7 @@ async function boot() {
   post.setQuality(perf.tier);
 
   ui.setLoading(0.04, 'Loading the table…');
-  audio.theme = (THEMES[settings.theme] || THEMES.roman).id;
+  audio.theme = currentTheme.id;
   audio.unlock(); // creates a suspended context so buffers can be decoded
   await Promise.all([
     applyTheme(currentTheme.id).then(() => ui.setLoading(0.55, 'Tuning the sound…')),

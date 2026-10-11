@@ -419,10 +419,14 @@ export function buildTableLayer(theme, art, L, opts = {}) {
   }
 
   // Water caustics projected over the surface (under the cards, over the felt art).
-  if (theme.id === 'aero' && !HC) {
+  if ((theme.id === 'aero' || T.caustics) && !HC) {
     const cMat = track(
       new THREE.ShaderMaterial({
-        uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0.75, 0.95, 1.0) }, uOpacity: { value: 0.22 } },
+        uniforms: {
+          uTime: { value: 0 },
+          uColor: { value: T.caustics ? new THREE.Color(T.caustics.color) : new THREE.Color(0.75, 0.95, 1.0) },
+          uOpacity: { value: T.caustics?.opacity ?? 0.22 },
+        },
         vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
         fragmentShader: CAUSTIC_FRAG,
         transparent: true,

@@ -37,6 +37,7 @@ export function save(key, value) {
 
 export const defaultSettings = {
   theme: 'roman',
+  autoRandomTheme: true,
   master: 0.9,
   sfx: 0.9,
   music: 0.45,
@@ -47,10 +48,16 @@ export const defaultSettings = {
   fourColor: false,
   highContrast: false,
   reducedMotion: false,
-  parallax: true,
+  cursorLight: true,
 };
 
 export const settings = load('settings', defaultSettings);
+// Preserve the old pointer-effect preference when upgrading existing settings.
+const savedSettings = load('settings', {});
+if (savedSettings.cursorLight === undefined && savedSettings.parallax !== undefined) {
+  settings.cursorLight = !!savedSettings.parallax;
+}
+delete settings.parallax;
 export function saveSettings() {
   save('settings', settings);
 }

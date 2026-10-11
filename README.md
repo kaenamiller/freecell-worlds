@@ -1,6 +1,6 @@
 # FreeCell Worlds
 
-FreeCell Worlds — FreeCell in three.js with eleven fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
+FreeCell Worlds — FreeCell in three.js with fourteen fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
 
 ```
 npm run serve        # http://localhost:8080  (any static server works)
@@ -21,6 +21,9 @@ npm run serve        # http://localhost:8080  (any static server works)
 | **Azulejo** | ivory ceramic + cobalt tile border, hand-painted blue maritime court | sparse cool dust motes | porcelain chimes, Portuguese guitar, seaside courtyard |
 | **Jet Set** | powder-blue laminate + walnut, 1960s travel-poster court | sparse warm dust motes | cabin bell, bossa nova lounge, quiet airport |
 | **Riverboat Royale** | bottle-green felt + mahogany and brass, engraved Victorian court | lamplit dust motes + gentle lamp flicker | chip clinks, saloon piano + fiddle, paddle-steamer river ambience |
+| **Coastal Carvings** | dark cedar + painted relief, original raven/bear/orca carvings for the court | sparse dust motes | wooden chimes, sparse marimba + strings, rainy coastal pavilion |
+| **Varsity Club** | navy wool + stitched cream and oxblood leather, vintage athletic-poster court | warm dust motes | vibraphone, relaxed brass + piano, distant stadium atmosphere |
+| **Driftwood Bay** | weathered timber + slate-blue paint, pen-and-watercolor fishing-village court | soft water reflections + cool motes | buoy-bell chimes, fingerpicked guitar + felt piano, quiet fishing harbor |
 
 Themes live in `js/themes.js` (palette, card style, lighting, bloom, materials, art + audio names). Adding one means: an entry in `js/themes.js`, prompts in `tools/art-manifest.mjs` and `tools/sfx-manifest.mjs`, then `node tools/gen-art.mjs`, `node tools/gen-sfx.mjs`, `node tools/gen-sfx.mjs --music`, `bash tools/optimize-assets.sh`. Fonts are declared in `css/style.css`; UI skinning is `body[data-theme=…]` rules at the end of that file.
 
@@ -39,6 +42,12 @@ Themes live in `js/themes.js` (palette, card style, lighting, bloom, materials, 
 | `js/ui.js`, `js/stats.js`, `js/store.js` | title screen, HUD, modals, toasts; stats/achievements/daily; persistence |
 | `js/rules.js`, `js/solver.worker.js` | game rules and solver (unchanged) |
 | `sw.js`, `manifest.webmanifest` | offline + installable |
+
+## Random themes
+
+The home screen features three randomly selected themes per launch alongside Random theme. **All themes** opens the full, scrollable picker, also available from the in-game Themes button, with four tiles per row (two on narrow screens).
+
+The home screen starts in **Random theme** mode by default. Settings → Gameplay → **Automatic random theme** chooses a different theme on launch and for each new deal, including Deal again after a win. Turn it off to keep the current theme; selecting a named theme also turns it off. Selecting Random theme turns it back on. Continuing a saved game preserves its theme.
 
 ## Auto-play to foundations
 

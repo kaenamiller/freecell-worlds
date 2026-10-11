@@ -14,6 +14,27 @@ export const SHARED = [
 ];
 
 export const THEME = {
+  carvings: {
+    ui: 'a gentle carved cedar block tap with a short warm woody resonance, subtle UI click',
+    chime: 'one softly struck resonant wooden marimba note with a small clear bell overtone, warm and rounded, one note only',
+    win: 'an original uplifting short instrumental flourish with warm wooden marimba, gently swelling strings and one soft bell, grounded and contemplative, no voices, 6 seconds',
+    ambience: 'a sheltered cedar pavilion beside a misty Pacific coastal inlet, gentle rain on a wooden roof, soft water at the shore, wind through evergreen branches and a very occasional distant raven, subtle seamless loop, no music or speech',
+    music: 'Original quiet contemporary instrumental for a contemplative solitaire game overlooking a misty cedar-lined coast: sparse warm wooden marimba notes, soft acoustic guitar harmonics and sustained low strings, spacious unhurried arrangement, grounded natural mood, no vocals, no chants, no ceremonial music, no imitation of a named Indigenous song, no strong percussion, seamless ambient bed',
+  },
+  varsity: {
+    ui: 'a muted leather-covered button tap with a tiny brass snap, tactile collegiate clubhouse UI click',
+    chime: 'one warm clean vibraphone note blended with a soft brass bell ping, short musical sustain, one note only',
+    win: 'an original joyful collegiate marching-band victory flourish with bright brass, a short snare roll and cymbal accent, school spirit without any existing fight song, no voices, 6 seconds',
+    ambience: 'a quiet wood-paneled college athletics clubhouse on an autumn afternoon, soft room tone, faint breeze through an open window and a very distant subdued stadium crowd outside, no intelligible speech, no music, subtle seamless loop',
+    music: 'Original relaxed nostalgic collegiate clubhouse instrumental for a solitaire game, warm upright piano, soft muted brass phrases, upright bass and restrained brushed snare, gentle easy swing and autumn homecoming mood, unobtrusive and cozy rather than a loud sports anthem, no vocals, no existing fight song or recognizable melody, seamless ambient bed',
+  },
+  driftwood: {
+    ui: 'a soft weathered wooden dock tap with a tiny rope creak, muted nautical UI click',
+    chime: 'one gentle rounded distant brass buoy bell note with a warm short shimmering tail, one note only',
+    win: 'an original gentle celebratory harbor melody flourish with fingerpicked acoustic guitar, warm piano and a soft brass buoy bell, cozy and hopeful, no voices, 6 seconds',
+    ambience: 'a sleepy small fishing harbor at dawn, gentle water lapping against timber pilings, occasional mooring-rope creak and a distant soft buoy bell, very occasional quiet gull, peaceful subtle seamless loop, no music or voices',
+    music: 'Original calm cozy fishing-village instrumental for a solitaire game, delicate fingerpicked acoustic guitar and sparse felt piano, warm low strings, slow unhurried tempo, quiet early-morning sea mist and weathered driftwood porch atmosphere, slight wistfulness with reassuring warmth, no drums, no vocals, no sea shanty or recognizable existing tune, seamless ambient bed',
+  },
   azulejo: {
     ui: 'a delicate glazed ceramic tile tap, soft and refined, subtle UI click',
     chime: 'one clear small porcelain cup struck gently with a wooden stick, a musical crystalline ceramic note with a warm short decay, one note only',

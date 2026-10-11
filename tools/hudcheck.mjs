@@ -6,7 +6,7 @@ const puppeteer = require('puppeteer-core');
 const theme = process.argv[2] || 'roman';
 const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
 const page = await browser.newPage();
-await page.evaluateOnNewDocument((t) => localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme: t, quality: 'low' })), theme);
+await page.evaluateOnNewDocument((t) => localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme: t, autoRandomTheme: false, quality: 'low' })), theme);
 await page.setViewport({ width: 1440, height: 800 });
 await page.goto('http://localhost:8123/');
 await page.waitForFunction(() => !document.getElementById('loader'), { timeout: 90000 });

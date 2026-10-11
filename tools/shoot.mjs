@@ -18,7 +18,7 @@ const errors = [];
 page.on('console', (m) => { if (['error', 'warning'].includes(m.type())) errors.push(`[${m.type()}] ${m.text()}`); });
 page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
 const Q = process.env.Q || 'high';
-await page.evaluateOnNewDocument((th, q, hc, fc) => localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme: th, quality: q, highContrast: !!hc, fourColor: !!fc })), theme, Q, process.env.HC === '1', process.env.FC === '1');
+await page.evaluateOnNewDocument((th, q, hc, fc) => localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme: th, autoRandomTheme: false, quality: q, highContrast: !!hc, fourColor: !!fc })), theme, Q, process.env.HC === '1', process.env.FC === '1');
 await page.goto('http://localhost:8123/' + (process.env.QS || ''), { waitUntil: 'load' });
 await page.waitForFunction(() => !document.getElementById('loader'), { timeout: 90000 }).catch(() => errors.push('loader never finished'));
 const shot = (n) => page.screenshot({ path: `/tmp/shots/${theme}-${process.env.Q || 'high'}${process.env.HC === '1' ? '-hc' : ''}${process.env.FC === '1' ? '-fc' : ''}-${n}.png` });
