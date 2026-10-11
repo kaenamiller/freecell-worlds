@@ -1,4 +1,5 @@
 // ElevenLabs sound-effect prompts. Output: assets/sfx/<id>.mp3
+import { EXPANSION_AUDIO } from './expansion-content.mjs';
 const CLEAN = ', close microphone, dry, no music, no voices, clean isolated sound effect';
 
 export const SHARED = [
@@ -14,6 +15,28 @@ export const SHARED = [
 ];
 
 export const THEME = {
+  ...EXPANSION_AUDIO,
+  pinecone: {
+    ui: 'a soft wooden canoe paddle tap on a cedar dock, warm tactile UI click',
+    chime: 'one gentle clean camp dinner-bell note with a warm short ringing tail, one note only',
+    win: 'an original cheerful summer-camp victory flourish with acoustic guitar, glockenspiel and a small camp bell, warm and adventurous, no voices, 6 seconds',
+    ambience: 'a peaceful lakeside summer camp at dusk, soft crickets, a small campfire gently crackling and faint lake water lapping against a canoe, subtle seamless loop, no music or voices',
+    music: 'Original cozy nostalgic summer-camp instrumental for a relaxing solitaire game: gentle fingerpicked acoustic guitar, warm upright bass, occasional glockenspiel and soft brushed percussion, relaxed evening by a pine-lined lake and campfire, quietly adventurous and reassuring, no vocals, no recognizable existing song, seamless ambient bed',
+  },
+  winterglass: {
+    ui: 'a tiny clear crystal bead tap on frosted glass, delicate soft UI click',
+    chime: 'one luminous celesta note blended with a tiny crystal bell, gentle short shimmering sustain, one note only',
+    win: 'an original enchanted winter-palace victory flourish with celesta, a gentle harp glissando, warm strings and shimmering glass bells, elegant uplifting melody, no voices, 6 seconds',
+    ambience: 'a quiet grand ice-and-glass palace in winter twilight, very soft airy wind outside thick glass, occasional faint crystalline creak and a distant delicate ice chime, peaceful subtle seamless loop, no music or voices',
+    music: 'Original luminous winter-palace instrumental for a relaxing solitaire game: sparse celesta melody, warm sustained strings, delicate harp and glass harmonics, slow graceful arrangement, magical translucent ice architecture and aurora atmosphere, gentle wonder rather than drama, no vocals, no recognizable film soundtrack or existing melody, seamless ambient bed',
+  },
+  concrete: {
+    ui: 'one muted spray-can cap click with a tiny brief mixing-ball rattle, tactile street-art UI tap',
+    chime: 'one warm Rhodes electric-piano chord stab with a tiny clean vinyl percussion accent, short mellow musical sustain',
+    win: 'an original upbeat instrumental hip-hop victory sting, warm bass, crisp dusty drums, a bright electric-piano phrase and one basketball bounce accent, playful confident neighborhood energy, no voices, 6 seconds',
+    ambience: 'a quiet neighborhood blacktop court at sunset, soft distant city traffic, a very occasional faraway basketball bounce and chain-link fence rattle in a gentle breeze, subdued seamless loop, no speech or music',
+    music: 'Original mellow instrumental hip-hop for a focused solitaire game: warm round bass, dusty restrained boom-bap drums, jazzy Rhodes electric piano and soft vinyl texture, relaxed New York neighborhood sunset mood, head-nodding but unobtrusive groove, no vocals, no samples of existing recordings, no recognizable melody, seamless ambient bed',
+  },
   carvings: {
     ui: 'a gentle carved cedar block tap with a short warm woody resonance, subtle UI click',
     chime: 'one softly struck resonant wooden marimba note with a small clear bell overtone, warm and rounded, one note only',

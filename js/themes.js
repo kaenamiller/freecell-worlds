@@ -1,6 +1,8 @@
 // Theme definitions: palette, card styling, lighting, post-processing, materials,
 // ambient effects and the art files each theme loads.
 
+import { EXPANSION_THEMES, EXPANSION_THEME_ORDER } from './theme-expansion.js';
+
 const ART = './assets/art/';
 
 const artFor = (id) => ({
@@ -16,6 +18,7 @@ const artFor = (id) => ({
 });
 
 export const THEMES = {
+  ...EXPANSION_THEMES,
   roman: {
     id: 'roman',
     name: 'Neo-Classical',
@@ -67,7 +70,7 @@ export const THEMES = {
       ao: 0.9,
     },
     table: {
-      surface: { roughness: 0.3, metalness: 0.05, clearcoat: 0.6, clearcoatRoughness: 0.18, normal: 0.9, emissive: 0 },
+      surface: { detail: 'marble', roughness: 0.3, metalness: 0.05, clearcoat: 0.6, clearcoatRoughness: 0.18, normal: 0.9, emissive: 0 },
       rail: { color: 0x1d3a2c, roughness: 0.2, metalness: 0.0, clearcoat: 1, emissive: 0x000000, emissiveIntensity: 0 },
       inlay: { color: 0xd9b45a, roughness: 0.22, metalness: 1, emissive: 0x000000, emissiveIntensity: 0 },
       finial: { color: 0xe9c46a, roughness: 0.2, metalness: 1 },
@@ -148,7 +151,7 @@ export const THEMES = {
       ao: 1.0,
     },
     table: {
-      surface: { roughness: 0.32, metalness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.12, normal: 1.4, emissive: 0.4 },
+      surface: { detail: 'carbon', roughness: 0.32, metalness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.12, normal: 1.4, emissive: 0.4 },
       rail: { color: 0x14161f, roughness: 0.35, metalness: 0.9, clearcoat: 0.3, emissive: 0x000000, emissiveIntensity: 0 },
       inlay: { color: 0x35f3ff, roughness: 0.4, metalness: 0.0, emissive: 0x35f3ff, emissiveIntensity: 1.7 },
       finial: { color: 0xff2fa8, roughness: 0.4, metalness: 0.0, emissive: 0xff2fa8, emissiveIntensity: 1.8 },
@@ -226,7 +229,7 @@ export const THEMES = {
       ao: 0.7,
     },
     table: {
-      surface: { roughness: 0.14, metalness: 0.0, clearcoat: 1, clearcoatRoughness: 0.06, normal: 0.6, emissive: 0, tint: 0x86adc4, env: 0.4 },
+      surface: { detail: 'water', roughness: 0.14, metalness: 0.0, clearcoat: 1, clearcoatRoughness: 0.06, normal: 0.6, emissive: 0, tint: 0x86adc4, env: 0.4 },
       rail: { color: 0xa9d6ea, roughness: 0.1, metalness: 0.0, clearcoat: 1, emissive: 0x000000, emissiveIntensity: 0, iridescence: 1 },
       inlay: { color: 0x7cf2ff, roughness: 0.15, metalness: 0.3, emissive: 0x2bd4ff, emissiveIntensity: 0.9 },
       finial: { color: 0xffffff, roughness: 0.05, metalness: 0.0, iridescence: 1 },
@@ -302,7 +305,7 @@ export const THEMES = {
       ao: 0.9,
     },
     table: {
-      surface: { roughness: 0.85, metalness: 0, clearcoat: 0.05, clearcoatRoughness: 0.6, normal: 1.3, emissive: 0, env: 0.4 },
+      surface: { detail: 'slate', roughness: 0.85, metalness: 0, clearcoat: 0.05, clearcoatRoughness: 0.6, normal: 1.3, emissive: 0, env: 0.4 },
       rail: { color: 0x1a0e0a, roughness: 0.18, metalness: 0.0, clearcoat: 1, emissive: 0x000000, emissiveIntensity: 0 },
       inlay: { color: 0xd8b45a, roughness: 0.25, metalness: 1, emissive: 0x000000, emissiveIntensity: 0 },
       finial: { color: 0xc8382b, roughness: 0.15, metalness: 0 },
@@ -374,7 +377,7 @@ export const THEMES = {
       ao: 1.0,
     },
     table: {
-      surface: { roughness: 0.9, metalness: 0, clearcoat: 0.1, clearcoatRoughness: 0.5, normal: 1.6, emissive: 0.25, env: 0.35 },
+      surface: { detail: 'wood', roughness: 0.9, metalness: 0, clearcoat: 0.1, clearcoatRoughness: 0.5, normal: 1.6, emissive: 0.25, env: 0.35 },
       rail: { color: 0x2e2016, roughness: 0.85, metalness: 0.0, clearcoat: 0, emissive: 0x000000, emissiveIntensity: 0 },
       inlay: { color: 0x7dffb0, roughness: 0.5, metalness: 0, emissive: 0x7dffb0, emissiveIntensity: 0.9 },
       finial: { color: 0xffc46b, roughness: 0.4, metalness: 0, emissive: 0xffa83a, emissiveIntensity: 1.6 },
@@ -443,7 +446,7 @@ export const THEMES = {
       ao: 0.9,
     },
     table: {
-      surface: { roughness: 0.18, metalness: 0.05, clearcoat: 0.9, clearcoatRoughness: 0.1, normal: 0.8, emissive: 0, env: 0.7 },
+      surface: { detail: 'lacquer', roughness: 0.18, metalness: 0.05, clearcoat: 0.9, clearcoatRoughness: 0.1, normal: 0.8, emissive: 0, env: 0.7 },
       rail: { color: 0x0b0b0d, roughness: 0.12, metalness: 0.2, clearcoat: 1, emissive: 0x000000, emissiveIntensity: 0 },
       inlay: { color: 0xd4b36a, roughness: 0.22, metalness: 1, emissive: 0x000000, emissiveIntensity: 0 },
       finial: { color: 0xd4b36a, roughness: 0.18, metalness: 1 },
@@ -516,7 +519,7 @@ export const THEMES = {
       ao: 1.0,
     },
     table: {
-      surface: { roughness: 0.8, metalness: 0, clearcoat: 0.15, clearcoatRoughness: 0.5, normal: 1.1, emissive: 0.3, env: 0.5 },
+      surface: { detail: 'cloth', roughness: 0.8, metalness: 0, clearcoat: 0.15, clearcoatRoughness: 0.5, normal: 1.1, emissive: 0.3, env: 0.5 },
       rail: { color: 0x1a0b30, roughness: 0.2, metalness: 0.0, clearcoat: 1, emissive: 0x000000, emissiveIntensity: 0 },
       inlay: { color: 0xffb627, roughness: 0.3, metalness: 0.5, emissive: 0xff9a1f, emissiveIntensity: 0.9 },
       finial: { color: 0xffd27a, roughness: 0.4, metalness: 0, emissive: 0xff8a1f, emissiveIntensity: 1.8 },
@@ -588,7 +591,7 @@ export const THEMES = {
       ao: 0.8,
     },
     table: {
-      surface: { roughness: 0.2, metalness: 0.3, clearcoat: 0.8, clearcoatRoughness: 0.1, normal: 0.5, emissive: 0.45, tint: 0x56628a, env: 0.3 },
+      surface: { detail: 'glass', roughness: 0.2, metalness: 0.3, clearcoat: 0.8, clearcoatRoughness: 0.1, normal: 0.5, emissive: 0.45, tint: 0x56628a, env: 0.3 },
       rail: { color: 0x9aa6c0, roughness: 0.3, metalness: 0.2, clearcoat: 0.6, emissive: 0x000000, emissiveIntensity: 0 },
       inlay: { color: 0xff9966, roughness: 0.4, metalness: 0, emissive: 0xff9966, emissiveIntensity: 1.3 },
       finial: { color: 0xcc99cc, roughness: 0.3, metalness: 0, emissive: 0xcc99cc, emissiveIntensity: 1.0 },
@@ -632,7 +635,7 @@ export const THEMES = {
       bloom: { strength: 0.12, radius: 0.5, threshold: 1.5 }, vignette: 0.2, grain: 0.02, ao: 0.7,
     },
     table: {
-      surface: { roughness: 0.28, metalness: 0, clearcoat: 0.75, clearcoatRoughness: 0.18, normal: 0.35, emissive: 0, env: 0.3 },
+      surface: { detail: 'ceramic', roughness: 0.28, metalness: 0, clearcoat: 0.75, clearcoatRoughness: 0.18, normal: 0.35, emissive: 0, env: 0.3 },
       rail: { color: 0xe9edf3, roughness: 0.22, metalness: 0, clearcoat: 0.85, emissive: 0, emissiveIntensity: 0 },
       inlay: { color: 0x245b9e, roughness: 0.3, metalness: 0, emissive: 0, emissiveIntensity: 0 },
       finial: { color: 0xae8744, roughness: 0.3, metalness: 0.8 }, base: 0xabb8c7,
@@ -670,7 +673,7 @@ export const THEMES = {
       bloom: { strength: 0.15, radius: 0.5, threshold: 1.2 }, vignette: 0.28, grain: 0.035, ao: 0.7,
     },
     table: {
-      surface: { roughness: 0.65, metalness: 0, clearcoat: 0.22, clearcoatRoughness: 0.4, normal: 0.35, emissive: 0, env: 0.3 },
+      surface: { detail: 'laminate', roughness: 0.65, metalness: 0, clearcoat: 0.22, clearcoatRoughness: 0.4, normal: 0.35, emissive: 0, env: 0.3 },
       rail: { color: 0x563525, roughness: 0.4, metalness: 0, clearcoat: 0.35, emissive: 0, emissiveIntensity: 0 },
       inlay: { color: 0xb7c5ca, roughness: 0.38, metalness: 0.85, emissive: 0, emissiveIntensity: 0 },
       finial: { color: 0xb9362c, roughness: 0.4, metalness: 0 }, base: 0x3d291e,
@@ -709,7 +712,7 @@ export const THEMES = {
       bloom: { strength: 0.22, radius: 0.6, threshold: 1 }, vignette: 0.38, grain: 0.045, ao: 0.9,
     },
     table: {
-      surface: { roughness: 0.95, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.8, normal: 0.8, emissive: 0, env: 0.2 },
+      surface: { detail: 'felt', roughness: 0.95, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.8, normal: 0.8, emissive: 0, env: 0.2 },
       rail: { color: 0x4e2116, roughness: 0.22, metalness: 0, clearcoat: 0.85, emissive: 0, emissiveIntensity: 0 },
       inlay: { color: 0xb78d43, roughness: 0.3, metalness: 0.85, emissive: 0, emissiveIntensity: 0 },
       finial: { color: 0xd7b46b, roughness: 0.3, metalness: 0.65, emissive: 0xffae55, emissiveIntensity: 0.2 }, base: 0x2d160e,
@@ -747,7 +750,7 @@ export const THEMES = {
       bloom: { strength: 0.12, radius: 0.6, threshold: 1.3 }, vignette: 0.32, grain: 0.035, ao: 0.85,
     },
     table: {
-      surface: { roughness: 0.88, metalness: 0, clearcoat: 0.08, clearcoatRoughness: 0.65, normal: 0.85, emissive: 0, env: 0.2 },
+      surface: { detail: 'wood', roughness: 0.88, metalness: 0, clearcoat: 0.08, clearcoatRoughness: 0.65, normal: 0.85, emissive: 0, env: 0.2 },
       rail: { color: 0x763e29, roughness: 0.75, metalness: 0, clearcoat: 0.12, emissive: 0, emissiveIntensity: 0 },
       inlay: { color: 0xae3e2d, roughness: 0.7, metalness: 0, emissive: 0, emissiveIntensity: 0 },
       finial: { color: 0x83b6b0, roughness: 0.6, metalness: 0 }, base: 0x3d281a,
@@ -785,7 +788,7 @@ export const THEMES = {
       bloom: { strength: 0.16, radius: 0.5, threshold: 1.2 }, vignette: 0.32, grain: 0.03, ao: 0.85,
     },
     table: {
-      surface: { roughness: 0.97, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.8, normal: 0.75, emissive: 0, env: 0.15 },
+      surface: { detail: 'cloth', roughness: 0.97, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.8, normal: 0.75, emissive: 0, env: 0.15 },
       rail: { color: 0x57272b, roughness: 0.7, metalness: 0, clearcoat: 0.1, emissive: 0, emissiveIntensity: 0 },
       inlay: { color: 0xe5d4ad, roughness: 0.75, metalness: 0, emissive: 0, emissiveIntensity: 0 },
       finial: { color: 0xc8a257, roughness: 0.38, metalness: 0.65 }, base: 0x352719,
@@ -823,7 +826,7 @@ export const THEMES = {
       bloom: { strength: 0.12, radius: 0.6, threshold: 1.4 }, vignette: 0.25, grain: 0.025, ao: 0.75,
     },
     table: {
-      surface: { roughness: 0.88, metalness: 0, clearcoat: 0.05, clearcoatRoughness: 0.65, normal: 0.7, emissive: 0, env: 0.2 },
+      surface: { detail: 'paint', roughness: 0.88, metalness: 0, clearcoat: 0.05, clearcoatRoughness: 0.65, normal: 0.7, emissive: 0, env: 0.2 },
       rail: { color: 0x8e9790, roughness: 0.9, metalness: 0, clearcoat: 0, emissive: 0, emissiveIntensity: 0 },
       inlay: { color: 0xd1c5a8, roughness: 0.85, metalness: 0, emissive: 0, emissiveIntensity: 0 },
       finial: { color: 0x9a8660, roughness: 0.6, metalness: 0.55 }, base: 0x59676b,
@@ -838,9 +841,124 @@ export const THEMES = {
     fx: { spark: [0.72, 0.92, 0.88], dust: [0.8, 0.9, 0.85], flash: 0xc0e0d5 },
     confetti: [0xb0cfc5, 0x65858d, 0xf5f0e2, 0xd89e7a, 0xffffff], art: artFor('driftwood'),
   },
+  pinecone: {
+    id: 'pinecone', name: 'Camp Pinecone',
+    tagline: 'Canoes, cabin lights and one more marshmallow.', fontFamily: 'Josefin Sans',
+    css: {
+      '--bg': '#11251c', '--panel': 'rgba(22, 43, 32, 0.92)', '--panel-solid': '#162b20',
+      '--border': 'rgba(228, 199, 150, 0.4)', '--text': '#fff2d8', '--muted': '#c4b795',
+      '--accent': '#f0b16d', '--accent-2': '#a8c593', '--glow': 'rgba(240, 177, 109, 0.22)',
+      '--radius': '10px', '--font-ui': "'Josefin Sans', 'Trebuchet MS', sans-serif",
+    },
+    card: {
+      paper: ['#fff5df', '#eddfc1'], edge: 0xf0e4cb, border: '#98734b', indexFont: 'Josefin Sans', indexWeight: 700,
+      suits: ['#18352a', '#b94127', '#b94127', '#18352a'], outline: '#28392b',
+      fourColor: ['#205bb6', '#ce6811', '#b94127', '#18352a'], fx: 'none', courtFrame: '#98734b',
+      courtWash: 0, emissive: 0, clearcoat: 0.06, backFit: 'cover',
+    },
+    scene: {
+      clear: 0x132b28, exposure: 0.94, fog: [0x253d37, 20, 44], env: 0.5,
+      hemi: [0xffe6ba, 0x12291c, 0.6],
+      key: { color: 0xffe6bf, intensity: 2, pos: [5.5, 13, 6.5] },
+      fill: { color: 0xb9d8dd, intensity: 0.55, pos: [-7, 8, -5] },
+      rim: { color: 0xffb76f, intensity: 14, pos: [0, 7, -7] },
+      accentLights: [{ color: 0xffa658, intensity: 5, pos: [-6.5, 1.5, 1], pulse: 0.45 }],
+      bloom: { strength: 0.16, radius: 0.6, threshold: 1.3 }, vignette: 0.3, grain: 0.025, ao: 0.8,
+    },
+    table: {
+      surface: { detail: 'cloth', roughness: 0.95, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.8, normal: 0.65, emissive: 0, env: 0.15 },
+      rail: { color: 0x916239, roughness: 0.8, metalness: 0, clearcoat: 0.08, emissive: 0, emissiveIntensity: 0 },
+      inlay: { color: 0xd9bd86, roughness: 0.85, metalness: 0, emissive: 0, emissiveIntensity: 0 },
+      finial: { color: 0xb7864e, roughness: 0.65, metalness: 0.15 }, base: 0x3c2b1c,
+    },
+    slots: {
+      col: { fill: 'rgba(0,0,0,0.12)', stroke: 'rgba(255,242,216,0.5)', dash: [18, 12], glow: 0 },
+      free: { fill: 'rgba(0,0,0,0.22)', stroke: 'rgba(255,242,216,0.8)', dash: [18, 10], glow: 0, mark: 'rgba(255,242,216,0.65)' },
+      found: { fill: 'rgba(0,0,0,0.26)', stroke: 'rgba(240,177,109,1)', dash: [], glow: 0, inner: 'rgba(168,197,147,0.7)' },
+    },
+    particles: 'motes', ambientColor: [1, 0.8, 0.48], ambientCount: 24,
+    fx: { spark: [1, 0.8, 0.45], dust: [0.75, 0.85, 0.6], flash: 0xf4c484 },
+    confetti: [0xf0b16d, 0xa8c593, 0xfff2d8, 0xb94127, 0x38614a], art: artFor('pinecone'),
+  },
+  winterglass: {
+    id: 'winterglass', name: 'Winterglass',
+    tagline: 'Crystal arches beneath an aurora sky.', fontFamily: 'Cinzel',
+    css: {
+      '--bg': '#111d36', '--panel': 'rgba(23, 37, 65, 0.92)', '--panel-solid': '#172541',
+      '--border': 'rgba(169, 221, 243, 0.45)', '--text': '#f3f8ff', '--muted': '#b4c8e1',
+      '--accent': '#a9ddf3', '--accent-2': '#c8b5ee', '--glow': 'rgba(169, 221, 243, 0.26)',
+      '--radius': '7px', '--font-ui': "'Cinzel', Georgia, serif",
+    },
+    card: {
+      paper: ['#fcfdff', '#e9eef8'], edge: 0xeaf1ff, border: '#8da9c9', indexFont: 'Cinzel', indexWeight: 700,
+      suits: ['#172a4b', '#ac315b', '#ac315b', '#172a4b'], outline: '#304563',
+      fourColor: ['#205bb6', '#ce6811', '#ac315b', '#172a4b'], fx: 'none', courtFrame: '#8da9c9',
+      courtWash: 0, emissive: 0, clearcoat: 0.22, backFit: 'cover',
+    },
+    scene: {
+      clear: 0x273954, exposure: 0.92, fog: [0x5d789a, 22, 48], env: 0.65,
+      hemi: [0xe6f4ff, 0x1c294a, 0.65],
+      key: { color: 0xf4f5ff, intensity: 1.9, pos: [5.5, 13, 6.5] },
+      fill: { color: 0xb7dfff, intensity: 0.7, pos: [-7, 8, -5] },
+      rim: { color: 0xc8b5ee, intensity: 16, pos: [0, 7, -7] }, accentLights: [],
+      bloom: { strength: 0.2, radius: 0.65, threshold: 1.2 }, vignette: 0.26, grain: 0.015, ao: 0.7,
+    },
+    table: {
+      surface: { detail: 'glass', roughness: 0.42, metalness: 0.05, clearcoat: 0.5, clearcoatRoughness: 0.35, normal: 0.3, emissive: 0, env: 0.3 },
+      rail: { color: 0xb1d8ec, roughness: 0.22, metalness: 0.15, clearcoat: 0.8, emissive: 0x6895bc, emissiveIntensity: 0.08 },
+      inlay: { color: 0xd3deee, roughness: 0.28, metalness: 0.75, emissive: 0, emissiveIntensity: 0 },
+      finial: { color: 0xc8b5ee, roughness: 0.2, metalness: 0.3 }, base: 0x283d59,
+    },
+    slots: {
+      col: { fill: 'rgba(10,20,45,0.15)', stroke: 'rgba(225,243,255,0.55)', dash: [20, 12], glow: 0 },
+      free: { fill: 'rgba(10,20,45,0.25)', stroke: 'rgba(225,243,255,0.85)', dash: [16, 10], glow: 0, mark: 'rgba(225,243,255,0.7)' },
+      found: { fill: 'rgba(10,20,45,0.3)', stroke: 'rgba(169,221,243,1)', dash: [], glow: 0, inner: 'rgba(200,181,238,0.7)' },
+    },
+    particles: 'motes', ambientColor: [0.72, 0.86, 1], ambientCount: 30,
+    fx: { spark: [0.7, 0.88, 1], dust: [0.8, 0.85, 1], flash: 0xc8e9ff },
+    confetti: [0xa9ddf3, 0xc8b5ee, 0xf3f8ff, 0x7194c6, 0xd3deee], art: artFor('winterglass'),
+  },
+  concrete: {
+    id: 'concrete', name: 'Concrete Playground',
+    tagline: 'Fresh paint, blacktop beats and city sunsets.', fontFamily: 'Antonio',
+    css: {
+      '--bg': '#191b22', '--panel': 'rgba(30, 32, 41, 0.94)', '--panel-solid': '#1e2029',
+      '--border': 'rgba(242, 238, 220, 0.35)', '--text': '#f7f3e8', '--muted': '#c3bfaf',
+      '--accent': '#f2dc59', '--accent-2': '#ff8175', '--glow': 'rgba(242, 220, 89, 0.22)',
+      '--radius': '4px', '--font-ui': "'Antonio', 'Arial Narrow', sans-serif",
+    },
+    card: {
+      paper: ['#fffdf4', '#e9e6dc'], edge: 0xf0ede3, border: '#3c4d75', indexFont: 'Antonio', indexWeight: 700,
+      suits: ['#20252e', '#c63e42', '#c63e42', '#20252e'], outline: '#181c26',
+      fourColor: ['#205bb6', '#ce6811', '#c63e42', '#20252e'], fx: 'none', courtFrame: '#3c4d75',
+      courtWash: 0, emissive: 0, clearcoat: 0.06, backFit: 'cover',
+    },
+    scene: {
+      clear: 0x272335, exposure: 0.95, fog: [0x493a48, 20, 44], env: 0.5,
+      hemi: [0xffe7d5, 0x1c2438, 0.6],
+      key: { color: 0xffe5ca, intensity: 2, pos: [5.5, 13, 6.5] },
+      fill: { color: 0xbacdf4, intensity: 0.6, pos: [-7, 8, -5] },
+      rim: { color: 0xff8175, intensity: 14, pos: [0, 7, -7] }, accentLights: [],
+      bloom: { strength: 0.12, radius: 0.5, threshold: 1.3 }, vignette: 0.28, grain: 0.04, ao: 0.85,
+    },
+    table: {
+      surface: { detail: 'slate', roughness: 0.96, metalness: 0, clearcoat: 0, clearcoatRoughness: 0.8, normal: 0.8, emissive: 0, env: 0.12 },
+      rail: { color: 0x252a35, roughness: 0.75, metalness: 0.25, clearcoat: 0.05, emissive: 0, emissiveIntensity: 0 },
+      inlay: { color: 0xf2dc59, roughness: 0.65, metalness: 0, emissive: 0, emissiveIntensity: 0 },
+      finial: { color: 0x466dcc, roughness: 0.55, metalness: 0.25 }, base: 0x20242d,
+    },
+    slots: {
+      col: { fill: 'rgba(0,0,0,0.15)', stroke: 'rgba(247,243,232,0.55)', dash: [22, 12], glow: 0 },
+      free: { fill: 'rgba(0,0,0,0.25)', stroke: 'rgba(247,243,232,0.85)', dash: [20, 10], glow: 0, mark: 'rgba(247,243,232,0.7)' },
+      found: { fill: 'rgba(0,0,0,0.3)', stroke: 'rgba(242,220,89,1)', dash: [], glow: 0, inner: 'rgba(255,129,117,0.7)' },
+    },
+    particles: 'motes', ambientColor: [1, 0.8, 0.68], ambientCount: 18,
+    fx: { spark: [1, 0.86, 0.3], dust: [0.7, 0.8, 1], flash: 0xf2dc59 },
+    confetti: [0xf2dc59, 0xff8175, 0x466dcc, 0xf7f3e8, 0x20252e], art: artFor('concrete'),
+  },
 };
 
-export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'space', 'azulejo', 'jetset', 'riverboat', 'carvings', 'varsity', 'driftwood'];
+export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'space', 'azulejo', 'jetset', 'riverboat', 'carvings', 'varsity', 'driftwood', 'pinecone', 'winterglass', 'concrete', ...EXPANSION_THEME_ORDER];
 
 export function randomThemeId(currentId) {
   const others = THEME_ORDER.filter((id) => id !== currentId);

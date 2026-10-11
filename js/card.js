@@ -1,7 +1,7 @@
 // 3D card mesh: bevelled extruded body plus textured face planes. Materials are
 // theme-driven and can be re-skinned in place with applyCardStyle().
 import * as THREE from 'three';
-import { cardFaceTexture, cardBackTexture, paperNormalTexture } from './textures.js';
+import { cardFaceTexture, cardBackTexture, paperDetailTextures } from './textures.js';
 
 export const CARD = { W: 0.9, H: 1.26, R: 0.085, D: 0.022 };
 const BEVEL = 0.0035;
@@ -51,12 +51,16 @@ function getShared() {
 
 function styleFace(mat, style, map) {
   mat.map = map;
-  mat.normalMap = paperNormalTexture();
-  mat.normalScale.set(0.12, 0.12);
+  const paper = paperDetailTextures();
+  mat.normalMap = paper.normal;
+  mat.normalScale.set(0.16, 0.16);
+  mat.roughnessMap = paper.roughnessMap;
+  mat.roughness = paper.roughness;
+  mat.clearcoatNormalMap = paper.normal;
+  mat.clearcoatNormalScale.set(0.06, 0.06);
   mat.clearcoat = style.clearcoat;
   mat.clearcoatRoughness = 0.45;
   mat.envMapIntensity = 0.55; // keep the HDRI from veiling the ink
-  mat.roughness = 0.5;
   if (style.emissive > 0) {
     // Neon faces: the face art drives emission so indices and pips bloom.
     mat.emissiveMap = map;

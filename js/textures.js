@@ -152,21 +152,32 @@ function cornerIndex(ctx, rankLabel, suit, color, flip, fx) {
     ctx.translate(-256, -358);
   }
   const widthScale = { Orbitron: 0.8, 'Lilita One': 0.92, Antonio: 1.12, 'Cormorant Garamond': 1.05 }[cardTheme.card.indexFont] || 1;
-  const size = (rankLabel === '10' ? 104 : 120) * widthScale;
+  let size = (rankLabel === '10' ? 104 : 120) * widthScale;
   const x0 = 24;
-  const base = 104; // alphabetic baseline: digits span roughly y 20..104
-  ctx.font = `${cardTheme.card.indexWeight || 800} ${size}px ${fontStack()}`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
+  const setFont = () => { ctx.font = `${cardTheme.card.indexWeight || 800} ${size}px ${fontStack()}`; };
+  setFont();
+  // Font sizes do not describe the actual ink bounds. Keep tall fonts (such as
+  // Antonio) and descenders inside the same y=20..104 strip as the other indices.
+  let metrics = ctx.measureText(rankLabel);
+  const inkHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+  if (inkHeight > 84) {
+    size *= 84 / inkHeight;
+    setFont();
+    metrics = ctx.measureText(rankLabel);
+  }
+  const base = Math.max(20 + metrics.actualBoundingBoxAscent,
+    Math.min(104, 104 - metrics.actualBoundingBoxDescent));
   ctx.fillStyle = color;
   if (fx === 'glow') {
     ctx.shadowColor = color;
     ctx.shadowBlur = 16;
   }
   ctx.fillText(rankLabel, x0, base);
-  const w = ctx.measureText(rankLabel).width;
+  const w = metrics.width;
   ctx.shadowBlur = 0;
-  drawSuit(ctx, suit, x0 + w + 20 + 38, base - 40, 78, color, fx);
+  drawSuit(ctx, suit, x0 + w + 20 + 38, 64, 78, color, fx);
   ctx.restore();
 }
 
@@ -466,85 +477,140 @@ export function cardBackTexture() {
   return tex;
 }
 
-// --- shared paper-fibre normal map -------------------------------------------
-let paperNormal = null;
-export function paperNormalTexture() {
-  if (paperNormal) return paperNormal;
-  const S = 256;
-  const canvas = document.createElement('canvas');
-  canvas.width = S;
-  canvas.height = S;
-  const ctx = canvas.getContext('2d');
-  const img = ctx.createImageData(S, S);
-  // Value noise heightfield with a fibrous directional bias, then Sobel -> normals.
-  const h = new Float32Array(S * S);
-  for (let i = 0; i < h.length; i++) h[i] = Math.random();
-  const blur = new Float32Array(S * S);
-  for (let y = 0; y < S; y++) {
-    for (let x = 0; x < S; x++) {
-      let s = 0;
-      for (let k = -2; k <= 2; k++) s += h[y * S + ((x + k + S) % S)] + 0.5 * h[((y + k + S) % S) * S + x];
-      blur[y * S + x] = s;
+// --- material detail maps -----------------------------------------------------
+// These describe the material, independently of the printed/painted colour art.
+// Periodic, seeded noise keeps repeat seams invisible and theme reloads stable.
+const DETAIL_PROFILES = {
+  marble: { strength: 1.2, variation: 0.035 },
+  carbon: { strength: 1.6, variation: 0.06 },
+  water: { strength: 0.8, variation: 0.025 },
+  slate: { strength: 2.1, variation: 0.06 },
+  wood: { strength: 2.2, variation: 0.055 },
+  lacquer: { strength: 0.7, variation: 0.025 },
+  cloth: { strength: 2.4, variation: 0.04 },
+  glass: { strength: 0.35, variation: 0.015 },
+  ceramic: { strength: 0.7, variation: 0.035 },
+  laminate: { strength: 0.8, variation: 0.04 },
+  felt: { strength: 2.2, variation: 0.025 },
+  paint: { strength: 1.3, variation: 0.045 },
+  paper: { strength: 2, variation: 0.035 },
+};
+const detailClamp = (v, a, b) => Math.min(b, Math.max(a, v));
+function detailNoise(u, v, cells, seed) {
+  const x = u * cells, y = v * cells;
+  const ix = Math.floor(x), iy = Math.floor(y);
+  const hash = (a, b) => {
+    a = ((a % cells) + cells) % cells;
+    b = ((b % cells) + cells) % cells;
+    let n = Math.imul(a + seed, 374761393) ^ Math.imul(b + seed, 668265263);
+    n = Math.imul(n ^ (n >>> 13), 1274126177);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
+  };
+  const smooth = (t) => t * t * (3 - 2 * t);
+  const fx = smooth(x - ix), fy = smooth(y - iy);
+  const top = hash(ix, iy) * (1 - fx) + hash(ix + 1, iy) * fx;
+  const bottom = hash(ix, iy + 1) * (1 - fx) + hash(ix + 1, iy + 1) * fx;
+  return top * (1 - fy) + bottom * fy;
+}
+function materialDetailTextures(kind, baseRoughness, size = 512) {
+  const profile = DETAIL_PROFILES[kind] || DETAIL_PROFILES.lacquer;
+  const heights = new Float32Array(size * size);
+  const finishes = new Float32Array(size * size);
+  const tau = Math.PI * 2;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size, v = y / size;
+      const broad = detailNoise(u, v, 8, 17);
+      const fine = detailNoise(u, v, 64, 41);
+      const fibre = detailNoise(u, v, 128, 79);
+      let h = fine * 0.12 + fibre * 0.06;
+      if (kind === 'wood' || kind === 'paint') {
+        // Long grain/brush strokes with gentle periodic wandering.
+        const grain = Math.sin(tau * (u * 28 + 0.45 * Math.sin(tau * v) + broad * 0.3));
+        h += grain * (kind === 'wood' ? 0.14 : 0.05);
+      } else if (kind === 'cloth' || kind === 'carbon') {
+        // Crossing yarns, alternating over/under rather than embossed artwork.
+        const warp = Math.sin(tau * u * 32), weft = Math.sin(tau * v * 32);
+        h += (warp + weft + warp * weft * 0.5) * 0.065;
+      } else if (kind === 'felt' || kind === 'paper') {
+        h += fibre * 0.23 + Math.sin(tau * (v * 64 + broad * 0.4)) * 0.025;
+      } else if (kind === 'slate') {
+        h += broad * 0.16 + Math.sin(tau * (u * 12 + Math.sin(tau * v))) * 0.035;
+      } else if (kind === 'water') {
+        h = (Math.sin(tau * (u * 3 + Math.sin(tau * v))) + Math.cos(tau * (v * 4 + Math.cos(tau * u)))) * 0.22;
+      } else {
+        // Polished marble, ceramic, glass and lacquer have very shallow relief.
+        h += broad * 0.08;
+      }
+      const i = y * size + x;
+      heights[i] = h;
+      finishes[i] = detailClamp(broad * 0.65 + fine * 0.25 + fibre * 0.1, 0, 1);
     }
   }
-  const at = (x, y) => blur[((y + S) % S) * S + ((x + S) % S)];
-  for (let y = 0; y < S; y++) {
-    for (let x = 0; x < S; x++) {
-      const dx = (at(x + 1, y) - at(x - 1, y)) * 0.35;
-      const dy = (at(x, y + 1) - at(x, y - 1)) * 0.35;
-      const l = Math.hypot(dx, dy, 1);
-      const o = (y * S + x) * 4;
-      img.data[o] = ((-dx / l) * 0.5 + 0.5) * 255;
-      img.data[o + 1] = ((-dy / l) * 0.5 + 0.5) * 255;
-      img.data[o + 2] = ((1 / l) * 0.5 + 0.5) * 255;
-      img.data[o + 3] = 255;
+  const normalCanvas = document.createElement('canvas');
+  const roughCanvas = document.createElement('canvas');
+  normalCanvas.width = normalCanvas.height = roughCanvas.width = roughCanvas.height = size;
+  const normalCtx = normalCanvas.getContext('2d');
+  const roughCtx = roughCanvas.getContext('2d');
+  const normalPixels = normalCtx.createImageData(size, size);
+  const roughPixels = roughCtx.createImageData(size, size);
+  // Three multiplies roughness by its map. Encode an absolute finish range
+  // relative to its upper bound so the map can make surfaces rougher as well.
+  const roughness = detailClamp(baseRoughness + profile.variation, 0.04, 1);
+  const at = (x, y) => heights[((y + size) % size) * size + ((x + size) % size)];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = (at(x + 1, y) - at(x - 1, y)) * profile.strength;
+      const dy = (at(x, y + 1) - at(x, y - 1)) * profile.strength;
+      const length = Math.hypot(dx, dy, 1);
+      const i = y * size + x, o = i * 4;
+      normalPixels.data[o] = (-dx / length * 0.5 + 0.5) * 255;
+      // Canvas rows run downward; tangent-space +Y runs upward.
+      normalPixels.data[o + 1] = (dy / length * 0.5 + 0.5) * 255;
+      normalPixels.data[o + 2] = (1 / length * 0.5 + 0.5) * 255;
+      normalPixels.data[o + 3] = 255;
+      const finish = detailClamp(baseRoughness + (finishes[i] * 2 - 1) * profile.variation, 0.04, 1);
+      const value = Math.round(finish / roughness * 255);
+      roughPixels.data[o] = roughPixels.data[o + 1] = roughPixels.data[o + 2] = value;
+      roughPixels.data[o + 3] = 255;
     }
   }
-  ctx.putImageData(img, 0, 0);
-  paperNormal = new THREE.CanvasTexture(canvas);
-  paperNormal.wrapS = paperNormal.wrapT = THREE.RepeatWrapping;
-  paperNormal.repeat.set(2, 2);
-  return paperNormal;
+  normalCtx.putImageData(normalPixels, 0, 0);
+  roughCtx.putImageData(roughPixels, 0, 0);
+  const normal = new THREE.CanvasTexture(normalCanvas);
+  const roughnessMap = new THREE.CanvasTexture(roughCanvas);
+  for (const texture of [normal, roughnessMap]) {
+    texture.colorSpace = THREE.NoColorSpace;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.anisotropy = 4;
+  }
+  return { normal, roughnessMap, roughness };
 }
 
-// --- board surface --------------------------------------------------------------
-// Builds colour + normal textures from the generated top-down surface art.
-export function surfaceTextures(img) {
+// All card faces and backs share one stable, subtle paper finish.
+let paperDetail = null;
+export function paperDetailTextures() {
+  if (!paperDetail) {
+    paperDetail = materialDetailTextures('paper', 0.54, 256);
+    paperDetail.normal.repeat.set(2, 2.8);
+    paperDetail.roughnessMap.repeat.copy(paperDetail.normal.repeat);
+  }
+  return paperDetail;
+}
+
+// Preserve the board artwork only as colour. Fine relief comes from its material.
+export function surfaceTextures(img, surface = {}, width = 10.9, height = 6.6) {
   const map = new THREE.Texture(img);
   map.colorSpace = THREE.SRGBColorSpace;
   map.anisotropy = 8;
   map.generateMipmaps = true;
   map.minFilter = THREE.LinearMipmapLinearFilter;
   map.needsUpdate = true;
-
-  const W = 1024;
-  const H = 576;
-  const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
-  const ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(img, 0, 0, W, H);
-  const src = ctx.getImageData(0, 0, W, H).data;
-  const lum = new Float32Array(W * H);
-  for (let i = 0; i < lum.length; i++) lum[i] = (src[i * 4] * 0.3 + src[i * 4 + 1] * 0.59 + src[i * 4 + 2] * 0.11) / 255;
-  const out = ctx.createImageData(W, H);
-  const L = (x, y) => lum[Math.min(H - 1, Math.max(0, y)) * W + Math.min(W - 1, Math.max(0, x))];
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const dx = (L(x + 1, y - 1) + 2 * L(x + 1, y) + L(x + 1, y + 1) - L(x - 1, y - 1) - 2 * L(x - 1, y) - L(x - 1, y + 1)) * 2.2;
-      const dy = (L(x - 1, y + 1) + 2 * L(x, y + 1) + L(x + 1, y + 1) - L(x - 1, y - 1) - 2 * L(x, y - 1) - L(x + 1, y - 1)) * 2.2;
-      const l = Math.hypot(dx, dy, 1);
-      const o = (y * W + x) * 4;
-      out.data[o] = ((-dx / l) * 0.5 + 0.5) * 255;
-      out.data[o + 1] = ((dy / l) * 0.5 + 0.5) * 255;
-      out.data[o + 2] = ((1 / l) * 0.5 + 0.5) * 255;
-      out.data[o + 3] = 255;
-    }
-  }
-  ctx.putImageData(out, 0, 0);
-  const normal = new THREE.CanvasTexture(c);
-  normal.anisotropy = 4;
-  return { map, normal };
+  const detail = materialDetailTextures(surface.detail || 'lacquer', surface.roughness ?? 0.5);
+  // World-size repeats keep fibres/grain consistent across rectangular boards.
+  detail.normal.repeat.set(width / 1.8, height / 1.8);
+  detail.roughnessMap.repeat.copy(detail.normal.repeat);
+  return { map, ...detail };
 }
 
 // --- slot outlines ----------------------------------------------------------------

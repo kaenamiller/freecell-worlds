@@ -7,6 +7,7 @@ const args = process.argv.slice(2);
 const force = args.includes('--force');
 const music = args.includes('--music');
 const filter = args.find((a) => !a.startsWith('--'));
+const themes = args.find((a) => a.startsWith('--themes='))?.slice(9).split(',');
 const key = need('ELEVENLABS_API_KEY');
 
 async function post(url, body) {
@@ -34,8 +35,10 @@ async function track(it) {
   console.log('ok  ', it.file);
 }
 
-if (music) {
-  await pool(musicList().filter((m) => !filter || m.id.includes(filter)), 1, (it) => track(it).catch((e) => console.error('FAIL', it.id, e.message)));
-} else {
-  await pool(sfxList().filter((s) => !filter || s.id.includes(filter)), 4, (it) => sfx(it).catch((e) => console.error('FAIL', it.id, e.message)));
-}
+const items = (music ? musicList() : sfxList()).filter((it) =>
+  (!themes || themes.some((t) => it.id === t || it.id.startsWith(`${t}_`))) && (!filter || it.id.includes(filter)));
+if (!items.length) throw new Error('No audio matched the requested theme/filter');
+await pool(items, music ? 1 : 4, (it) => (music ? track(it) : sfx(it)).catch((e) => {
+  console.error('FAIL', it.id, e.message);
+  process.exitCode = 1;
+}));

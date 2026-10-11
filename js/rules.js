@@ -37,14 +37,17 @@ export function shuffleForDeal(dealNumber) {
   return deal.map((v) => (v % 4) * 13 + ((v / 4) | 0) + 1);
 }
 
-export function dealFromSequence(sequence) {
+// The number of free cells is `state.free.length` (4 in classic FreeCell). Everything below —
+// move generation, the solver and the Game class — reads it from the state, so a variant only
+// needs to deal with a different count.
+export function dealFromSequence(sequence, freeCells = 4) {
   const tableau = [[], [], [], [], [], [], [], []];
   for (let k = 0; k < 52; k++) tableau[k % 8].push(sequence[k]);
-  return { tableau, free: [0, 0, 0, 0], found: [0, 0, 0, 0] };
+  return { tableau, free: new Array(freeCells).fill(0), found: [0, 0, 0, 0] };
 }
 
-export function deal(dealNumber) {
-  return dealFromSequence(shuffleForDeal(dealNumber));
+export function deal(dealNumber, freeCells = 4) {
+  return dealFromSequence(shuffleForDeal(dealNumber), freeCells);
 }
 
 export function randomDealNumber() {
@@ -181,15 +184,17 @@ export function generateMoves(st, opts = {}) {
   const moves = [];
   const { freeCells, emptyCols } = freeCapacity(st);
   const emptyFree = [];
-  for (let i = 0; i < 4; i++) if (st.free[i] === 0) emptyFree.push(i);
+  const nFree = st.free.length;
+  const nCols = st.tableau.length;
+  for (let i = 0; i < nFree; i++) if (st.free[i] === 0) emptyFree.push(i);
 
-  for (let fi = 0; fi < 4; fi++) {
+  for (let fi = 0; fi < nFree; fi++) {
     const card = st.free[fi];
     if (!card) continue;
     if (foundationAccepts(st, card)) {
       moves.push({ t: 'F', src: { kind: 'free', i: fi }, card, score: 1200 + rankOf(card) });
     }
-    for (let d = 0; d < 8; d++) {
+    for (let d = 0; d < nCols; d++) {
       if (canStackOn(st.tableau[d], card)) {
         const s = 800 + (st.tableau[d].length ? 40 : 0) + rankOf(card);
         moves.push({ t: 'T', src: { kind: 'free', i: fi }, count: 1, to: d, card, score: s });
@@ -197,7 +202,7 @@ export function generateMoves(st, opts = {}) {
     }
   }
 
-  for (let c = 0; c < 8; c++) {
+  for (let c = 0; c < nCols; c++) {
     const col = st.tableau[c];
     if (col.length === 0) continue;
     const top = col[col.length - 1];
@@ -213,7 +218,7 @@ export function generateMoves(st, opts = {}) {
 
     const run = runLength(col);
     const fullOnly = opts.fullOnly === true;
-    for (let d = 0; d < 8; d++) {
+    for (let d = 0; d < nCols; d++) {
       if (d === c) continue;
       const destEmpty = st.tableau[d].length === 0;
       const cap = destEmpty
@@ -254,10 +259,10 @@ function hashState(st) {
     h2 = Math.imul(h2 ^ v, 2246822519);
   };
   mix(255);
-  for (let i = 0; i < 4; i++) mix(st.free[i]);
+  for (let i = 0; i < st.free.length; i++) mix(st.free[i]);
   mix(254);
   for (let i = 0; i < 4; i++) mix(st.found[i]);
-  for (let c = 0; c < 8; c++) {
+  for (let c = 0; c < st.tableau.length; c++) {
     mix(253);
     const col = st.tableau[c];
     for (let k = 0; k < col.length; k++) mix(col[k]);
@@ -311,7 +316,7 @@ function solveOnce(initial, opts) {
     let changed = true;
     while (changed) {
       changed = false;
-      for (let fi = 0; fi < 4; fi++) {
+      for (let fi = 0; fi < st.free.length; fi++) {
         const card = st.free[fi];
         if (card && safeToFoundation(st, card)) {
           const m = { t: 'F', src: { kind: 'free', i: fi }, card };
@@ -320,7 +325,7 @@ function solveOnce(initial, opts) {
           changed = true;
         }
       }
-      for (let c = 0; c < 8; c++) {
+      for (let c = 0; c < st.tableau.length; c++) {
         const col = st.tableau[c];
         if (!col.length) continue;
         const card = col[col.length - 1];
@@ -498,16 +503,17 @@ export function canFinishWithFoundationOnly(st) {
 // ---------------------------------------------------------------------------
 
 export class Game {
-  constructor(dealNumber) {
+  constructor(dealNumber, { freeCells = 4 } = {}) {
     this.dealNumber = dealNumber;
-    this.state = deal(dealNumber);
+    this.freeCells = freeCells;
+    this.state = deal(dealNumber, freeCells);
     this.history = [];
     this.initial = cloneState(this.state);
   }
 
   reset(dealNumber = this.dealNumber) {
     this.dealNumber = dealNumber;
-    this.state = deal(dealNumber);
+    this.state = deal(dealNumber, this.freeCells);
     this.history = [];
     this.initial = cloneState(this.state);
   }

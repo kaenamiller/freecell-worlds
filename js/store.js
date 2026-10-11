@@ -37,6 +37,7 @@ export function save(key, value) {
 
 export const defaultSettings = {
   theme: 'roman',
+  titleMode: 'classic',
   autoRandomTheme: true,
   master: 0.9,
   sfx: 0.9,

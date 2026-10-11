@@ -1,6 +1,6 @@
 # FreeCell Worlds
 
-FreeCell Worlds — FreeCell in three.js with fourteen fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
+FreeCell Worlds — FreeCell in three.js with twenty-eight fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
 
 ```
 npm run serve        # http://localhost:8080  (any static server works)
@@ -24,8 +24,24 @@ npm run serve        # http://localhost:8080  (any static server works)
 | **Coastal Carvings** | dark cedar + painted relief, original raven/bear/orca carvings for the court | sparse dust motes | wooden chimes, sparse marimba + strings, rainy coastal pavilion |
 | **Varsity Club** | navy wool + stitched cream and oxblood leather, vintage athletic-poster court | warm dust motes | vibraphone, relaxed brass + piano, distant stadium atmosphere |
 | **Driftwood Bay** | weathered timber + slate-blue paint, pen-and-watercolor fishing-village court | soft water reflections + cool motes | buoy-bell chimes, fingerpicked guitar + felt piano, quiet fishing harbor |
+| **Camp Pinecone** | pine-green canvas + cedar and rope, vintage outdoor field-guide court | warm motes + gentle campfire light | camp-bell chimes, acoustic guitar, crickets + lake water + campfire |
+| **Winterglass** | midnight-blue frosted glass + crystal and silver, stained-glass fantasy court | cool luminous motes | crystal bells, celesta + harp + strings, airy ice-palace ambience |
+| **Concrete Playground** | charcoal blacktop + coral/cobalt/yellow paint, streetwear poster court | sparse sunset motes | spray-can clicks, mellow instrumental hip-hop, distant city + basketball |
+| **Midnight Library** | smoked oak + oxblood leather, engraved bookplate archive staff | lamplit motes | brass bell, felt piano + cello, rain on library windows |
+| **Glasshouse Conservatory** | jade paint + verdigris iron, botanical watercolor gardeners | sparse pollen-colored motes | porcelain/harp notes, harp + piano, rain on glass |
+| **Night Train** | walnut + burgundy wool and brass, railway-poster court | sparse warm motes | latch clicks, piano + bowed bass, muffled railway rhythm |
+| **Saffron Court** | cedar + indigo textiles and pierced brass, artisan gouache court | warm motes | tea-cup chimes, plucked strings, quiet courtyard fountain |
+| **Amber Harvest** | cider-brown pine + copper, agricultural-poster orchard workers | autumn-colored petals | copper bell, acoustic guitar + bass, orchard breeze |
+| **Carnival Nocturne** | indigo canvas + candy-striped rails, fairground-poster court | golden motes | small bell, gentle carousel organ, quiet midway machinery |
+| **Canyon Turquoise** | terracotta stone + turquoise inlay, artisan gouache court | sparse mineral-colored motes | stone chime, nylon guitar + strings, desert breeze |
+| **Low Tide** | damp slate + oxidized pewter, naturalist field-guide court | faint edge caustics + cool motes | pewter bell, felt piano + harmonics, tidepool drips |
+| **Between Shows** | matte-black stage + crimson rails, tactile wooden marionette court | spotlight dust | wooden-joint clicks, music box + pizzicato, backstage creaks |
+| **Obsidian Forge** | matte basalt + iron and copper, etched metalworker court | ember-colored motes + perimeter glow | iron taps, low strings + dulcimer, banked furnace |
+| **Frontier Saloon** | weathered oak + saddle leather, hand-tinted western woodcut court | warm dusty motes | wooden taps, upright piano + guitar, desert saloon ambience |
 
 Themes live in `js/themes.js` (palette, card style, lighting, bloom, materials, art + audio names). Adding one means: an entry in `js/themes.js`, prompts in `tools/art-manifest.mjs` and `tools/sfx-manifest.mjs`, then `node tools/gen-art.mjs`, `node tools/gen-sfx.mjs`, `node tools/gen-sfx.mjs --music`, `bash tools/optimize-assets.sh`. Fonts are declared in `css/style.css`; UI skinning is `body[data-theme=…]` rules at the end of that file.
+
+The eleven-world expansion is defined in `js/theme-expansion.js`, with generation prompts in `tools/expansion-content.mjs`. Both manifests include it automatically. Generation commands accept `--themes=library,conservatory,...` to limit work to an explicit set; existing assets are skipped unless `--force` is passed. `node tools/expansion-check.mjs` validates all new themes against a game server on port 8123 and saves review captures in `/tmp/freecell-expansion-qa`.
 
 ## Architecture
 
@@ -42,6 +58,27 @@ Themes live in `js/themes.js` (palette, card style, lighting, bloom, materials, 
 | `js/ui.js`, `js/stats.js`, `js/store.js` | title screen, HUD, modals, toasts; stats/achievements/daily; persistence |
 | `js/rules.js`, `js/solver.worker.js` | game rules and solver (unchanged) |
 | `sw.js`, `manifest.webmanifest` | offline + installable |
+
+## Voyage mode
+
+Voyage is a roguelite mode alongside Classic. It's a run of 7 boards across themed tables on a branching chart. Each cleared board earns 1–3 stars, and stars set how many of the table's three charms (boons) you can choose from. Charms last the whole run. Every table has a theme challenge that scales with the board number, and the final board adds a boss challenge that's shown from the start. All boards share one undo budget: 5 to start, +3 per cleared board. There are no restarts, and abandoning a board or reaching an unwinnable position with no undos left ends the run. A Daily Voyage uses a date seed, and runs are saved after every move.
+
+| File | Role |
+| --- | --- |
+| `js/voyage/run.js` | run state machine (map → board → reward), `runView` view model, saving |
+| `js/voyage/map.js` | 7-row chart: 3 starting tables, 2 links per node, rows generated two ahead so no theme repeats on a path |
+| `js/voyage/charms.js` | charm registry and hooks (`rules`, `ease`, `setup`, `score`, `on.*`, `onPick`), board composition, placeholder content |
+| `js/voyage/scoring.js` | score breakdown (cards, efficiency vs par, free-cell use, chains) and stars |
+| `js/voyage/dealer.js` | picks deals from the seed bank for a board's tier, rules and charm ease; background preparation |
+| `js/voyage/ui.js`, `css/voyage.css` | chart, HUD, intro, results and charm picks, run end, tutorial, stats tab |
+| `js/voyage/config.js` | tuning knobs (undos, tiers, compensation, scoring, star thresholds) |
+| `js/difficulty.js`, `js/shortsolve.js`, `tools/seedbank/` | offline deal rating and seed-bank build (`assets/data/seedbank.json`) |
+
+**Difficulty.** Voyage only deals deals from the pre-rated seed bank. Each deal's score combines the fewest free cells it needs (solver-proven), how deeply aces and twos are buried, and a near-best solver's move count. Board k is dealt from tier k. Charms that change free cells are rated exactly from bank data. Effects the solver can't model declare an `ease` in tiers, and the dealer offsets `VOYAGE.compensation` of the combined effect by picking a harder or easier deal. Par is the deal's solver move count × `SCORE.parFactor`. Rules the bank can't answer are checked with the solver in a duty-cycled background worker while the previous board is played.
+
+The free-cell count is `state.free.length` throughout `js/rules.js`, and the table lays out 1–6 cells.
+
+Charm and challenge content is placeholder for now. Boss designs are in `docs/voyage/boss-challenges.md`.
 
 ## Random themes
 

@@ -83,17 +83,22 @@ export function buildTableLayer(theme, art, L, opts = {}) {
   // --- board surface -------------------------------------------------------------
   let surface;
   if (art.board) {
-    const { map, normal } = surfaceTextures(art.board);
+    const s = T.surface;
+    const { map, normal, roughnessMap, roughness } = surfaceTextures(art.board, s, SW, SH);
     track(map);
     track(normal);
-    const s = T.surface;
+    track(roughnessMap);
     const mat = track(
       new THREE.MeshPhysicalMaterial({
         map,
         color: new THREE.Color(s.tint ?? 0xffffff).multiplyScalar(HC ? 0.5 : 1),
         normalMap: normal,
         normalScale: new THREE.Vector2(s.normal, s.normal),
-        roughness: s.roughness,
+        roughnessMap,
+        roughness,
+        clearcoatNormalMap: normal,
+        clearcoatNormalScale: new THREE.Vector2(s.normal * 0.2, s.normal * 0.2),
+        clearcoatRoughnessMap: roughnessMap,
         metalness: s.metalness,
         clearcoat: s.clearcoat,
         clearcoatRoughness: s.clearcoatRoughness,
@@ -205,10 +210,8 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     m.position.set(x, L.SURFACE_Y - 0.003, z);
     group.add(m);
   };
-  for (let i = 0; i < 4; i++) {
-    addSlot(L.freeX(i), L.FREE_Z, freeMat);
-    addSlot(L.foundX(i), L.FREE_Z, foundMats[i]);
-  }
+  for (let i = 0; i < (L.freeCells ?? 4); i++) addSlot(L.freeX(i), L.FREE_Z, freeMat);
+  for (let i = 0; i < 4; i++) addSlot(L.foundX(i), L.FREE_Z, foundMats[i]);
   for (let c = 0; c < 8; c++) addSlot(L.colX(c), L.TABLEAU_Z, colMat);
 
   // --- accent lights (cyber neon spill) ---------------------------------------------------

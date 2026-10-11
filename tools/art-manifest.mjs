@@ -1,7 +1,14 @@
 // Prompts for every generated image. One entry per file: assets-src/art/<theme>/<id>.png
+import { expansionArtManifest } from './expansion-content.mjs';
 const NO_TEXT = ' Absolutely no text, letters, numbers, writing, logos, watermarks or UI.';
 
 export const STYLE = {
+  pinecone:
+    'nostalgic lakeside summer-camp aesthetic: cedar log cabins, canvas tents, canoe paddles, pinecone badges, campfires and toasted marshmallows, deep pine green, warm canvas cream, burnt orange and honey-colored timber, illustrated vintage outdoor field-guide characters with cinematic tactile surroundings, cozy adventurous twilight, premium game art.',
+  winterglass:
+    'original enchanted winter-palace aesthetic: soaring translucent ice and glass architecture, faceted crystal arches, frozen fountains, snow-covered mountains and aurora skies, midnight blue, pale cyan, pearl white, silver and delicate lavender, elegant luminous stained-glass character illustration, original fantasy world and characters, premium game art.',
+  concrete:
+    'New York neighborhood blacktop and street-art aesthetic: textured charcoal asphalt, painted brick, chain-link fencing, fire escapes, elevated tracks, sneaker and streetwear culture, original abstract spray-painted tags, electric coral, cobalt and acid yellow against clean off-white and charcoal, bold layered screen-printed poster illustration, warm sunset moving into city night, premium game art.',
   carvings:
     'Northwest Coast Indigenous-art-inspired painted cedar sculpture and bold formline-inspired graphic animal art, original contemporary compositions rather than copies of existing family crests or specific artworks, carved red cedar with visible chisel marks, charcoal black, vermilion, warm ivory and restrained blue-green, misty Pacific coastal forest atmosphere, grounded and sculptural, detailed premium game art.',
   varsity:
@@ -33,6 +40,21 @@ export const STYLE = {
 };
 
 const COURT = {
+  pinecone: {
+    j: 'a friendly young adult canoe guide in a pine-green camp shirt, orange neckerchief and canvas bucket hat, holding a wooden canoe paddle, original vintage outdoor field-guide illustration with warm cream, forest green and burnt-orange inks',
+    q: 'a confident female trail explorer with a short practical haircut, rust-orange jacket and pine-green backpack, holding a small lantern, original vintage outdoor field-guide illustration with warm cream, forest green and burnt-orange inks',
+    k: 'a kindly older camp director with a salt-and-pepper beard, green wool overshirt and canvas ranger hat, holding a pinecone badge on a wooden hiking staff, original vintage outdoor field-guide illustration with warm cream, forest green and burnt-orange inks',
+  },
+  winterglass: {
+    j: 'a young frost herald in a midnight-blue coat with silver crystalline shoulder ornaments, holding a slender ice staff, original fantasy portrait rendered as elegant stained-glass shapes with pearl-white, cyan and lavender highlights, fully visible head and shoulders',
+    q: 'a regal aurora sovereign with dark hair, a faceted lavender crystal crown and layered pale-cyan robes, original fantasy portrait rendered as elegant stained-glass shapes with pearl-white, cyan and lavender highlights, fully visible head and shoulders',
+    k: 'a dignified glacier king with a white beard, a geometric silver-and-ice crown and midnight-blue mantle with frosted shoulders, original fantasy portrait rendered as elegant stained-glass shapes with pearl-white, cyan and lavender highlights, fully visible head and shoulders',
+  },
+  concrete: {
+    j: 'a young neighborhood mural artist wearing a cobalt work jacket, charcoal beanie and paint-flecked shirt, holding a spray-paint can, original bold screen-printed poster portrait with electric coral, cobalt and acid-yellow accents, clean readable silhouette',
+    q: 'a confident female neighborhood DJ with dark braided hair, coral streetwear jacket and over-ear headphones resting around her neck, original bold screen-printed poster portrait with electric coral, cobalt and acid-yellow accents, clean readable silhouette',
+    k: 'a seasoned pickup-basketball captain wearing a charcoal hoodie beneath a cobalt warmup jacket, holding an orange basketball, original bold screen-printed poster portrait with electric coral, cobalt and acid-yellow accents, clean readable silhouette',
+  },
   carvings: {
     j: 'a bold stylized raven rendered as an original painted red-cedar animal carving, charcoal beak and vermilion and ivory geometric detailing with blue-green accents, highly readable sculptural silhouette, not a human figure, no human costume, no specific clan crest',
     q: 'a powerful stylized bear rendered as an original painted red-cedar animal carving, rounded ears and strong expressive animal silhouette with charcoal, vermilion and ivory geometric detailing, not a human figure, no human costume, no specific clan crest',
@@ -106,6 +128,9 @@ const COURT = {
 };
 
 const BG = {
+  pinecone: 'against plain warm canvas-cream paper with a faint pine-green field-guide wash',
+  winterglass: 'against a simple midnight-blue stained-glass background with faint cyan crystal facets',
+  concrete: 'against a clean off-white screen-print paper background with restrained coral and cobalt abstract paint shapes, no lettering',
   carvings: 'against a plain dark charcoal-cedar background with soft side light revealing carving depth',
   varsity: 'against a plain warm cream paper background with one restrained navy-and-gold pennant shape',
   driftwood: 'against a plain chalk-white watercolor-paper background with a faint slate-blue wash',
@@ -124,6 +149,24 @@ const BG = {
 
 // Per-theme scene descriptions.
 const DESC = {
+  pinecone: {
+    board: 'A continuous deep pine-green canvas playing surface with subtle woven texture, framed only at the outermost edges by warm honey-colored cedar logs and a neatly laid rope line. Tiny carved pinecone badges and paddle details at the extreme corners. The entire central eighty percent stays flat, evenly dark pine green and unornamented: no fire, tents, badges, ropes, objects or shadows across the playing area.',
+    backdrop: 'A cozy lakeside summer camp at blue-hour dusk, cedar log cabins with softly glowing windows, canvas tents among tall pines, wooden canoes pulled onto a small sandy shore, a modest glowing campfire and marshmallow sticks near the edge, calm lake reflecting the last warm sunset, quiet nostalgic wilderness atmosphere.',
+    hero: 'A welcoming lakeside summer camp at twilight, cedar cabins glowing among pines, canvas tents and canoes along the shore. On the RIGHT a small crackling campfire with two marshmallows on roasting sticks and a wooden camp table holding a fan of cream playing cards and a green enamel mug. LEFT third shaded deep pine-green cabin wall for title readability. Warm childhood-summer nostalgia, no people required.',
+    back: 'An original embroidered camp badge design, deep pine-green canvas field, crossed wooden canoe paddles surrounding a small campfire and pinecone emblem, tiny cream stars, warm orange accents and a cream stitched rope-like border. Clear symmetrical vintage outdoor geometry and tactile print texture, no lettering.',
+  },
+  winterglass: {
+    board: 'An elegant flat smoky midnight-blue frosted-glass tabletop, the central eighty percent uniformly dark and low contrast with extremely subtle frost grain. An ornate faceted ice-and-silver frame confined to the outermost edges, pale cyan crystal corners and small lavender reflections. No cracks, snowflakes, aurora stripes, light beams, figures or objects across the central playing area.',
+    backdrop: 'A grand original palace of translucent ice and glass, soaring crystal arches and faceted columns, frozen fountains at the margins, a broad window opening onto snow-covered mountains under a soft cyan-and-lavender aurora. Luminous elegant winter twilight with restrained warm light on the far horizon, no recognizable existing film architecture or characters.',
+    hero: 'Inside a breathtaking original ice-and-glass palace, tall faceted arches opening onto snowy mountains and a lavender aurora. On the RIGHT a beautiful crystalline snowflake medallion above a frosted-glass table holding a fan of pearl-white playing cards, a few icy crystal ornaments nearby. LEFT third calm shaded midnight-blue glass wall for title readability. Elegant luminous winter enchantment, no existing film characters.',
+    back: 'A perfectly symmetric geometric snowflake medallion built from layered cyan and lavender crystalline facets, midnight-blue field, pearl-white highlights and a delicate silver architectural border. Elegant original ice-palace ornament, sharp readable geometry, flat printed artwork without actual transparency, no lettering.',
+  },
+  concrete: {
+    board: 'A continuous charcoal-black asphalt playing surface with fine low-contrast aggregate grain, framed only at the outermost perimeter by layered original abstract spray-painted shapes and tags in electric coral, cobalt and acid yellow. Restrained painted white perimeter stripe and dark metal edging. The central eighty percent is uninterrupted evenly charcoal: no basketball lines, tags, paint splashes, stickers, lettering, equipment or objects in the central playing area.',
+    backdrop: 'A welcoming New York-inspired neighborhood blacktop court at sunset beneath elevated tracks, painted brick walls with a huge original abstract colorful mural, chain-link fence, fire escapes and apartment rooftops, warm sunset catching a distant skyline, a pair of sneakers and basketball at the far margin, original invented street-art marks without readable text or real brands.',
+    hero: 'A New York-inspired neighborhood blacktop at sunset, colorful original mural along a brick wall, chain-link fence, fire escapes and elevated tracks. On the RIGHT a confident female DJ in coral streetwear with headphones around her neck beside a portable deck on a bench holding a fan of off-white playing cards. LEFT third quiet shaded charcoal brick and asphalt for title readability. Warm energetic community atmosphere, original abstract paint marks, no brands or readable text.',
+    back: 'An original bold point-symmetric street-art emblem of interlocking abstract spray-painted angular ribbons, sticker-like circles and layered screen-print textures, charcoal field, electric coral, cobalt, acid yellow and clean off-white, crisp thick lines and a dark stencil-like border. Graffiti energy conveyed through shapes rather than readable words, no lettering, no brand logos.',
+  },
   carvings: {
     board: 'A continuous dark smoked-cedar playing surface with subtle long wood grain, a broad hand-carved red-cedar border confined to the outermost edges, original interlocking abstract animal-inspired relief with charcoal-black, vermilion and ivory painted details and a little blue-green. Raking light reveals gentle chisel marks. Centre remains flat, evenly dark and unornamented, no animal figures, symbols or strong lines in the central playing area.',
     backdrop: 'A sheltered open-sided cedar pavilion beside a misty Pacific coastal inlet, two large original painted animal-carving poles standing at the far margins, dark evergreen forest and distant mountains across the still water, pale overcast morning light, quiet atmospheric composition. No ceremonial performance or people.',
@@ -219,7 +262,7 @@ const DESC = {
 };
 
 export function manifest() {
-  const out = [];
+  const out = expansionArtManifest();
   for (const t of Object.keys(STYLE)) {
     const s = STYLE[t];
     const d = DESC[t];

@@ -26,6 +26,7 @@ export const ui = {
     this.wireButtons();
     this.wireSettings();
     this.refreshDaily();
+    this.setTitleMode(settings.titleMode, { persist: false });
 
     // Close modals via backdrop / × / Escape.
     for (const m of document.querySelectorAll('.modal')) {
@@ -50,10 +51,40 @@ export const ui = {
     for (const [k, v] of Object.entries(theme.css)) document.documentElement.style.setProperty(k, v);
     document.body.dataset.theme = theme.id;
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme.css['--bg']);
-    $('#title-tagline').textContent = theme.tagline;
     $('#brand-theme').textContent = theme.name;
     this.syncThemeSelection();
-    this.setHero(theme.art.hero);
+    if (this.titleMode !== 'voyage') this.updateTitleHero();
+  },
+
+  titleMode: 'classic',
+  titleVoyageTheme: null,
+  setTitleVoyageTheme(id) {
+    this.titleVoyageTheme = THEMES[id] ? id : null;
+    if (this.titleMode === 'voyage') this.updateTitleHero();
+  },
+  updateTitleHero() {
+    const classic = this.titleMode !== 'voyage';
+    const id = classic ? document.body.dataset.theme || settings.theme : this.titleVoyageTheme || THEME_ORDER[Math.floor(Date.now() / 86400000) % THEME_ORDER.length];
+    const chosen = THEMES[id] || THEMES.roman;
+    $('#title-eyebrow').textContent = classic ? 'The classic. Reimagined.' : 'A new world at every table';
+    $('#title-tagline').textContent = classic ? chosen.tagline : 'Chart seven tables, collect charms, and face the final boss.';
+    $('#title-hint').textContent = classic ? 'Drag cards · double-click to send home · H hint · U undo' : 'Choose your route · collect charms · reach the final table';
+    if (this.titleHeroUrl !== chosen.art.hero) { this.titleHeroUrl = chosen.art.hero; this.setHero(chosen.art.hero); }
+  },
+  setTitleMode(mode, { persist = true } = {}) {
+    this.titleMode = mode === 'voyage' ? 'voyage' : 'classic';
+    if (persist) this.titleUserSwitched = true;
+    document.body.classList.toggle('voyage-reduced-motion', !!settings.reducedMotion);
+    for (const name of ['classic', 'voyage']) {
+      const active = name === this.titleMode;
+      const tab = $(`#title-tab-${name}`);
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+      $(`#title-panel-${name}`).hidden = !active;
+    }
+    this.els.title.dataset.titleMode = this.titleMode;
+    if (persist && settings.titleMode !== this.titleMode) { settings.titleMode = this.titleMode; saveSettings(); }
+    this.updateTitleHero();
   },
 
   syncThemeSelection() {
@@ -137,6 +168,7 @@ export const ui = {
 
   // --- screens -----------------------------------------------------------------------
   showTitle() {
+    this.titleUserSwitched = false;
     this.closeModals();
     this.els.win.classList.remove('show');
     this.els.title.classList.remove('hidden', 'leaving');
@@ -146,6 +178,7 @@ export const ui = {
     this.refreshDaily();
     const resume = this.handlers.hasResume && this.handlers.hasResume();
     $('#btn-play-label').textContent = resume ? 'Continue' : 'Play';
+    this.setTitleMode(settings.titleMode, { persist: false });
   },
 
   hideTitle() {
@@ -239,7 +272,10 @@ export const ui = {
   // --- modals -------------------------------------------------------------------------
   openModal(id) {
     this.closeModals();
-    if (id === 'modal-stats') this.renderStats();
+    if (id === 'modal-stats') {
+      this.renderStats();
+      this.handlers.statsOpened?.();
+    }
     $('#' + id).classList.add('show');
   },
   closeModals() {
@@ -274,12 +310,29 @@ export const ui = {
     const on = (sel, fn) => $(sel).addEventListener('click', (e) => (H().click && H().click(e), fn(e)));
     on('#btn-play', () => H().play());
     on('#btn-daily', () => H().daily());
+    for (const name of ['classic', 'voyage']) {
+      const tab = $(`#title-tab-${name}`);
+      tab.addEventListener('click', () => this.setTitleMode(name));
+      tab.addEventListener('keydown', (event) => {
+        const next = event.key === 'ArrowRight' || event.key === 'ArrowLeft' ? (name === 'classic' ? 'voyage' : 'classic') : event.key === 'End' ? 'voyage' : event.key === 'Home' ? 'classic' : null;
+        if (!next) return;
+        event.preventDefault();
+        this.setTitleMode(next);
+        $(`#title-tab-${next}`).focus();
+      });
+    }
+    on('#btn-title-deal-reveal', () => {
+      const wrap = $('#title-deal-wrap');
+      wrap.hidden = !wrap.hidden;
+      $('#btn-title-deal-reveal').setAttribute('aria-expanded', String(!wrap.hidden));
+      if (!wrap.hidden) $('#title-deal').focus();
+    });
     on('#btn-title-deal', () => {
       const n = parseInt($('#title-deal').value, 10);
       H().dealNumber(Number.isFinite(n) && n > 0 ? n : null);
     });
     $('#title-deal').addEventListener('keydown', (e) => e.key === 'Enter' && $('#btn-title-deal').click());
-    on('#btn-title-stats', () => this.openModal('modal-stats'));
+    on('#btn-title-stats', () => { this.openModal('modal-stats'); $(`#stats-tab-${this.titleMode}`)?.click(); });
     on('#btn-title-settings', () => this.openModal('modal-settings'));
     on('#btn-title-themes', () => this.openModal('modal-themes'));
 

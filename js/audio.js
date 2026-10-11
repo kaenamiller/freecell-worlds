@@ -194,6 +194,17 @@ export class AudioEngine {
     if (this.ctx && this.started) this.startThemeLoops(theme);
   }
 
+  // Fetch a theme's sounds ahead of time (Voyage preloads the tables the player may visit next).
+  preloadTheme(theme) {
+    return Promise.all([
+      this.load(`${theme}_ui`),
+      this.load(`${theme}_chime`),
+      this.load(`${theme}_win`),
+      this.load(`${theme}_ambience`),
+      this.load(theme, MUSIC_DIR),
+    ]).catch(() => {});
+  }
+
   async startThemeLoops(theme) {
     const [amb, mus] = await Promise.all([
       this.load(`${theme}_ambience`),
