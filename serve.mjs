@@ -40,7 +40,8 @@ createServer(async (req, res) => {
       data = await readFile(filePath);
     } catch (err) {
       // Match GitHub Pages: /terms serves terms/index.html.
-      if (!err || err.code !== 'ENOENT' || extname(pathname)) throw err;
+      // A directory read fails with EISDIR; a missing file fails with ENOENT.
+      if (!err || (err.code !== 'ENOENT' && err.code !== 'EISDIR') || extname(pathname)) throw err;
       const indexPath = normalize(join(filePath, 'index.html'));
       if (indexPath !== root && !indexPath.startsWith(root + sep)) throw err;
       data = await readFile(indexPath);
