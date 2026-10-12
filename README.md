@@ -1,6 +1,6 @@
 # FreeCell Worlds
 
-FreeCell Worlds — FreeCell in three.js with twenty-eight fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
+FreeCell Worlds — FreeCell in three.js with forty-two fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
 
 ```
 npm run serve        # http://localhost:8080  (any static server works)
@@ -29,8 +29,8 @@ npm run serve        # http://localhost:8080  (any static server works)
 | **Concrete Playground** | charcoal blacktop + coral/cobalt/yellow paint, streetwear poster court | sparse sunset motes | spray-can clicks, mellow instrumental hip-hop, distant city + basketball |
 | **Midnight Library** | smoked oak + oxblood leather, engraved bookplate archive staff | lamplit motes | brass bell, felt piano + cello, rain on library windows |
 | **Glasshouse Conservatory** | jade paint + verdigris iron, botanical watercolor gardeners | sparse pollen-colored motes | porcelain/harp notes, harp + piano, rain on glass |
-| **Night Train** | walnut + burgundy wool and brass, railway-poster court | sparse warm motes | latch clicks, piano + bowed bass, muffled railway rhythm |
-| **Saffron Court** | cedar + indigo textiles and pierced brass, artisan gouache court | warm motes | tea-cup chimes, plucked strings, quiet courtyard fountain |
+| **Daylight Express** | sunlit walnut + burgundy wool and brass, railway-poster court | sparse warm motes | latch clicks, piano + bowed bass, muffled railway rhythm |
+| **Saffron Court** | sunlit cedar + indigo textiles and pierced brass, artisan gouache court | warm motes | tea-cup chimes, plucked strings, quiet courtyard fountain |
 | **Amber Harvest** | cider-brown pine + copper, agricultural-poster orchard workers | autumn-colored petals | copper bell, acoustic guitar + bass, orchard breeze |
 | **Carnival Nocturne** | indigo canvas + candy-striped rails, fairground-poster court | golden motes | small bell, gentle carousel organ, quiet midway machinery |
 | **Canyon Turquoise** | terracotta stone + turquoise inlay, artisan gouache court | sparse mineral-colored motes | stone chime, nylon guitar + strings, desert breeze |
@@ -38,10 +38,20 @@ npm run serve        # http://localhost:8080  (any static server works)
 | **Between Shows** | matte-black stage + crimson rails, tactile wooden marionette court | spotlight dust | wooden-joint clicks, music box + pizzicato, backstage creaks |
 | **Obsidian Forge** | matte basalt + iron and copper, etched metalworker court | ember-colored motes + perimeter glow | iron taps, low strings + dulcimer, banked furnace |
 | **Frontier Saloon** | weathered oak + saddle leather, hand-tinted western woodcut court | warm dusty motes | wooden taps, upright piano + guitar, desert saloon ambience |
+| **Pharaoh's Tomb** | dark sandstone + lapis and gold, painted tomb-portrait court | torchlit gold dust | gold bell, oud + ney, quiet burial chamber |
+| **Canopy Station** | dark teak + field-green rails, naturalist watercolor biologists | humid daylight motes | brass bell, nylon guitar + flute, canopy drips |
+| **Cherry Counter** | daylight grey laminate + cherry vinyl and chrome, mid-century diner poster court | daylight motes | coffee-cup tap, electric piano + guitar, quiet highway diner |
+| **Treasure Cove** | salt-stained oak + rope and aged brass, engraved nautical-chart court | lantern-lit motes | ship's bell, concertina + guitar, sea-cave surf |
+| **High Keep** | aged oak + crimson wool and iron, illuminated-manuscript court | hearth-lit motes + warm edge glow | bronze handbell, lute + recorder, banked hearth |
+| **Deep Storage** | brushed concrete + gunmetal and hazard striping, classified-file court | halogen dust + tarp-glow accent light | sonar ping, analog synth + vibraphone, ventilation hum |
+| **The Toy Box** | maple table + primary block rail, vintage toy-catalog court | afternoon motes | wooden-block tap, toy piano + glockenspiel, quiet playroom |
+| **Prize Lights** | navy felt + bulb-colored rail, 1970s broadcast court | marquee motes + cyan accent light | podium tap, electric piano + light brass, hushed TV stage |
+| **Safety Pin** | matte black stage paint + silver tape, photocopied club court | magenta-gel motes | bottle tap, dry snare + bass through a wall, club room tone |
+| **Honey House** | amber table + black-and-yellow rail, dripping comb and bee courts | honey-gold light | hive-frame tap, solo cello, distant bees beyond the screen |
 
 Themes live in `js/themes.js` (palette, card style, lighting, bloom, materials, art + audio names). Adding one means: an entry in `js/themes.js`, prompts in `tools/art-manifest.mjs` and `tools/sfx-manifest.mjs`, then `node tools/gen-art.mjs`, `node tools/gen-sfx.mjs`, `node tools/gen-sfx.mjs --music`, `bash tools/optimize-assets.sh`. Fonts are declared in `css/style.css`; UI skinning is `body[data-theme=…]` rules at the end of that file.
 
-The eleven-world expansion is defined in `js/theme-expansion.js`, with generation prompts in `tools/expansion-content.mjs`. Both manifests include it automatically. Generation commands accept `--themes=library,conservatory,...` to limit work to an explicit set; existing assets are skipped unless `--force` is passed. `node tools/expansion-check.mjs` validates all new themes against a game server on port 8123 and saves review captures in `/tmp/freecell-expansion-qa`.
+The expansion worlds are defined in `js/theme-expansion.js`, with generation prompts in `tools/expansion-content.mjs`. Both manifests include it automatically. Generation commands accept `--themes=library,conservatory,...` to limit work to an explicit set; existing assets are skipped unless `--force` is passed. `node tools/expansion-check.mjs` validates all new themes against a game server on port 8123 and saves review captures in `/tmp/freecell-expansion-qa`.
 
 ## Architecture
 
@@ -78,7 +88,7 @@ Voyage is a roguelite mode alongside Classic. It's a run of 7 boards across them
 
 The free-cell count is `state.free.length` throughout `js/rules.js`, and the table lays out 1–6 cells.
 
-Charm and challenge content is placeholder for now. Boss designs are in `docs/voyage/boss-challenges.md`.
+Each table has three boons and one scaling challenge. Boss designs are in `docs/voyage/boss-challenges.md`.
 
 ## Random themes
 

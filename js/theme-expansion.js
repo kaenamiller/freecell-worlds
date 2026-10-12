@@ -1,4 +1,4 @@
-// Eleven additional worlds. Shared construction keeps their card contrast and
+// Additional worlds. Shared construction keeps their card contrast and
 // slot treatment consistent; materials, palette, lighting and atmosphere vary.
 const rgb = (hex) => parseInt(hex.slice(1), 16);
 const channels = (hex) => [16, 8, 0].map((shift) => ((rgb(hex) >> shift) & 255) / 255);
@@ -19,17 +19,18 @@ const WORLDS = [
     exposure: 0.98, vignette: 0.23,
   },
   {
-    id: 'nighttrain', name: 'Night Train', tagline: 'Burgundy wool, a reading lamp and towns going by.',
-    font: 'Cormorant Garamond', bg: '#172637', panel: '#202b39', accent: '#d6b980', secondary: '#dd93a4',
+    id: 'nighttrain', name: 'Daylight Express', tagline: 'Walnut, burgundy wool and sunlit countryside.',
+    font: 'Cormorant Garamond', bg: '#3b342b', panel: '#494039', accent: '#ecd09c', secondary: '#bbd3df',
     paper: ['#fff3df', '#e9dbbf'], ink: '#202735', red: '#a62d45', rail: '#743944', inlay: '#b79960',
-    detail: 'wood', roughness: 0.65, key: '#ffdfb0', fill: '#92b7e2', ambient: '#ddbb89', count: 14,
-    vignette: 0.4,
+    detail: 'wood', roughness: 0.65, key: '#fff2d8', fill: '#d7eaf3', ambient: '#e5d4ad', count: 14,
+    exposure: 1.08, vignette: 0.2,
   },
   {
-    id: 'saffron', name: 'Saffron Court', tagline: 'Pierced brass, indigo cloth and tea going cold.',
-    font: 'Cinzel', bg: '#20283e', panel: '#2a3045', accent: '#ebbf65', secondary: '#8fc8c0',
+    id: 'saffron', name: 'Saffron Court', tagline: 'Sunlit plaster, saffron cloth and tea in the shade.',
+    font: 'Cinzel', bg: '#494031', panel: '#514637', accent: '#f0cd80', secondary: '#acd7cf',
     paper: ['#fff3da', '#ebddbe'], ink: '#24314a', red: '#ae3042', rail: '#26334d', inlay: '#b78d50',
-    detail: 'wood', roughness: 0.83, key: '#ffdc9e', fill: '#a6b9e9', ambient: '#ecc07a', count: 22,
+    detail: 'wood', roughness: 0.83, key: '#fff1d2', fill: '#d2e6ed', ambient: '#edd8a5', count: 22,
+    exposure: 1.08, vignette: 0.2,
   },
   {
     id: 'harvest', name: 'Amber Harvest', tagline: 'Barnwood, cider light and the last warm leaves.',
@@ -80,6 +81,104 @@ const WORLDS = [
     detail: 'wood', roughness: 0.94, key: '#ffdda7', fill: '#c6b5dc', ambient: '#d8ba8c', count: 18,
     vignette: 0.35,
   },
+  {
+    id: 'lapis', name: "Pharaoh's Tomb", tagline: 'Gold leaf, lapis stone and a torchlit burial hall.',
+    font: 'Cinzel', bg: '#1c1612', panel: '#2c221c', accent: '#e4c56e', secondary: '#7ea0d4',
+    paper: ['#f8f0d8', '#e6d4b0'], ink: '#1c140e', red: '#b33a32', rail: '#3c4e78', inlay: '#c9a24e',
+    detail: 'slate', roughness: 0.9, key: '#ffd6a0', fill: '#c4a078', ambient: '#e8c98a', count: 16,
+    vignette: 0.38,
+  },
+  {
+    id: 'canopy', name: 'Canopy Station', tagline: 'Teak platforms, broad leaves and humid daylight.',
+    font: 'Cormorant Garamond', bg: '#1a2c24', panel: '#24382e', accent: '#e2c56a', secondary: '#8fbf7a',
+    paper: ['#f6f3e4', '#e4e6d0'], ink: '#1a2e24', red: '#b8433a', rail: '#3d5a40', inlay: '#b08948',
+    detail: 'wood', roughness: 0.86, key: '#f3f0d4', fill: '#9ec4b0', ambient: '#c6d6a4', count: 14,
+    exposure: 0.98, vignette: 0.26,
+  },
+  {
+    id: 'diner', name: 'Cherry Counter', tagline: 'Cherry vinyl, chrome trim and sunshine at the counter.',
+    font: 'Antonio', bg: '#484440', panel: '#514743', accent: '#f7dfa6', secondary: '#a0dfd3',
+    paper: ['#fff6e8', '#f0e2cc'], ink: '#2a2422', red: '#c4373f', rail: '#a33b48', inlay: '#c5ccd2',
+    detail: 'laminate', roughness: 0.58, key: '#fff5df', fill: '#d6e9ed', ambient: '#efe3c8', count: 12,
+    clearcoat: 0.16, exposure: 1.08, vignette: 0.18,
+  },
+  {
+    id: 'cove', name: 'Treasure Cove', tagline: 'Salt-stained charts, a crooked X and gold by candlelight.',
+    font: 'Cormorant Garamond', bg: '#152a2e', panel: '#1e3a40', accent: '#e2c078', secondary: '#7cc2b6',
+    paper: ['#fdf0d2', '#e6d3a8'], ink: '#1f2a30', red: '#b03a30', rail: '#5a4630', inlay: '#c9a24f',
+    detail: 'wood', roughness: 0.85, key: '#ffdc9e', fill: '#8fb8d8', ambient: '#e8c98f', count: 16,
+    vignette: 0.35,
+  },
+  {
+    id: 'keep', name: 'High Keep', tagline: 'Banners in the rafters, wax seals and a long oak table.',
+    font: 'Cinzel', bg: '#241a20', panel: '#332630', accent: '#d8b365', secondary: '#c0555e',
+    paper: ['#fbf0d8', '#e7d6b2'], ink: '#241c18', red: '#a82836', rail: '#5a4030', inlay: '#b98e3e',
+    detail: 'wood', roughness: 0.82, key: '#ffdca0', fill: '#a0b4d8', ambient: '#e3bd85', count: 18,
+    glow: 0.15, vignette: 0.35,
+  },
+  {
+    id: 'deepstorage', name: 'Deep Storage', tagline: 'Halogen hum, quarantine tape and one covered disk.',
+    font: 'Antonio', bg: '#1d2126', panel: '#272c33', accent: '#e5c85a', secondary: '#7fd6c2',
+    paper: ['#f5eeda', '#ddd2b4'], ink: '#22262c', red: '#b03a34', rail: '#43484e', inlay: '#d8b83e',
+    detail: 'slate', roughness: 0.95, key: '#f0f2e8', fill: '#7e94b8', ambient: '#e0d8b0', count: 14,
+    glow: 0.2, vignette: 0.4,
+  },
+  {
+    id: 'cafe', name: 'Café at Dawn', tagline: 'Honey wood, warm pendants and first light on the street.',
+    font: 'Josefin Sans', bg: '#3a2b21', panel: '#48352a', accent: '#efc579', secondary: '#a5bcc9',
+    paper: ['#fff5e1', '#eedcbc'], ink: '#33261b', red: '#b5402f', rail: '#7a4a33', inlay: '#c99e5f',
+    detail: 'wood', roughness: 0.85, key: '#ffe2ae', fill: '#c9d7e8', ambient: '#efd6a5', count: 14,
+    vignette: 0.32,
+  },
+  {
+    id: 'arctic', name: 'Arctic Station', tagline: 'Frosted instruments, aurora light and one snug lamp.',
+    font: 'Antonio', bg: '#16222e', panel: '#20303e', accent: '#ffb25c', secondary: '#8fd4e8',
+    paper: ['#f2f6f8', '#dfe9ee'], ink: '#1b2a38', red: '#d95436', rail: '#31465a', inlay: '#6fb4c9',
+    detail: 'paint', roughness: 0.9, key: '#eaf4ff', fill: '#8fb3d8', ambient: '#bfe0f2', count: 12,
+    glow: 0.12, vignette: 0.3,
+  },
+  {
+    id: 'museum', name: 'Fossil Hall', tagline: 'Spotlit bone, green-black stone and evening hush.',
+    font: 'Cinzel', bg: '#23262b', panel: '#2e3238', accent: '#d9b36c', secondary: '#9aa8b6',
+    paper: ['#f3eddd', '#e2d9c2'], ink: '#26292e', red: '#a84a34', rail: '#45403a', inlay: '#c09b5e',
+    detail: 'slate', roughness: 0.9, key: '#f5e9ce', fill: '#9fb4cc', ambient: '#d9c9a5', count: 14,
+    vignette: 0.4,
+  },
+  {
+    id: 'mint', name: 'The Mint', tagline: 'Guilloche steel, rag paper and a printer’s patience.',
+    font: 'Cinzel', bg: '#16281f', panel: '#1d3327', accent: '#d4b15f', secondary: '#8e7ca8',
+    paper: ['#f6efd8', '#e6dcc0'], ink: '#1e2a22', red: '#9e4a38', rail: '#2a3c30', inlay: '#c9a659',
+    detail: 'paint', roughness: 0.82, key: '#ffe9b8', fill: '#a9c4c2', ambient: '#e8dfbe', count: 16,
+    clearcoat: 0.12, vignette: 0.34,
+  },
+  {
+    id: 'toybox', name: 'The Toy Box', tagline: 'Maple blocks, primary paint and a rug in the afternoon.',
+    font: 'Fredoka', bg: '#3a2418', panel: '#4a3020', accent: '#e2b043', secondary: '#7eb0e0',
+    paper: ['#fff6e4', '#f0e0c4'], ink: '#2a241c', red: '#c4453a', rail: '#8a6238', inlay: '#e2b043',
+    detail: 'wood', roughness: 0.75, key: '#ffe6c0', fill: '#c5d4ea', ambient: '#f0d7a0', count: 16,
+    exposure: 1.06, vignette: 0.22,
+  },
+  {
+    id: 'prizelights', name: 'Prize Lights', tagline: 'Colored bulbs, a spinning wedge and a navy podium.',
+    font: 'Antonio', bg: '#12182a', panel: '#1c2640', accent: '#f0c14a', secondary: '#3ec6d6',
+    paper: ['#f6efe2', '#e6dcc8'], ink: '#142033', red: '#e23b3b', rail: '#1a2744', inlay: '#f0c14a',
+    detail: 'cloth', roughness: 0.9, key: '#fff0d0', fill: '#3ec6d6', ambient: '#f0c14a', count: 18,
+    glow: 0.18, vignette: 0.32,
+  },
+  {
+    id: 'safetypin', name: 'Safety Pin', tagline: 'Photocopy black, torn newsprint and a magenta gel.',
+    font: 'Antonio', bg: '#121014', panel: '#1e1a1e', accent: '#d23a45', secondary: '#c43b78',
+    paper: ['#f4efe4', '#e0d8cc'], ink: '#161418', red: '#d23a45', rail: '#2a262c', inlay: '#c5c8ce',
+    detail: 'paint', roughness: 0.92, key: '#f2e6c8', fill: '#c43b78', ambient: '#e6e0d4', count: 12,
+    glow: 0.15, vignette: 0.4,
+  },
+  {
+    id: 'honeyhouse', name: 'Honey House', tagline: 'Dripping honey, black-and-yellow stripes, and a queen on the comb.',
+    font: 'Cormorant Garamond', bg: '#2a2018', panel: '#3a2c22', accent: '#e0a23a', secondary: '#6e8f62',
+    paper: ['#fff4dc', '#f0e0c0'], ink: '#3a342c', red: '#c47b2b', rail: '#5c4630', inlay: '#c47b2b',
+    detail: 'wood', roughness: 0.84, key: '#ffe0a8', fill: '#c5d4b0', ambient: '#f0d090', count: 14,
+    exposure: 1.02, vignette: 0.28,
+  },
 ];
 
 function worldTheme(w) {
@@ -90,8 +189,8 @@ function worldTheme(w) {
       '--bg': w.bg, '--panel': rgba(w.panel, 0.94), '--panel-solid': w.panel,
       '--border': rgba(w.accent, 0.42), '--text': w.paper[0], '--muted': w.paper[1],
       '--accent': w.accent, '--accent-2': w.secondary, '--glow': rgba(w.accent, 0.24),
-      '--radius': ['canyon', 'saloon', 'forge'].includes(w.id) ? '5px' : '9px',
-      '--font-ui': `'${w.font}', ${w.font === 'Antonio' ? "'Arial Narrow', sans-serif" : w.font === 'Josefin Sans' ? "'Trebuchet MS', sans-serif" : 'Georgia, serif'}`,
+      '--radius': ['canyon', 'saloon', 'forge', 'lapis', 'keep', 'deepstorage', 'arctic', 'museum', 'prizelights', 'safetypin'].includes(w.id) ? '5px' : '9px',
+      '--font-ui': `'${w.font}', ${w.font === 'Antonio' ? "'Arial Narrow', sans-serif" : w.font === 'Josefin Sans' || w.font === 'Fredoka' ? "'Trebuchet MS', sans-serif" : 'Georgia, serif'}`,
     },
     card: {
       paper: w.paper, edge: rgb(w.paper[1]), border: w.inlay, indexFont: w.font, indexWeight: 700,
@@ -105,7 +204,7 @@ function worldTheme(w) {
       key: { color: rgb(w.key), intensity: 2, pos: [5.5, 13, 6.5] },
       fill: { color: rgb(w.fill), intensity: 0.65, pos: [-7, 8, -5] },
       rim: { color: rgb(w.accent), intensity: 12, pos: [0, 7, -7] },
-      accentLights: w.glow ? [{ color: rgb(w.secondary), intensity: 4, pos: [-6.5, 1.5, 1] }] : [],
+      accentLights: w.glow ? [{ color: rgb(w.secondary), intensity: 4, pos: [-6.5, 1.5, 1], pulse: 0 }] : [],
       bloom: { strength: w.glow ? 0.2 : 0.12, radius: 0.55, threshold: 1.3 },
       vignette: w.vignette || 0.3, grain: 0.025, ao: 0.8,
     },

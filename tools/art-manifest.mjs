@@ -158,7 +158,7 @@ const DESC = {
   winterglass: {
     board: 'An elegant flat smoky midnight-blue frosted-glass tabletop, the central eighty percent uniformly dark and low contrast with extremely subtle frost grain. An ornate faceted ice-and-silver frame confined to the outermost edges, pale cyan crystal corners and small lavender reflections. No cracks, snowflakes, aurora stripes, light beams, figures or objects across the central playing area.',
     backdrop: 'A grand original palace of translucent ice and glass, soaring crystal arches and faceted columns, frozen fountains at the margins, a broad window opening onto snow-covered mountains under a soft cyan-and-lavender aurora. Luminous elegant winter twilight with restrained warm light on the far horizon, no recognizable existing film architecture or characters.',
-    hero: 'Inside a breathtaking original ice-and-glass palace, tall faceted arches opening onto snowy mountains and a lavender aurora. On the RIGHT a beautiful crystalline snowflake medallion above a frosted-glass table holding a fan of pearl-white playing cards, a few icy crystal ornaments nearby. LEFT third calm shaded midnight-blue glass wall for title readability. Elegant luminous winter enchantment, no existing film characters.',
+    hero: 'Inside a breathtaking original ice-and-glass palace, tall faceted arches opening onto snowy mountains and a lavender aurora. On the RIGHT a beautiful crystalline snowflake medallion above a frosted-glass table holding a fan of face-down playing cards whose backs are fully designed: midnight blue with a cyan-and-lavender snowflake medallion and a silver border. The cards must not be blank, empty, or plain pearl-white. A few icy crystal ornaments sit nearby. LEFT third calm shaded midnight-blue glass wall for title readability. Elegant luminous winter enchantment, no existing film characters.',
     back: 'A perfectly symmetric geometric snowflake medallion built from layered cyan and lavender crystalline facets, midnight-blue field, pearl-white highlights and a delicate silver architectural border. Elegant original ice-palace ornament, sharp readable geometry, flat printed artwork without actual transparency, no lettering.',
   },
   concrete: {
@@ -182,7 +182,7 @@ const DESC = {
   driftwood: {
     board: 'A weathered driftwood-rimmed tabletop with a continuous muted medium-dark slate-blue painted central inset, fine quiet brush texture and subtle wear only at the edges. Silvered driftwood and neatly laid pale rope edging form the outermost border, small aged-brass fasteners and tiny rust-red corner accents. Centre stays uninterrupted and evenly slate blue, no central compass, grid, rope, boats, shells, maps or objects.',
     backdrop: 'A sheltered waterfront cafe porch in a sleepy fishing village at dawn, silvered timber railings and faded seafoam-painted cottages, small working fishing boats gently moored among pilings, rope coils and lobster pots at the margins, a distant lighthouse softened by pale sea mist, quiet slate-blue harbor water and warm light from one cottage window.',
-    hero: 'A peaceful waterfront cafe porch with a kindly old fisherman in a navy wool cap and cream sweater on the RIGHT, a fan of ivory playing cards on a small driftwood table beside a ceramic mug. Small fishing boats, crooked seafoam timber cottages and a distant lighthouse across a sleepy misty harbor. LEFT third quiet shaded slate-blue porch wall for title readability. Cozy contemplative morning atmosphere.',
+    hero: 'A peaceful waterfront cafe porch with a kindly old fisherman in a navy wool cap and cream sweater on the RIGHT, a fan of face-down playing cards on a small driftwood table beside a ceramic mug. The card backs are fully designed: slate blue with chalk-white rope knots, a small compass medallion and a cream rope border. The cards must not be blank, empty, or plain ivory. Small fishing boats, crooked seafoam timber cottages and a distant lighthouse across a sleepy misty harbor. LEFT third quiet shaded slate-blue porch wall for title readability. Cozy contemplative morning atmosphere.',
     back: 'Slate-blue and seafoam flat nautical card-back artwork with mirrored chalk-white rope knots and gentle wave lines, a small perfectly symmetric compass medallion, rust-red accents and a weathered cream rope border, hand-drawn pen-and-watercolor print texture, understated elegant working-harbor feel, no skulls, pirate motifs or lettering.',
   },
   azulejo: {
@@ -288,7 +288,7 @@ export function manifest() {
       id: 'hero',
       aspect: '16:9',
       size: '2K',
-      prompt: `Key art for a premium solitaire card game, in a ${s} ${d.hero} Dramatic cinematic composition with empty space on the left third for a title.` + NO_TEXT,
+      prompt: `Key art for a premium solitaire card game, in a ${s} ${d.hero} Any fanned playing cards must be face-down physical cards with fully illustrated backs matching this theme: ${d.back} Apply that description to the printed decoration on each card, preserving the fan and scene perspective. Never show blank paper, empty cards or a generic unrelated card-back pattern. Dramatic cinematic composition with empty space on the left third for a title.` + NO_TEXT,
     });
     out.push({
       theme: t,

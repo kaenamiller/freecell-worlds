@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>FreeCell Worlds</title>
-  <meta name="description" content="FreeCell Worlds — a premium 3D FreeCell with eleven themed tables, spring-physics cards and a built-in solver." />
+  <meta name="description" content="FreeCell Worlds — a premium 3D FreeCell with thirty-one themed tables, spring-physics cards and a built-in solver." />
   <meta name="theme-color" content="#0d0806" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon-192.png" />
@@ -38,6 +38,8 @@
   <section id="title-screen" class="hidden">
     <div class="hero-layer"><img id="hero-a" alt="" /><img id="hero-b" alt="" /></div>
     <div class="hero-shade"></div>
+    <div class="title-stage">
+    <div class="title-scale">
     <div class="title-content">
       <p class="eyebrow" id="title-eyebrow">The classic. Reimagined.</p>
       <h1 class="title-logo">FreeCell<br /><span>Worlds</span></h1>
@@ -59,7 +61,7 @@
       <div id="title-deal-wrap" hidden><label class="deal-pick"><span>Deal&nbsp;#</span><input id="title-deal" type="number" min="1" max="1000000" placeholder="random" /><button class="btn" id="btn-title-deal">Go</button></label></div>
       </div>
       <div class="title-mode-panel" id="title-panel-voyage" role="tabpanel" aria-labelledby="title-tab-voyage" hidden>
-        <div class="voyage-title-actions"><button class="btn primary big" id="btn-voyage"><span aria-hidden="true">✦</span><span id="btn-voyage-label">Begin Voyage</span></button></div>
+        <div class="voyage-title-actions"><button class="btn primary big" id="btn-voyage"><span aria-hidden="true">✦</span><span id="btn-voyage-label">Begin Voyage</span></button><button class="btn big" id="btn-voyage-new" hidden>New Voyage</button></div>
         <div class="voyage-title-summary" id="voyage-title-summary" hidden></div>
         <div class="voyage-title-secondary"><button class="btn big" id="btn-voyage-daily"><span aria-hidden="true">◈</span>Daily Voyage<em id="voyage-daily-badge"></em></button><div class="voyage-title-best" id="voyage-title-best"></div></div>
         <button type="button" class="link" id="btn-voyage-how">How Voyage works</button>
@@ -69,6 +71,8 @@
         <button class="link" id="btn-title-settings">Settings</button>
         <span class="hint" id="title-hint">Drag cards &middot; double-click to send home &middot; H hint &middot; U undo</span>
       </div>
+    </div>
+    </div>
     </div>
   </section>
 
@@ -88,12 +92,9 @@
       </div>
     </div>
     <div id="voyage-hud" role="group" aria-label="Voyage status" hidden>
-      <div class="voyage-hud-metric"><small>Board</small><strong id="voyage-hud-board">1 / 7</strong></div>
-      <div class="voyage-hud-metric"><small>Run score</small><strong id="voyage-hud-score">0</strong></div>
-      <div class="voyage-hud-metric voyage-live"><small>Board score</small><strong id="voyage-live-score">0</strong><div class="voyage-star-track" id="voyage-star-track" aria-label="Star progress"></div></div>
-      <div id="voyage-hud-charms" class="voyage-tray" aria-label="Collected charms"></div>
-      <div id="voyage-hud-challenge" class="voyage-hud-effects"></div>
-      <div class="voyage-hud-buttons"><button class="btn" id="voyage-open-map">Map</button><button class="btn" id="voyage-abandon">Abandon</button></div>
+      <div class="voyage-hud-metric" id="voyage-hud-board-metric" tabindex="0" aria-describedby="voyage-tooltip" data-tip-name="Board" data-tip-text="Table 1 of 7. A voyage is seven tables in a row. Clear this one to continue. There is no restart, and undos are shared across the whole run."><small>Board</small><strong id="voyage-hud-board">1 / 7</strong></div>
+      <div class="voyage-hud-metric" id="voyage-hud-score-metric" tabindex="0" aria-describedby="voyage-tooltip" data-tip-name="Run score" data-tip-text="Points from tables you have already cleared. The board score beside this is still in play and joins the run total only when you clear the table."><small>Run score</small><strong id="voyage-hud-score">0</strong></div>
+      <div class="voyage-hud-metric voyage-live" id="voyage-hud-live" tabindex="0" aria-describedby="voyage-tooltip" data-tip-name="Board score" data-tip-text="Two stars and three stars show their point thresholds. Sending cards home, especially in a chain, raises the score. Extra moves and free-cell placements lower it."><small>Board score</small><strong id="voyage-live-score">0</strong><div class="voyage-star-track" id="voyage-star-track" aria-label="Star progress"></div></div>
     </div>
     <nav class="hud-right controls" aria-label="Actions">
       <button class="tool" id="btn-undo" aria-label="Undo move" title="Undo (U)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.6-3.6A8 8 0 0 1 12.5 10c3.5 0 6.5 2.3 7.6 5.5l2.4-.8C21.1 10.8 17.2 8 12.5 8z"/></svg><span>Undo</span></button>
@@ -108,6 +109,11 @@
     </nav>
   </header>
 
+
+  <div id="voyage-dock" aria-label="Voyage charms and actions" hidden>
+    <div class="voyage-dock-left"><div id="voyage-hud-charms" class="voyage-tray" aria-label="Collected charms"></div><div id="voyage-hud-challenge" class="voyage-hud-effects"></div></div>
+    <div class="voyage-hud-buttons"><button class="btn" id="voyage-open-map" aria-describedby="voyage-tooltip" data-tip-name="Map" data-tip-pin="off" data-tip-text="Open the chart. You can review the tables behind you and the ones still ahead. The next table is chosen after you clear this one.">Map</button><button class="btn" id="voyage-abandon" aria-describedby="voyage-tooltip" data-tip-name="Abandon voyage" data-tip-pin="off" data-tip-text="End this voyage now. The run stops and is recorded as abandoned.">Abandon</button></div>
+  </div>
 
   <section id="voyage-map" class="voyage-screen" role="dialog" aria-modal="true" aria-labelledby="voyage-map-title" hidden>
     <header class="voyage-screen-head"><div><p class="voyage-kicker">FreeCell Worlds · Voyage</p><h2 id="voyage-map-title">Chart your course</h2><p id="voyage-map-sub"></p></div><button class="btn" id="voyage-map-close">Return to board</button></header>
@@ -174,6 +180,7 @@
         <h4>Accessibility</h4>
         <label class="row check"><input type="checkbox" id="set-fourcolor" />Four-colour suits<small>Spades black, hearts red, clubs blue, diamonds orange</small></label>
         <label class="row check"><input type="checkbox" id="set-contrast" />High-contrast cards<small>Classic white faces, black and red ink, heavy outlines, dimmed table</small></label>
+        <label class="row check"><input type="checkbox" id="set-tap-peek" />Tap to peek<small>Fog of War: tap a column to peek, then tap again to hide. Keyboard: P, then 1–8 (or hold P + digit).</small></label>
         <label class="row check"><input type="checkbox" id="set-reduced" />Reduce motion<small>Calmer cards, immediate cursor light, fewer effects</small></label>
         <label class="row check"><input type="checkbox" id="set-cursor-light" />Cursor light<small>A soft light follows your pointer or finger across the table</small></label>
         <h4>Data</h4>

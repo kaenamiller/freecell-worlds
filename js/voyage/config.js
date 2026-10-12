@@ -12,6 +12,7 @@ export const VOYAGE = {
   // Shared undo budget for the whole run.
   startUndos: 5,
   undosPerBoard: 3,
+  finaleUndos: 2,
 
   // Free cells: the engine and layout support 1..6.
   baseFreeCells: 4,
@@ -43,4 +44,5 @@ export const SCORE = {
   chainCap: 10, // longest chain length that counts (the endgame sweep would dominate otherwise)
   // Star thresholds as fractions of the score a "par game" earns (see scoring.parScore).
   stars: [0, 0.9, 1.15],
+  bossStarScale: 0.92,
 };

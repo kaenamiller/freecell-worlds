@@ -8,6 +8,7 @@ const args = process.argv.slice(2);
 const force = args.includes('--force');
 const filter = args.find((a) => !a.startsWith('--'));
 const themes = args.find((a) => a.startsWith('--themes='))?.slice(9).split(',');
+const assets = args.find((a) => a.startsWith('--assets='))?.slice(9).split(',');
 const key = need('GEMINI_API_KEY');
 
 async function gen(item) {
@@ -32,7 +33,7 @@ async function gen(item) {
   });
 }
 
-const items = manifest().filter((m) => (!themes || themes.includes(m.theme)) && (!filter || `${m.theme}/${m.id}`.includes(filter)));
+const items = manifest().filter((m) => (!themes || themes.includes(m.theme)) && (!assets || assets.includes(m.id)) && (!filter || `${m.theme}/${m.id}`.includes(filter)));
 if (!items.length) throw new Error('No art matched the requested theme/filter');
 await pool(items, 3, (it) => gen(it).catch((e) => {
   console.error('FAIL', it.theme, it.id, e.message);

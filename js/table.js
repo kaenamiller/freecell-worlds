@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { surfaceTextures, slotTexture, freeCellTexture, foundationTexture, radialTexture } from './textures.js';
 import { makePointMaterial, makeShapeMaterial } from './fx.js';
 import { CARD } from './card.js';
+import { activeFreeCells } from './rules.js';
 
 const BUBBLE_FRAG = /* glsl */ `
   varying float vAlpha;
@@ -210,9 +211,179 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     m.position.set(x, L.SURFACE_Y - 0.003, z);
     group.add(m);
   };
-  for (let i = 0; i < (L.freeCells ?? 4); i++) addSlot(L.freeX(i), L.FREE_Z, freeMat);
+  for (let i = 0; i < Math.max(4, L.freeCells ?? 4); i++) addSlot(L.freeX(i), L.FREE_Z, freeMat);
   for (let i = 0; i < 4; i++) addSlot(L.foundX(i), L.FREE_Z, foundMats[i]);
   for (let c = 0; c < 8; c++) addSlot(L.colX(c), L.TABLEAU_Z, colMat);
+
+  // Theme-neutral rule markers, created lazily so classic tables render identically.
+  const ruleMarkers = new Map();
+  let ruleTime = 0;
+  function marker(key, type, label = '') {
+    if (ruleMarkers.has(key)) return ruleMarkers.get(key);
+    const canvas = document.createElement('canvas');
+    canvas.width = 384; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (type === 'frost') {
+      ctx.fillStyle = 'rgba(178,217,232,.52)'; ctx.fillRect(12, 16, 360, 224);
+      ctx.strokeStyle = 'rgba(245,253,255,.8)'; ctx.lineWidth = 5;
+      // Fixed crystal strokes, independent of theme and random streams.
+      for (let i = 0; i < 7; i++) {
+        const x = 36 + i * 48;
+        ctx.beginPath(); ctx.moveTo(x, 34); ctx.lineTo(x + 30, 100); ctx.lineTo(x - 4, 168); ctx.lineTo(x + 18, 222); ctx.stroke();
+      }
+      ctx.fillStyle = '#edfaff'; ctx.font = '64px sans-serif'; ctx.fillText('❄', 192, 128);
+    } else if (type === 'seal') {
+      ctx.fillStyle = 'rgba(29,35,43,.8)'; ctx.fillRect(8, 40, 368, 176);
+      ctx.strokeStyle = '#c2c8d0'; ctx.lineWidth = 9;
+      for (let i = 0; i < 11; i++) {
+        ctx.beginPath(); ctx.ellipse(24 + i * 33, 128 + (i % 2 ? 14 : -14), 24, 15, i % 2 ? .5 : -.5, 0, Math.PI * 2); ctx.stroke();
+      }
+    } else if (type === 'pip') {
+      ctx.fillStyle = label === 'red' ? '#efb1b1' : '#d0d9e1';
+      ctx.font = '120px serif'; ctx.fillText(label === 'red' ? '♦' : '♠', 192, 128);
+    } else {
+      ctx.fillStyle = 'rgba(230,235,239,.65)'; ctx.font = 'bold 104px serif'; ctx.fillText(label + '+', 192, 128);
+    }
+    const tex = track(new THREE.CanvasTexture(canvas));
+    const mat = track(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: .85 }));
+    const g = new THREE.Group();
+    const pieces = type === 'seal' || type === 'frost' ? 3 : 1;
+    const width = type === 'pip' ? .22 : CARD.W * .92;
+    const height = type === 'seal' ? .23 : type === 'pip' ? .22 : CARD.H * .9;
+    for (let i = 0; i < pieces; i++) {
+      const geo = new THREE.PlaneGeometry(width / pieces, height);
+      const uv = geo.attributes.uv;
+      for (let j = 0; j < uv.count; j++) uv.setX(j, (uv.getX(j) + i) / pieces);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.x = width * ((i + .5) / pieces - .5);
+      mesh.userData.restX = mesh.position.x;
+      mesh.renderOrder = 3;
+      g.add(mesh);
+    }
+    group.add(g); g.visible = false;
+    const item = { group: g, mat, type, active: false, release: null };
+    ruleMarkers.set(key, item);
+    return item;
+  }
+  function showMarker(item, active, x, y, z) {
+    item.group.position.set(x, y, z);
+    if (item.active && !active && (item.type === 'seal' || item.type === 'frost')) item.release = ruleTime;
+    if (active) {
+      item.release = null; item.mat.opacity = .85;
+      for (const mesh of item.group.children) { mesh.position.set(mesh.userData.restX, 0, 0); mesh.rotation.z = 0; }
+    }
+    item.active = active;
+    item.group.visible = active || item.release !== null;
+  }
+  let ceiling = null;
+  let foundationBand = null, tellUntil = 0;
+  function flashBossTell() { tellUntil = ruleTime + 2; }
+  function setRules(game) {
+    if (!game) return;
+    const r = game.rules || {}, st = game.state;
+    const active = activeFreeCells(st, r);
+    for (let i = 0; i < 4; i++) {
+      const key = `cellSeal:${i}`;
+      if (i >= st.free.length || ruleMarkers.has(key)) showMarker(marker(key, 'seal'), i >= st.free.length, L.freeX(i), L.SURFACE_Y + .035, L.FREE_Z);
+    }
+    for (let i = 0; i < st.free.length; i++) {
+      const frostKey = `frost:${i}`, pipKey = `pip:${i}:${r.cellColors?.[i]}`;
+      if (i >= active || ruleMarkers.has(frostKey)) showMarker(marker(frostKey, 'frost'), i >= active, L.freeX(i), L.SURFACE_Y + .035, L.FREE_Z);
+      if (r.cellColors?.[i]) showMarker(marker(pipKey, 'pip', r.cellColors[i]), true, L.freeX(i) + CARD.W * .38, L.SURFACE_Y + .04, L.FREE_Z - CARD.H * .38);
+    }
+    for (const [key, item] of ruleMarkers) if (item.type === 'pip' && !key.endsWith(':' + r.cellColors?.[Number(key.split(':')[1])])) item.group.visible = false;
+    for (let c = 0; c < st.tableau.length; c++) {
+      const sealed = !!(st.sealed & (1 << c)), sealKey = `seal:${c}`;
+      if (sealed || ruleMarkers.has(sealKey)) showMarker(marker(sealKey, 'seal'), sealed, L.colX(c), L.SURFACE_Y + CARD.D + .025, L.TABLEAU_Z - CARD.H * .4);
+      const rankKey = `rank:${c}:${r.emptyMinRank}`;
+      if (r.emptyMinRank) {
+        const label = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][r.emptyMinRank] || String(r.emptyMinRank);
+        showMarker(marker(rankKey, 'rank', label), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .012, L.TABLEAU_Z);
+      }
+    }
+    for (const [key, item] of ruleMarkers) if (item.type === 'rank' && !key.endsWith(':' + r.emptyMinRank)) item.group.visible = false;
+    if (r.maxHeight && !ceiling) {
+      ceiling = new THREE.Mesh(new THREE.PlaneGeometry(7.9, .018), track(new THREE.MeshBasicMaterial({ color: 0xe3e8eb, transparent: true, opacity: .25, depthWrite: false })));
+      ceiling.rotation.x = -Math.PI / 2; group.add(ceiling);
+    }
+    if (ceiling) {
+      ceiling.visible = !!r.maxHeight;
+      ceiling.position.set(0, L.SURFACE_Y + r.maxHeight * CARD.D + .035, L.TABLEAU_Z + (r.maxHeight - 1) * .34 + CARD.H / 2);
+    }
+    if (r.foundationSpread && !foundationBand) {
+      const width = L.foundX(3) - L.foundX(0) + CARD.W;
+      foundationBand = new THREE.Mesh(track(new THREE.PlaneGeometry(width, .028)), track(new THREE.MeshBasicMaterial({ color: 0xf1d481, transparent: true, opacity: .45, depthWrite: false, depthTest: false })));
+      foundationBand.name = 'voyage-foundation-ceiling';
+      foundationBand.rotation.x = -Math.PI / 2; foundationBand.renderOrder = 5; group.add(foundationBand);
+    }
+    if (foundationBand) {
+      const rank = Math.min(13, Math.min(...st.found) + (r.foundationSpread || 0));
+      foundationBand.visible = !!r.foundationSpread;
+      foundationBand.userData.ceilingRank = rank;
+      foundationBand.position.set((L.foundX(0) + L.foundX(3)) / 2, L.SURFACE_Y + rank * CARD.D + .035, L.FREE_Z + CARD.H * .42);
+    }
+  }
+  updaters.push((dt, t) => {
+    ruleTime = t;
+    if (foundationBand) foundationBand.material.opacity = t < tellUntil ? .85 : .45;
+    for (const item of ruleMarkers.values()) if (item.active) item.mat.opacity = t < tellUntil ? 1 : .85;
+    for (const item of ruleMarkers.values()) if (item.release !== null) {
+      const age = t - item.release;
+      item.mat.opacity = .85 * Math.max(0, 1 - age / .6);
+      item.group.children.forEach((mesh, i) => {
+        mesh.position.x = mesh.userData.restX + (i - 1) * age * .5;
+        mesh.position.y = age * .35;
+        mesh.rotation.z = (i - 1) * age * 1.3;
+      });
+      if (age >= .6) { item.group.visible = false; item.release = null; }
+    }
+  });
+
+  // --- fog: one theme-neutral mist quad per concealed column -----------------------
+  // Lazily allocated; setFog/update reuse meshes, material and uniforms.
+  const fogQuads = [];
+  let fogMaterial = null;
+  function setFog(state, hidden, peekCol = -1) {
+    for (let c = 0; c < 8; c++) {
+      const col = state?.tableau[c];
+      let first = -1, last = -1;
+      if (col && c !== peekCol) for (let i = 0; i < col.length; i++) {
+        if (hidden?.has(col[i])) { if (first < 0) first = i; last = i; }
+      }
+      if (first >= 0 && !fogQuads[c]) {
+        if (!fogMaterial) fogMaterial = track(new THREE.ShaderMaterial({
+          uniforms: { uTime: { value: 0 } },
+          vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+          fragmentShader: `varying vec2 vUv; uniform float uTime;
+            void main(){
+              float edge = smoothstep(0.0, .16, vUv.x) * smoothstep(0.0, .16, 1.0-vUv.x)
+                * smoothstep(0.0, .18, vUv.y) * smoothstep(0.0, .18, 1.0-vUv.y);
+              float mist = .5 + .18*sin(vUv.x*12.0+vUv.y*8.0+uTime*.35)
+                + .12*sin(vUv.y*19.0-vUv.x*7.0-uTime*.22);
+              gl_FragColor=vec4(vec3(.83,.86,.88), edge*mist*.43);
+            }`,
+          transparent: true, depthWrite: false, depthTest: false,
+        }));
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), fogMaterial);
+        mesh.rotation.x = -Math.PI / 2; mesh.renderOrder = 4;
+        mesh.userData.fogColumn = c;
+        group.add(mesh); fogQuads[c] = mesh;
+      }
+      const mesh = fogQuads[c];
+      if (!mesh) continue;
+      mesh.visible = first >= 0;
+      if (mesh.visible) {
+        // Stop at the next card's strip so the three visible cards stay sharp.
+        const start = L.zAt(col.length, first) - CARD.H / 2;
+        const end = L.zAt(col.length, last + 1) - CARD.H / 2;
+        mesh.position.set(L.colX(c), L.SURFACE_Y + (last + 1) * CARD.D + .04, (start + end) / 2);
+        mesh.scale.set(CARD.W * 1.04, end - start, 1);
+      }
+    }
+  }
+  updaters.push((dt, t) => { if (fogMaterial) fogMaterial.uniforms.uTime.value = t; });
 
   // --- accent lights (cyber neon spill) ---------------------------------------------------
   for (const a of theme.scene.accentLights) {
@@ -474,6 +645,9 @@ export function buildTableLayer(theme, art, L, opts = {}) {
 
   return {
     group,
+    setRules,
+    flashBossTell,
+    setFog,
     update(dt, t) {
       for (const u of updaters) u(dt, t);
     },

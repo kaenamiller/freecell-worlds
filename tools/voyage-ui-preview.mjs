@@ -8,7 +8,7 @@ import { voyageStats } from '../js/voyage/stats.js';
 // Use the production markup so this page stays a faithful, standalone DOM preview.
 const html = await (await fetch('../index.html')).text();
 const source = new DOMParser().parseFromString(html, 'text/html');
-for (const id of ['title-screen', 'hud', 'voyage-hud', 'voyage-map', 'voyage-intro', 'voyage-result', 'voyage-end', 'voyage-confirm', 'voyage-tutorial', 'voyage-tooltip', 'modal-stats', 'modal-settings', 'modal-themes']) {
+for (const id of ['title-screen', 'hud', 'voyage-hud', 'voyage-dock', 'voyage-map', 'voyage-intro', 'voyage-result', 'voyage-end', 'voyage-confirm', 'voyage-tutorial', 'voyage-tooltip', 'modal-stats', 'modal-settings', 'modal-themes']) {
   document.body.append(source.getElementById(id));
 }
 const fakeHistory = (board) => [

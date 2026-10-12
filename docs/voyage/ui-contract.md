@@ -16,12 +16,14 @@ voyageUI.init(handlers)        // once, after ui.init(). handlers below.
 voyageUI.setMode(mode)
 voyageUI.refreshTitle(info)    // { run: RunView|null, daily: { key, result|null } }
                                // Title screen: "Voyage" button (Continue Voyage when run != null, with a one-line summary
-                               // like "Board 3 of 7 · 2 charms"), "Daily Voyage" button (badge New/Done).
+                               // like "Board 3 of 7 · 2 charms"), plus "New Voyage" while a run is in progress
+                               // (handlers.startVoyage({ daily: false }); the engine confirms before abandoning it),
+                               // "Daily Voyage" button (badge New/Done).
 voyageUI.showMap(view)         // full-screen overworld (opaque, over title or table). view: RunView with status 'map'.
 voyageUI.hideMap()
 voyageUI.setPreparing(bool)    // the dealer is still choosing a deal after a node pick: subtle "Charting course…" state
 voyageUI.showBoardIntro(view) -> Promise<void>   // short banner when a board starts: "Board 3 of 7 · Zen Garden",
-                               // challenge (+ boss on board 7), par, star thresholds. Resolves on tap/timeout (~2.5 s).
+                               // challenge (+ boss on board 7), par, star thresholds. Resolves when the player continues.
 voyageUI.setHud(view)          // Voyage HUD while a board is played: board k/7, undos left, run score,
                                // charm tray, challenge chip, boss chip. Called after every change.
 voyageUI.setLiveScore({ total, stars, thresholds })  // current board's live score + star progress, called after every move

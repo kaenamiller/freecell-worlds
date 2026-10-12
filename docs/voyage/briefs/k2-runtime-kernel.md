@@ -1,0 +1,25 @@
+# Brief K2 — Voyage runtime kernel (events, scoring context, abilities, marks, concealment, UI)
+
+You are building the **runtime kernel** for Voyage charms in FreeCell Worlds (repo: this checkout).
+Read first, in order:
+1. `docs/voyage/charms-design.md` — the whole doc; your spec is **§1, §3 and §4**. Read §2.2 (overrides / custom moves) carefully: K1 implements the rules.js side, you implement the runtime/animation side. Skim §5–§6 to see what content needs.
+2. `docs/voyage/ui-contract.md`, `docs/voyage/ui-notes.md`.
+3. `js/voyage/charms.js`, `js/voyage/registry.js`, `js/voyage/content/index.js`, `js/voyage/run.js`, `js/voyage/scoring.js`, `js/voyage/ui.js`, `css/voyage.css`, `js/card.js`, and the Voyage section of `js/main.js` (from `// Voyage mode`).
+
+## Deliverables
+- `ctx` (`memo`, `runMemo`, `run` view), the full `api` table (§3.2), events incl. `reveal` and `stuck` (§3.3), abilities with tray buttons + use pips + `abilityBonus` + `api.pick` targeting (§3.4), the scoring context + `js/voyage/content/kit.js` helpers (§3.5), run-level hooks `offers` / `thresholds` / `starCap` (§3.6), UI updates (§3.7).
+- Card marks (corner sigil + edge tint, distinct shapes per style) and concealment (face-down render, auto-reveal with flip when a concealed card becomes a column top or moves, saved + restored on resume) in `js/card.js` / main.js card helpers.
+- `api.charmMove(op, data)`: applies a K1 custom `X` move through `game.applyCharmMove`, then a **generic relayout** that animates every card to wherever the state says it is (reuse the existing layout/tween code), plays a sound, persists. Undo of an `X` move must relayout the same way. `api.override(o)` sets `game.override` and shows a "next drop…" chip that clears when consumed or undone. `api.setFreeCells(n)` mid-board with relayout.
+- The stuck check must not end a run while an ability with uses left reports `available()`; `on.stuck` hooks may cancel the loss.
+- `RUN_VERSION` bump only if the saved run shape breaks old saves (prefer additive fields with defaults).
+- `tools/charm-content-check.mjs`: a Node script content agents will run. It must: load all charms; assert 3 boons + 1 challenge per theme with no `placeholder` (print which themes still have placeholders as a warning, not a failure, so it's useful mid-build — add a `--strict` flag that fails); validate fields (id/kind/theme/name/icon/text, `text(s)` for s=1..7 returns a non-empty string, tags on challenges); run each charm's `rules` hook for s=1..7 and validate the result with `clampRules`; build a fake board (deal, a scripted short history incl. undo) and run every `score` hook to make sure nothing throws and scores stay finite; simulate `onPick`/`on.*` with a stub api. Export helpers so special modules can add their own checks (`tools/charm-checks/<id>.mjs` auto-discovered).
+- Update `sw.js` SHELL with the new Voyage modules (`registry.js`, `boardrules.js`, `content/**`) and bump `VERSION`.
+- Rewrite the header comment of `js/voyage/charms.js` to document the full hook + api surface (it's the reference content authors read).
+
+## Ownership and coordination
+You own the files listed in §3 "Files owned". Another agent (K1, rules kernel) is working **at the same time in the same checkout** on `js/rules.js`, `js/voyage/boardrules.js`, `dealer*.js`, `table.js`, and these `main.js` regions: `dealGame` game construction, drag/drop legality, auto-play, hint/solve call sites, the solver call in the stuck check. K1 will also make two small edits in `run.js` (`boardPlan` passes `seed`; `upcomingPlans` keys on full rules) — expect them, re-read before editing nearby. In `js/main.js` re-read the region right before each edit, make small targeted edits, never reformat or rewrite the file. Until K1 lands `game.applyCharmMove` / `game.override`, code against the §2.2 contract and feature-detect. Do not write theme content in `js/voyage/content/<theme>.js` or `content/special/*` (content agents come later) — but DO add 2–3 throwaway example charms in a dev-only module `js/voyage/content/_examples.js` (not imported by index.js; imported only by your check script) proving each kernel feature works. Never run `git checkout/stash/reset/clean`, never commit. Cross-agent requests go in `docs/voyage/charms-build-log.md` ("Requests to K1"; append only).
+
+If you need a server use port **8132** (`node serve.mjs 8132`). Headless Chrome: `/usr/bin/google-chrome`; puppeteer-core as in `tools/voyage-ui-check.mjs`. Keep `tools/voyage-ui-check.mjs` / the Voyage UI preview working.
+
+## Done means
+`node tools/charm-content-check.mjs` passes (non-strict); a headless browser run of a Voyage board shows: a mark, a concealed card that reveals on uncover, an ability button that triggers a hint, a badge, and a charm move that animates and undoes cleanly (screenshots in `/tmp/k2-shots`); saved run resumes with marks/conceal/badges/ability uses intact. Finish with a summary appended to `docs/voyage/charms-build-log.md` under "K2": the exact API as built (names/signatures), anything that deviates from the design doc, known gaps.

@@ -3,24 +3,25 @@
 import {
   applyMove, canFinishWithFoundationOnly, cloneState, generateMoves,
   isSolved, legalFoundationMoves, maxMoveSize, rankOf, safeFoundationMoves,
-  suitOf, colorOf, foundationAccepts, isValidSequence,
+  suitOf, colorOf, foundationAccepts, isValidSequence, compileRules, hashState, canBuildOn,
 } from './rules.js';
 
-function autoPlay(st) {
+function autoPlay(st, rules) {
   const moves = [];
   for (;;) {
-    const safe = safeFoundationMoves(st);
+    const safe = safeFoundationMoves(st, rules);
     if (!safe.length) return moves;
     // Recompute after each card so every recorded auto move was safe when made.
     const m = { t: 'F', src: safe[0].src, card: safe[0].card, auto: true };
-    applyMove(st, m);
+    applyMove(st, m, rules);
     moves.push(m);
   }
 }
 
 // Free-cell positions and tableau column positions are interchangeable for
 // search purposes. Keep the actual state, and canonicalize only its key.
-function stateKey(st) {
+function stateKey(st, rules) {
+  if (st.sealed !== undefined || rules.cellThaw || rules.cellColors.some(Boolean)) return String(hashState(st));
   const cols = st.tableau.map((col) => String.fromCharCode(...col)).sort();
   const free = st.free.filter(Boolean).sort((a, b) => a - b);
   // 0xff is outside the card-id range 1..52, so column boundaries cannot
@@ -28,7 +29,7 @@ function stateKey(st) {
   return String.fromCharCode(...st.found) + '|' + String.fromCharCode(...free) + '|' + cols.join('\u00ff');
 }
 
-function quality(st, variant) {
+function quality(st, variant, rules) {
   const found = st.found[0] + st.found[1] + st.found[2] + st.found[3];
   let breaks = 0, buried = 0, runs = 0, empty = 0, freeUsed = 0;
   for (const col of st.tableau) {
@@ -36,7 +37,7 @@ function quality(st, variant) {
     runs++;
     for (let i = 0; i < col.length - 1; i++) {
       const lower = col[i], upper = col[i + 1];
-      if (rankOf(lower) !== rankOf(upper) + 1 || colorOf(lower) === colorOf(upper)) breaks++;
+      if (!canBuildOn(lower, upper, rules)) breaks++;
       // Low cards buried under other cards are expensive to expose. The same
       // ordering is also useful for higher cards when their suit is lagging.
       const r = rankOf(lower);
@@ -77,46 +78,46 @@ function sameMove(a, b) {
 
 // Independent replay with the public rules. applyMove itself is intentionally
 // unchecked, so legality must be tested before applying each descriptor.
-function validate(initial, path) {
+function validate(initial, path, rules) {
   const st = cloneState(initial);
   let manual = 0;
   for (const m of path) {
-    const safe = safeFoundationMoves(st);
+    const safe = safeFoundationMoves(st, rules);
     if (safe.length && !m.auto) throw new Error('missing mandatory safe auto-play');
     if (m.auto) {
       if (m.t !== 'F' || !safe.some((s) => s.card === m.card && s.src.kind === m.src.kind && s.src.i === m.src.i))
         throw new Error('invalid safe auto-play');
     } else {
-      if (!generateMoves(st).some((candidate) => sameMove(candidate, m))) throw new Error('illegal manual move');
+      if (!generateMoves(st, { rules, foundationReturns: false }).some((candidate) => sameMove(candidate, m))) throw new Error('illegal manual move');
       manual++;
     }
     if (m.t === 'F') {
       const card = m.src.kind === 'col' ? st.tableau[m.src.i].at(-1) : st.free[m.src.i];
-      if (card !== m.card || !foundationAccepts(st, card)) throw new Error('invalid foundation move');
+      if (card !== m.card || !foundationAccepts(st, card, rules)) throw new Error('invalid foundation move');
     } else if (m.t === 'C') {
       if (st.free[m.fi] || st.tableau[m.src.i].at(-1) !== m.card) throw new Error('invalid free-cell move');
     } else if (m.t === 'T') {
       const src = m.src.kind === 'col' ? st.tableau[m.src.i] : [st.free[m.src.i]];
-      if (src[src.length - m.count] !== m.card || !isValidSequence(src, m.count)
-          || m.count > maxMoveSize(st, st.tableau[m.to].length === 0)) throw new Error('invalid supermove');
+      if (src[src.length - m.count] !== m.card || !isValidSequence(src, m.count, rules)
+          || m.count > maxMoveSize(st, st.tableau[m.to].length === 0, rules)) throw new Error('invalid supermove');
     }
-    applyMove(st, { ...m });
+    applyMove(st, { ...m }, rules);
   }
   if (!isSolved(st)) throw new Error('path did not win');
   return { moves: path.length, manualMoves: manual };
 }
 
-function finishTail(st) {
-  if (!canFinishWithFoundationOnly(st)) return null;
+function finishTail(st, rules) {
+  if (!canFinishWithFoundationOnly(st, rules)) return null;
   const sim = cloneState(st), tail = [];
   while (!isSolved(sim)) {
-    const autos = autoPlay(sim);
+    const autos = autoPlay(sim, rules);
     tail.push(...autos);
     if (isSolved(sim)) break;
-    const legal = legalFoundationMoves(sim);
+    const legal = legalFoundationMoves(sim, rules);
     if (!legal.length) return null;
     const m = { t: 'F', src: legal[0].src, card: legal[0].card };
-    applyMove(sim, m);
+    applyMove(sim, m, rules);
     tail.push(m);
   }
   return tail;
@@ -127,6 +128,7 @@ function finishTail(st) {
  * exhausted. nodeLimit controls reproducible work; budgetMs is a hard guard.
  */
 export function shortSolve(initial, opts = {}) {
+  const rules = compileRules(opts.rules);
   const started = Date.now();
   const budgetMs = opts.budgetMs ?? 8000;
   const nodeLimit = opts.nodeLimit ?? 180000;
@@ -135,10 +137,10 @@ export function shortSolve(initial, opts = {}) {
   const variantOffset = opts.variantOffset ?? 0;
   const maxManual = opts.maxManual ?? 115;
   const seed = cloneState(initial);
-  const startMoves = autoPlay(seed);
+  const startMoves = autoPlay(seed, rules);
   if (isSolved(seed)) {
     const path = startMoves.map(clean);
-    return { ...validate(initial, path), path, method: 'beam', elapsedMs: Date.now() - started };
+    return { ...validate(initial, path, rules), path, method: 'beam', elapsedMs: Date.now() - started };
   }
   let expanded = 0, best = null;
   const budgetPerPass = Math.max(1, Math.floor(nodeLimit / passes));
@@ -146,7 +148,7 @@ export function shortSolve(initial, opts = {}) {
     // Later passes widen the beam as well as changing the ordering. A narrow
     // beam is fast on ordinary deals; difficult layouts need more diversity.
     const width = variant === 0 ? beamWidth : beamWidth * 2;
-    const root = { st: seed, parent: null, moves: startMoves, g: 0, key: stateKey(seed), q: quality(seed, variant + variantOffset) };
+    const root = { st: seed, parent: null, moves: startMoves, g: 0, key: stateKey(seed, rules), q: quality(seed, variant + variantOffset, rules) };
     let frontier = [root];
     const seen = new Map([[root.key, 0]]);
     const passLimit = Math.min(nodeLimit, (variant + 1) * budgetPerPass);
@@ -158,10 +160,10 @@ export function shortSolve(initial, opts = {}) {
         expanded++;
         // Cheap endgame test only after substantial progress.
         if (node.st.found.reduce((a, b) => a + b, 0) >= 32) {
-          const tail = finishTail(node.st);
+          const tail = finishTail(node.st, rules);
           if (tail) {
             const path = buildPath(node, tail);
-            const counts = validate(initial, path);
+            const counts = validate(initial, path, rules);
             if (!best || counts.manualMoves < best.manualMoves)
               best = { ...counts, path, method: 'beam', elapsedMs: Date.now() - started };
             // First solved layer is the shortest for this beam pass. Give other
@@ -170,24 +172,24 @@ export function shortSolve(initial, opts = {}) {
             break;
           }
         }
-        const moves = generateMoves(node.st);
+        const moves = generateMoves(node.st, { rules, foundationReturns: false });
         let firstEmpty = -1;
         for (let i = 0; i < 8; i++) if (!node.st.tableau[i].length) { firstEmpty = i; break; }
         for (const mv of moves) {
           if (mv.t === 'T' && !node.st.tableau[mv.to].length && mv.to !== firstEmpty) continue;
           // Auto moves are applied in closure, so a safe F is never manual.
           const next = cloneState(node.st), m = clean(mv);
-          applyMove(next, m);
-          const autos = autoPlay(next);
-          const key = stateKey(next), g = node.g + 1;
+          applyMove(next, m, rules);
+          const autos = autoPlay(next, rules);
+          const key = stateKey(next, rules), g = node.g + 1;
           if (seen.has(key) && seen.get(key) <= g) continue;
-          const q = quality(next, variant + variantOffset);
+          const q = quality(next, variant + variantOffset, rules);
           const child = { st: next, parent: node, moves: [m, ...autos], g, key, q };
           const old = candidates.get(key);
           if (!old || child.q < old.q) candidates.set(key, child);
           if (isSolved(next)) {
             const path = buildPath(child);
-            const counts = validate(initial, path);
+            const counts = validate(initial, path, rules);
             if (!best || counts.manualMoves < best.manualMoves)
               best = { ...counts, path, method: 'beam', elapsedMs: Date.now() - started };
             if (!opts.improve) return best;

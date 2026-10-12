@@ -2,6 +2,14 @@
 
 Approved expansion brief · October 11, 2026 · Includes the additional Frontier Saloon direction below.
 
+Daytime revision: Night Train is now **Daylight Express** (the internal `nighttrain` ID stays stable for saved settings), joined by daytime Saffron Court and Cherry Counter. Their heroes, backdrops, reflection environments, table textures and thumbnails use natural late-morning daylight; runtime lighting is cooler and brighter with lighter vignette treatment. Hero card fans explicitly carry each theme’s illustrated card backs.
+
+Hero variety revision: seven hero images regenerated with Gemini, with matching thumbnails. Library features an elderly scholar; Night Train a male conductor; Frontier Saloon a rugged silver-moustached older cowboy with a Sam Elliott style presence. Conservatory, Carnival, Canyon, and Low Tide feature plants, objects, or scenery without people. The other four heroes retain their existing art. The seven revised themes use a rightward hero crop on narrow title screens to keep their subjects visible.
+
+Production: 77 source images generated with the built-in image generator, including a corrected orthographic Night Train board; 99 optimized WebP assets (with derived environment maps and thumbnails); 55 audio files generated through the existing ElevenLabs workflow. The production prompt set is `tools/expansion-content.mjs`, and runtime definitions are in `js/theme-expansion.js`. Original images are saved under `assets-src/art/<theme>/`, shipped art under `assets/art/<theme>/`, and audio under `assets/music/` and `assets/sfx/`.
+
+Validation: all eleven themes passed live image/audio loading, font checks, 4,576 card-index bounds checks across standard/four-color/high-contrast combinations, visibly rendered dealt boards, and responsive HUD checks at 1280, 800, and 420 pixels. Carnival and Forge additionally passed at High quality. All source and compressed images and all audio files passed integrity checks; the browser checks reported no errors. Both visual review and a rendered-card regression check confirmed the corrected accent-light configuration.
+
 These briefs consolidate the four recent six-theme brainstorms, checked against the game's 17 current themes. Ranking favors recurrence across those four responses, then distinctiveness, strength of the table concept, and suitability for sustained play. Mentions include explicit runners-up; they are not independent votes, since all four models saw the same project and prior context. The first seven themes recur. Positions 8–10 are editorial selections from the single-response concepts.
 
 The earlier Codex thread also contains a deliberately parked batch of more experimental ideas. Those remain a separate reserve list below. Its stained-glass greenhouse idea is incorporated as an optional conservatory treatment without inflating the recent-response count.
@@ -50,7 +58,7 @@ These are visual and audio briefs. Voyage challenges and rewards should receive 
 
 **Light and motion.** Warm lamp cones against cool rain-blue windows; sparse dust motes and mild edge reflections. Avoid animated pages or moving shadows across cards.
 
-**Sound and hero.** Felt piano, low cello, rain on glass, and an occasional quiet wooden creak. A soft leather tap for UI, a small brass note for foundations, and a gentle piano resolution for victory. Hero: archivist, lamp, and fan of cream cards on the right.
+**Sound and hero.** Felt piano, low cello, rain on glass, and an occasional quiet wooden creak. A soft leather tap for UI, a small brass note for foundations, and a gentle piano resolution for victory. Hero: wizened elderly male scholar with silver beard and spectacles, green-glass lamp, and cream cards on the right.
 
 **Review focus.** Choose human archive staff and grounded bookplate art. Its defining feature should be lamplight and paper, distinguishing it from Deco's nightlife and Riverboat's gambling salon.
 
@@ -66,23 +74,23 @@ These are visual and audio briefs. Voyage challenges and rewards should receive 
 
 **Light and motion.** Diffuse daylight, restrained mist behind the table, and rainfall visible through the glass. Use very sparse pollen motes. Optional stained-glass panes should be confined to the upper architecture, preserving the room's daylight identity.
 
-**Sound and hero.** Sparse harp and felt piano over rain on glass, occasional droplets, and soft ventilation. Ceramic taps and a light plucked foundation note. Hero: orchid bench and greenhouse arches on the right, shaded green wall on the left.
+**Sound and hero.** Sparse harp and felt piano over rain on glass, occasional droplets, and soft ventilation. Ceramic taps and a light plucked foundation note. Hero: an unoccupied orchid and fern bench beneath rainy greenhouse arches on the right, shaded green foliage on the left; no human subject.
 
 **Review focus.** Recommend botanical realism as the main direction. A full stained-glass fantasy treatment would overlap more with Winterglass and lose the new daylight-green mood.
 
-## 3. Night Train
+## 3. Daylight Express
 
-*Burgundy wool, a reading lamp, and towns going by.*
+*Walnut, burgundy wool, and sunlit countryside.*
 
-**Concept and setting.** A sleeper compartment at 2 a.m., with glimpses of a neighboring dining car. Walnut panels, a brass sconce, folded luggage, and dark countryside establish the feeling of being halfway through a long journey. Combine Night Train's luxurious club car with Sleeper East's small, private space; use Locomotive Luxe's steam and platform fog in the exterior view.
+**Concept and setting.** A vintage passenger compartment on a relaxed late-morning journey. Honey-walnut panels, burgundy wool, satin brass fittings and folded luggage frame rolling green countryside and small towns under a blue sky. Keep the intimate travel nostalgia and male conductor, with abundant natural daylight.
 
-**Table and palette.** Quiet burled walnut center, burgundy wool edging, satin brass fittings. Colors: walnut `#493125`, burgundy `#743944`, midnight blue `#172637`, paper ivory `#F2E6CF`, brass `#B79960`. Keep burl contrast subtle enough that it does not resemble extra card edges. Window mullions and luggage racks stay in the backdrop.
+**Table and palette.** Medium-brown honey-walnut center, burgundy wool edging, satin brass fittings. Colors: walnut `#493125`, burgundy `#743944`, midnight blue `#172637`, paper ivory `#F2E6CF`, brass `#B79960`. Keep burl contrast subtle enough that it does not resemble extra card edges. Window mullions and luggage racks stay in the backdrop.
 
-**Cards and courts.** Ivory stock with ink-black and railway-red suits. Backs use abstract punched-ticket geometry and paired rail lines without printed text. Jack: conductor; queen: dining-car host; king: engineer. Vintage railway-poster portraits, quieter and more shadowed than Jet Set's bright flat graphics. Cormorant Garamond is a practical existing-font choice; Bodoni Moda is an optional refinement.
+**Cards and courts.** Ivory stock with ink-black and railway-red suits. Backs use abstract punched-ticket geometry and paired rail lines without printed text. Jack: conductor; queen: dining-car host; king: engineer. Vintage railway-poster portraits with natural daylight and restrained color. Cormorant Garamond is a practical existing-font choice; Bodoni Moda is an optional refinement.
 
-**Light and motion.** Amber reading light against a cool window. Slow exterior scenery and rare station lights are the signature optional effect; they must stop under reduced motion. Keep the table and camera steady.
+**Light and motion.** Broad warm daylight with pale-blue sky fill, brighter exposure and a light vignette. Keep the table and camera steady.
 
-**Sound and hero.** Soft piano and bowed bass over muffled wheel rhythm, carriage creaks, and air outside the sealed window. Small brass-latch UI click, restrained bell chime, and a warm arriving-home victory phrase. Hero: lamp, compartment window, and a fan of cards on the right.
+**Sound and hero.** Soft piano and bowed bass over muffled wheel rhythm, carriage creaks, and air outside the sealed window. Small brass-latch UI click, restrained bell chime, and a warm arriving-home victory phrase. Hero: mature male conductor in navy uniform and peaked cap, brass pocket watch, sunlit countryside window, and a fan of railway-pattern card backs on the right.
 
 **Review focus.** Prefer the intimate sleeper over a grand casino-like dining salon. The journey outside the window makes it distinct from both Jet Set and Riverboat.
 
@@ -90,15 +98,15 @@ These are visual and audio briefs. Voyage challenges and rewards should receive 
 
 *Pierced brass, indigo cloth, and tea going cold.*
 
-**Concept and setting.** A sheltered courtyard at blue hour, with a small adjoining textile and spice market. Merge the riad's calm architecture with the souk's cloth, lanterns, and treasures. Keep one coherent courtyard rather than filling the image with every market prop: cedar screens, a shallow fountain, and a few pierced lamps do most of the work.
+**Concept and setting.** A sheltered courtyard in bright late-morning daylight, with a small adjoining textile and spice market. Merge the riad's calm architecture with the souk's cloth, lanterns, and treasures. Keep one coherent courtyard rather than filling the image with every market prop: cedar screens, a shallow fountain, and a few pierced lamps do most of the work.
 
-**Table and palette.** Dark cedar with a narrow brass inlay, indigo cloth at the perimeter, and saffron cushions beyond the table. Colors: indigo `#26334D`, saffron `#D6A33D`, terracotta `#A9604A`, aged brass `#B78D50`, tea cream `#F3E6CB`. Geometric mosaic may appear on walls or the rail, but the playing surface should stay wood and textile to distinguish it from Azulejo.
+**Table and palette.** Medium-brown warm cedar with a narrow brass inlay, indigo cloth at the perimeter, and saffron cushions beyond the table. Colors: indigo `#26334D`, saffron `#D6A33D`, terracotta `#A9604A`, aged brass `#B78D50`, tea cream `#F3E6CB`. Geometric mosaic may appear on walls or the rail, but the playing surface should stay wood and textile to distinguish it from Azulejo.
 
 **Cards and courts.** Cream faces, dark indigo and crimson suits, fine geometric borders. Backs: a symmetric pierced-lantern pattern with an indigo field and saffron accents. Jack: a textile merchant; queen: a courtyard host; king: an experienced brass artisan. Ink-and-gouache portraits of individual people, with pattern concentrated on collars and borders. Cinzel is an existing-font option; Marcellus was proposed as an alternative.
 
-**Light and motion.** Cool twilight fill with warm perforated lamp shadows confined to walls and the table border. Sparse steam and warm motes rather than smoke covering the cards.
+**Light and motion.** Sunlit cream plaster and fountain water, pale-blue sky fill, cool comfortable awning shade, and unlit decorative brass lanterns. Keep patterned shadows out of the playing surface.
 
-**Sound and hero.** Soft plucked strings, restrained hand percussion, a small fountain, cloth rustle, and tiny tea-cup or brass taps. Hero: lantern, tea tray, cloth, and cards on the right; shaded cedar screen on the left.
+**Sound and hero.** Soft plucked strings, restrained hand percussion, a small fountain, cloth rustle, and tiny tea-cup or brass taps. Hero: courtyard host, unlit lantern, tea tray, cloth, and an indigo-and-brass patterned card fan on the right; shaded cedar screen on the left.
 
 **Review focus.** Choose a courtyard with a market at its edge. This preserves Riad at Dusk's stillness while retaining Lantern Souk's warm textile identity.
 
@@ -130,7 +138,7 @@ These are visual and audio briefs. Voyage challenges and rewards should receive 
 
 **Light and motion.** Small steady bulb glows and gentle depth haze. A distant wheel may rotate slowly as optional polish. Save confetti for victory; avoid continuous flashing or foreground particle showers.
 
-**Sound and hero.** Restrained carousel-organ colors, pizzicato bass, and soft brushed percussion; faint machinery and tent canvas moving in the breeze. Wooden UI taps, a small bell foundation note, and a short festive win phrase. Hero: carousel carving, lights, and cards on the right.
+**Sound and hero.** Restrained carousel-organ colors, pizzicato bass, and soft brushed percussion; faint machinery and tent canvas moving in the breeze. Wooden UI taps, a small bell foundation note, and a short festive win phrase. Hero: carousel horse carving, warm bulb strings, distant ferris wheel, and cards on the right; no human subject.
 
 **Review focus.** Recommend faded traveling-fair charm. Warm bulbs and painted canvas give it a different identity from Neon Grime's electric city and Muertos's candlelit celebration.
 
@@ -146,7 +154,7 @@ These are visual and audio briefs. Voyage challenges and rewards should receive 
 
 **Light and motion.** Violet distant mesas, warm sunset edge light, and cool soft illumination over the cards. A tiny amount of distant dust can move behind the terrace; no sandstorm or heat distortion across the board.
 
-**Sound and hero.** Sparse nylon guitar, warm low strings, desert breeze, and soft clay/stone taps. A muted mineral chime and brief spacious victory cadence. Hero: pottery, turquoise detail, and cards against a sunset canyon view.
+**Sound and hero.** Sparse nylon guitar, warm low strings, desert breeze, and soft clay/stone taps. A muted mineral chime and brief spacious victory cadence. Hero: pottery, turquoise detail, and cards against an expansive sunset canyon view; no human subject.
 
 **Review focus.** Favor a quiet artisan terrace. It adds a dry mineral world, distinguishing it from the wet coast themes and Coastal Carvings's painted cedar.
 
@@ -162,7 +170,7 @@ These are visual and audio briefs. Voyage challenges and rewards should receive 
 
 **Light and motion.** Soft overcast illumination, low bloom, a subtle damp edge sheen, and occasional bubbles in background pools. Optional caustics should stay outside the cards.
 
-**Sound and hero.** Sparse felt piano and guitar harmonics over little pool drips and distant surf. Soft slate taps and a tiny rounded metal chime. Hero: an anemone pool, specimen pail, and cards on a rock ledge.
+**Sound and hero.** Sparse felt piano and guitar harmonics over little pool drips and distant surf. Soft slate taps and a tiny rounded metal chime. Hero: an intimate anemone pool, kelp, specimen pail, and cards on a rock ledge; no human subject.
 
 **Review focus.** This has some palette and portrait overlap with Driftwood Bay. Keep cottages, boats, ropes, and lighthouse motifs out of the main composition so the wet rock and small marine life lead.
 
@@ -232,4 +240,106 @@ A modest 1880s old-west saloon overlooking a dusty street at purple sunset. Weat
 
 Cream cards carry black-brown and brick-red suits. Symmetric backs pair horseshoes and desert stars with woodcut oak-leaf ornament. Courts: a young frontier card player, a female saloon proprietor holding a kerosene lamp, and an older piano player. Hand-tinted woodcut portraits use tobacco cream, saddle brown, brick red, and sunset plum. Antonio supplies bold readable indices and interface typography.
 
-Sparse warm dust, amber edge lighting, and cool purple fill establish dusk. Audio uses gentle upright piano, nylon guitar, acoustic bass, desert breeze, floorboard creaks, and soft wood/brass feedback. Hero composition places the proprietor, cards, and lamp on the right with quiet shaded oak on the left.
+## 12. Café at Dawn
+
+*Honey wood, warm pendants, and first light on the street.*
+
+Adapted from the proposed Bakery at Dawn into a cozy independent coffee shop. A small café just before opening: butter-yellow awning stripes, cream enamel tile, brushed brass, a pastry case, and a big storefront window onto a cool dawn-blue street. Cool morning fill against warm pendant light.
+
+Table: warm honey-oak surface with cream enamel-tile rails and brass fittings. Colors: roast brown `#3A2B21`, honey butter `#EFC579`, morning blue `#A5BCC9`, terracotta red `#B5402F`, cream paper. Cards: cream faces, roast-brown and terracotta suits; backs pair a butter-yellow sun-ray medallion with coffee-cup arcs. Courts (mid-century café-poster gouache): young barista with a steam pitcher, female pastry baker with a whisk, older espresso roaster with a brass scoop. Josefin Sans.
+
+Hero: an older café owner in her late fifties with silver-grey pinned hair, holding a brass coffee cup beside a pastry tray and cream cards — adds a mature female lead to the hero roster. Audio: brushed guitar/piano; espresso preheat hum and faint street beyond glass; saucer-tap UI, brass-and-cup chime.
+
+## 13. Arctic Station
+
+*Frosted instruments, aurora light, and one snug lamp.*
+
+A snug arctic research station interior at polar twilight: frosted round observation window with aurora glow, ice-crusted instrument panels with cyan indicator lights, signal-orange safety hardware, snow gear and ration tins at the margins.
+
+Table: matte snow-white brushed-aluminum surface with signal-orange rails and steel-blue fittings — the roster's only white-surface table, deliberately glare-free. Colors: polar night navy `#16222E`, signal orange `#FFB25C`, glacier cyan `#8FD4E8`, card red `#D95436`. Cards: white faces with polar-navy and signal-red suits; backs use a compass-rose medallion with fine longitude lines and snowflake marks on deep navy. Courts (expedition-poster screen-print): radio operator, female glaciologist with an ice core, older station commander with frost-flecked beard and brass compass. Antonio.
+
+Hero: unoccupied interior — frosted porthole with aurora, brass barometer, plain unbranded thermos, blank white cards; no humans. A soft aurora cyan accent light plays in-scene. Audio: warm piano/muted brass/glockenspiel against wind-on-structure and instrument hum; insulated-switch UI, glockenspiel chime.
+
+## 14. Fossil Hall
+
+*Spotlit bone, green-black stone, and evening hush.*
+
+A grand natural history museum fossil hall after closing, dinosaur-bone focused: a towering articulated skeleton under warm spotlights, framed plaster reliefs, tall arched windows with deep blue evening light, brass railings and empty benches.
+
+Table: dark green-black stone with bone-ivory rails and brass corner plaques, lit like a museum case. Colors: green-black stone `#23262B`, brass `#D9B36C`, bone ivory `#F3EDDD`, fossil ochre `#A84A34`. Cards: bone-ivory faces with charcoal and ochre suits; backs pair mirrored ammonite spirals around a vertebra medallion in engraved museum-case style. Courts (engraved museum-poster crosshatch): fossil preparator with a fine brush, female paleontologist with a plaster-wrapped fossil, older curator with a brass magnifier. Cinzel.
+
+Hero: unoccupied hall — the great dinosaur skull and sweeping neck dominate the right third under raking spotlights; ivory cards rest on a brass-railed case; no humans. Audio: sparse reverent low strings/piano/celesta; vast-hall room tone with one distant footstep echo; marble-and-plaque UI, low brass chime.
+
+## 15. The Mint
+
+*Guilloche steel, rag paper, and a printer's patience.*
+
+The most conceptual of the batch: a national banknote engraving studio at night. Steel plates, guilloche proof sheets, a magnifier lamp, gilt scales and ink tins; deep banknote green with cream rag paper, copper and gilt. No real currency.
+
+Table: deep banknote-green surface with a whisper of engraved guilloche at the rails only, cream paper rails and gilt corner plates. Colors: banknote green `#16281F`, gilt `#D4B15F`, guilloche lilac `#8E7CA8`, engraving red `#9E4A38`. Cards: cream rag-paper faces with green-black and intaglio-red suits; backs use a symmetric guilloche rosette with an unlettered wreath vignette in crisp intaglio print. Courts (steel-engraving portraits): apprentice plate engraver with a burin, female intaglio printer with a proof sheet, older master engraver with a copper plate. Cinzel.
+
+Hero: unoccupied studio — an unfurled proof sheet with crisp guilloche and an invented winged-coin-and-laurel emblem (regenerated after the first take showed a Washington-like portrait), copper plate, magnifier lamp, cream cards; no humans. Audio: precise piano/strings/celesta; lamp hum and paper rustle; paper-weighted UI tap, gilt bell chime.
+
+## Batch 3 provenance
+
+Proposed October 11, 2026 as three mainstream + three left-field concepts following batch 2; four were approved with direction changes: Café at Dawn (bakery concept adapted to coffee shop), Arctic Station (as proposed), Fossil Hall (natural-history museum focused on dinosaur bones), The Mint (as proposed). Trackside Model Railroad remains a reserve idea. Hero variety follows batch 2's guidance: café features an older silver-haired woman, arctic/museum/mint have no human subjects, giving the roster scene-led heroes alongside its varied character leads.
+
+## 12. Pharaoh's Tomb
+
+*Gold leaf, lapis stone, and a torchlit burial hall.*
+
+A classic burial chamber: sandstone, a gilded sarcophagus, canopic jars, scarab and lotus ornament, and torchlight. The court is a royal attendant, a queen, and a pharaoh, painted as readable tomb portraits. Cinzel supplies the indices. The hero’s fanned cards show the lapis-and-gold scarab back, not blank paper. The internal id remains `lapis`.
+
+## 13. Canopy Station
+
+*Teak platforms, broad leaves, and humid daylight.*
+
+A research deck in a living rainforest: dark teak, field-green rails, brass fittings, rope and mist held at the edges. Daylight science, separate from Enchanted Forest’s moonlit magic and the Conservatory’s potted glasshouse. Naturalist watercolor courts. Cormorant Garamond.
+
+## 14. Cherry Counter
+
+*Chrome trim, cherry vinyl, and coffee going cold.*
+
+A classic roadside diner in sunny late-morning daylight. Medium warm-grey laminate, cherry vinyl, mint tile, and chrome. Large windows show a quiet two-lane road, green roadside trees and a clear blue daytime sky. The server’s fanned cards carry chrome-diamond, cherry-arc and mint-tile back designs. Mid-century poster courts — cook, server, pie baker. Antonio, set like a diner marquee.
+
+## 15. Treasure Cove
+
+*Salt-stained charts, a crooked X, and gold by candlelight.*
+
+A smugglers' sea-cave hideout at night: salt-stained oak, rope edging, aged brass, and an oil lantern against a moonlit teal sea. Separate from Riverboat Royale's polished gambling salon and Driftwood Bay's quiet working harbor — this is adventure piracy, no skulls or horror. The hero is an unoccupied chart room: an open chest of coins, a blank chart, a compass, and cards, with an anchored sloop through the cave mouth. Courts: a young powder-monkey deckhand, a mermaid lookout with a spyglass, and a weathered grey-braided captain. Hand-tinted engraved nautical-chart portraits on parchment cream. Cormorant Garamond. Concertina and nylon guitar over low strings; cave surf and rope creaks.
+
+## 16. High Keep
+
+*Banners in the rafters, wax seals, and a long oak table.*
+
+A medieval great hall after the feast: aged oak, deep-crimson wool banners, beeswax candles, and a banked stone hearth. Grounded history rather than high fantasy, distinct from Enchanted Forest's fae woodland. The courts map to the ranks themselves — knight, queen, king — painted as illuminated-manuscript portraits with gold leaf on vellum cream. The hero is the regal queen beside the long table, banners and hearth glow behind. Cinzel with sharp 5px corners. Lute and recorder over low strings; hearth crackle and wind beyond tall windows.
+
+## 17. Deep Storage
+
+*Halogen hum, quarantine tape, and one covered disk.*
+
+A secret 1950s underground hangar storing a recovered flying saucer — the Roswell legend told as cold-war facility rather than roadside kitsch. Brushed concrete, gunmetal scaffolding, halogen work lights, quarantine sheeting, and warning-stripe yellow; a faint cyan glow escapes beneath the tarp of the covered craft. The hero is the unoccupied hangar bay — the covered disk, a steel table with manila cards, a clipboard, and a rotary telephone. Classified-file gouache courts: a night-shift lab technician, a senior scientist, and a silver-haired man in black. Antonio, uppercase, with sharp corners. Analog synth pads, muted vibraphone, and a restrained theremin-like lead over a deep ventilation hum.
+
+## 18. The Toy Box
+
+*Maple blocks, primary paint, and a rug in the afternoon.*
+
+An unoccupied playroom. Unlettered maple blocks, a tin drum, and a wooden horse on a low table. The court is the toys themselves: a wooden soldier, a cloth doll, and a tin drummer, painted as a vintage catalog. Fredoka. Voyage: Four Square, Jack-in-the-Box, Tidy Up, and Tipped Tower.
+
+## 19. Prize Lights
+
+*Colored bulbs, a spinning wedge, and a navy podium.*
+
+A 1970s daytime game-show stage between rounds. Navy felt, a bulb rail, and an unlettered prize wheel. Courts: floor director, host, returning champion. Antonio. Voyage: Today's Puzzle, Applause, Returning Champion, and Lockout.
+
+## 20. Safety Pin
+
+*Photocopy black, torn newsprint, and a magenta gel.*
+
+A small 1980s club just off stage. Matte black paint, silver tape, one bare bulb, and a magenta gel. Photocopied courts: drummer, singer, guitarist, with no real musicians and no readable flyers. Antonio. Voyage: Three Chords, Safety Pin, Zine, and No Re-entry.
+
+## 21. Honey House
+
+*Dripping honey, black-and-yellow stripes, and a queen on the comb.*
+
+A living hive. Amber playing surface, a hazard-stripe rail with honey dripping inward, and comb pouring gold in the backdrop. Courts are bees: a worker, a queen in a honey crown, and a drone. Cormorant Garamond. Voyage: Forager, Nectar, Winter Stores, and Capped Comb.

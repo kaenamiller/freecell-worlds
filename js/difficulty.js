@@ -12,6 +12,8 @@ import {
   foundationAccepts,
   safeFoundationMoves,
   solve,
+  compileRules,
+  hashState,
 } from './rules.js';
 
 // ---------------------------------------------------------------------------
@@ -60,19 +62,19 @@ export function computeBury(state) {
 // Move counting (game rules: supermove = 1; safe auto-F = not manual)
 // ---------------------------------------------------------------------------
 
-function isSafeFoundationMove(st, card) {
-  return safeFoundationMoves(st).some((m) => m.card === card);
+function isSafeFoundationMove(st, card, rules) {
+  return safeFoundationMoves(st, rules).some((m) => m.card === card);
 }
 
 /** Apply all safe foundation moves; returns moves appended (for replay). */
-function autoPlaySafeFoundations(st, out) {
+function autoPlaySafeFoundations(st, out, rules) {
   let changed = true;
   while (changed) {
     changed = false;
-    const safes = safeFoundationMoves(st);
+    const safes = safeFoundationMoves(st, rules);
     for (const { src, card } of safes) {
       const m = { t: 'F', src, card, auto: true };
-      applyMove(st, m);
+      applyMove(st, m, rules);
       out.push(m);
       changed = true;
     }
@@ -92,26 +94,6 @@ function countManualInPath(path) {
 // ---------------------------------------------------------------------------
 // Short-solution search (weighted A* on manual moves + safe autoplay)
 // ---------------------------------------------------------------------------
-
-function hashState(st) {
-  let h1 = 0x811c9dc5;
-  let h2 = 0x1000193;
-  const mix = (v) => {
-    h1 = Math.imul(h1 ^ v, 16777619);
-    h2 = Math.imul(h2 ^ v, 2246822519);
-  };
-  mix(255);
-  for (let i = 0; i < st.free.length; i++) mix(st.free[i]);
-  mix(254);
-  for (let i = 0; i < 4; i++) mix(st.found[i]);
-  for (let c = 0; c < 8; c++) {
-    mix(253);
-    const col = st.tableau[c];
-    for (let k = 0; k < col.length; k++) mix(col[k]);
-    mix(252);
-  }
-  return (h1 >>> 0) * 2097152 + ((h2 >>> 0) & 0x1fffff);
-}
 
 function cardsNotHome(st) {
   let n = 0;
@@ -140,13 +122,13 @@ function stateWithFreeCells(state, k) {
   return st;
 }
 
-function annotateManualFlags(path, initial) {
+function annotateManualFlags(path, initial, rules) {
   const st = cloneState(initial);
   for (const m of path) {
     if (m.t === 'F' && !m.auto) {
-      m.safeAuto = isSafeFoundationMove(st, m.card);
+      m.safeAuto = isSafeFoundationMove(st, m.card, rules);
     }
-    applyMove(st, m);
+    applyMove(st, m, rules);
   }
 }
 
@@ -155,6 +137,7 @@ function annotateManualFlags(path, initial) {
  * Path includes safe auto-F moves with auto:true (not counted in manualMoves).
  */
 export function shortSolve(initial, opts = {}) {
+  const rules = compileRules(opts.rules);
   const budgetMs = opts.budgetMs ?? 4000;
   const nodeLimit = opts.nodeLimit ?? 180000;
   const maxManual = opts.maxManual ?? 120;
@@ -162,7 +145,7 @@ export function shortSolve(initial, opts = {}) {
 
   const st = cloneState(initial);
   const bootstrap = [];
-  autoPlaySafeFoundations(st, bootstrap);
+  autoPlaySafeFoundations(st, bootstrap, rules);
   if (isSolved(st)) {
     return { path: bootstrap, moves: bootstrap.length, manualMoves: 0 };
   }
@@ -189,7 +172,7 @@ export function shortSolve(initial, opts = {}) {
 
     if (cur.g > maxManual) continue;
 
-    const moves = generateMoves(cur.st, { fullOnly: true });
+    const moves = generateMoves(cur.st, { fullOnly: true, rules, foundationReturns: false });
     moves.sort((a, b) => b.score - a.score);
 
     let expanded = 0;
@@ -200,13 +183,13 @@ export function shortSolve(initial, opts = {}) {
 
       const st2 = cloneState(cur.st);
       const path2 = cur.path.slice();
-      const manualHere = mv.t === 'F' && !isSafeFoundationMove(st2, mv.card) ? 1 : mv.t === 'F' ? 0 : 1;
+      const manualHere = mv.t === 'F' && !isSafeFoundationMove(st2, mv.card, rules) ? 1 : mv.t === 'F' ? 0 : 1;
       const mCopy = { ...mv };
       if (mv.t === 'F' && manualHere === 0) mCopy.auto = true;
 
-      applyMove(st2, mCopy);
+      applyMove(st2, mCopy, rules);
       path2.push(mCopy);
-      autoPlaySafeFoundations(st2, path2);
+      autoPlaySafeFoundations(st2, path2, rules);
 
       if (isSolved(st2)) {
         const mm = countManualInPath(path2);
@@ -241,10 +224,11 @@ export function shortSolve(initial, opts = {}) {
 // minCells via existing DFS solver
 // ---------------------------------------------------------------------------
 
-function solvableWithCells(state, k, budgetMs) {
+function solvableWithCells(state, k, budgetMs, rules) {
   const st = stateWithFreeCells(state, k);
   const r = solve(st, {
     timeLimitMs: budgetMs,
+    rules,
     perRunMs: Math.min(200, budgetMs / 4),
     perRunNodes: 80000,
     maxDepth: 280,
@@ -294,6 +278,7 @@ export function tierOf(score, cuts = TIER_CUTS) {
  * @param {object} opts — { budgetMs, minCellsBudgetMs, shortBudgetMs }
  */
 export function rateState(state, opts = {}) {
+  const rules = compileRules(opts.rules);
   const totalBudget = opts.budgetMs ?? 12000;
   const t0 = Date.now();
   const bury = computeBury(state);
@@ -307,7 +292,7 @@ export function rateState(state, opts = {}) {
 
   for (let k = 0; k <= 4; k++) {
     if (Date.now() - t0 > totalBudget) break;
-    const s = solvableWithCells(state, k, perK);
+    const s = solvableWithCells(state, k, perK, rules);
     solvableByCells[k] = s;
     if (s === true && minCells === null) minCells = k;
   }
@@ -316,23 +301,23 @@ export function rateState(state, opts = {}) {
   let manualMoves = null;
   let movesSource = null;
   if (minCells !== null) {
-    const short = shortSolve(state, { budgetMs: shortBudget, nodeLimit: opts.nodeLimit ?? 200000 });
+    const short = shortSolve(state, { rules, budgetMs: shortBudget, nodeLimit: opts.nodeLimit ?? 200000 });
     if (short) {
       moves = short.moves;
       manualMoves = short.manualMoves;
       movesSource = 'short';
-      annotateManualFlags(short.path, state);
+      annotateManualFlags(short.path, state, rules);
     } else if (opts.allowFallbackMoves === true) {
       const st4 = cloneState(state);
-      const r = solve(st4, { timeLimitMs: Math.min(4000, shortBudget), fullOnly: true });
+      const r = solve(st4, { rules, timeLimitMs: Math.min(4000, shortBudget), fullOnly: true });
       if (r.solvable && r.solution) {
         const path = [];
         const sim = cloneState(state);
         for (const m of r.solution) {
-          applyMove(sim, m);
+          applyMove(sim, m, rules);
           path.push(m);
         }
-        annotateManualFlags(path, state);
+        annotateManualFlags(path, state, rules);
         moves = path.length;
         manualMoves = countManualInPath(path);
         movesSource = 'fallback';

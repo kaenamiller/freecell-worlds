@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { EXPANSION_THEME_ORDER } from '../js/theme-expansion.js';
 import { THEMES, THEME_ORDER } from '../js/themes.js';
@@ -32,9 +33,9 @@ try {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('response', (r) => { if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`); });
-  await page.evaluateOnNewDocument(() => localStorage.setItem('freecellworlds.settings', JSON.stringify({
-    theme: 'roman', titleMode: 'classic', autoRandomTheme: false, quality: 'low', reducedMotion: true, autoFoundation: false,
-  })));
+  await page.evaluateOnNewDocument((quality) => localStorage.setItem('freecellworlds.settings', JSON.stringify({
+    theme: 'roman', titleMode: 'classic', autoRandomTheme: false, quality, reducedMotion: true, autoFoundation: false,
+  })), process.env.FREECELL_QA_QUALITY || 'low');
   await page.goto(process.env.FREECELL_QA_URL || 'http://localhost:8123/');
   await page.waitForFunction(() => !document.getElementById('loader'), { timeout: 90000 });
   const picker = await page.$$eval('#theme-grid [data-theme]', (els) => els.map((e) => e.dataset.theme));
@@ -92,7 +93,8 @@ try {
     assert.deepEqual(check.clipped, [], `${id}: clipped rank`);
     assert(check.indexChecks > 400);
     assert(check.fontLoaded);
-    await page.waitForFunction(() => [...document.querySelectorAll('.hero-layer img.show')].some((img) => img.complete && img.naturalWidth));
+    await page.waitForFunction((id) => [...document.querySelectorAll('.hero-layer img.show')].some((img) => img.src.includes(`/${id}/hero.webp`) && img.complete && img.naturalWidth), {}, id);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     await page.screenshot({ path: `${out}/${id}-title.png` });
     results.push(check);
     console.log('PASS assets + cards + title', id, check.indexChecks);
@@ -102,6 +104,16 @@ try {
   for (const id of ids) {
     await page.evaluate((id) => FreeCell.setTheme(id), id);
     await page.screenshot({ path: `${out}/${id}-game.png` });
+    // Loading checks cannot detect NaN lighting that turns all physical
+    // materials black. A dealt board must contain a substantial cream-card area.
+    execFileSync('python3', ['-c', `
+from PIL import Image
+import sys
+im=Image.open(sys.argv[1]).convert('RGB').crop((250,250,1050,650))
+pixels=list(im.get_flattened_data() if hasattr(im, 'get_flattened_data') else im.getdata())
+cream=sum(r>150 and g>150 and b>100 for r,g,b in pixels)/len(pixels)
+assert cream>0.08, f'Card faces are not visibly rendered: {cream:.3f}'
+`, `${out}/${id}-game.png`]);
     for (const width of [1280, 800, 420]) {
       await page.setViewport({ width, height: 800 });
       const layout = await page.evaluate(() => ({

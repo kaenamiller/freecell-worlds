@@ -4,9 +4,9 @@ import { deal, solve } from '../rules.js';
 self.onmessage = (e) => {
   const { id, deal: n, rules, options } = e.data || {};
   try {
-    const st = deal(n, rules?.freeCells ?? 4);
-    const r = solve(st, { timeLimitMs: 6000, ...options });
-    self.postMessage({ id, result: { solvable: r.solvable, elapsedMs: r.elapsedMs } });
+    const st = deal(n, rules);
+    const r = solve(st, { timeLimitMs: 6000, fullOnly: false, ...options, rules });
+    self.postMessage({ id, result: { solvable: r.solvable, elapsedMs: r.elapsedMs, nodes: r.nodes, moves: r.solution?.length } });
   } catch (err) {
     self.postMessage({ id, error: String(err?.message || err) });
   }

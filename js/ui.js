@@ -85,6 +85,50 @@ export const ui = {
     this.els.title.dataset.titleMode = this.titleMode;
     if (persist && settings.titleMode !== this.titleMode) { settings.titleMode = this.titleMode; saveSettings(); }
     this.updateTitleHero();
+    this.fitTitle();
+  },
+
+  // Scale the title block so every control stays on screen. The stage centers
+  // the scaled box; transform does not change layout, so the wrapper is sized
+  // to the visual result.
+  ensureTitleFit() {
+    if (this._titleFitReady) return;
+    const stage = document.querySelector('.title-stage');
+    const content = document.querySelector('.title-content');
+    if (!stage || !content) return;
+    this._titleFitReady = true;
+    const refit = () => this.fitTitle();
+    const observer = new ResizeObserver(refit);
+    observer.observe(stage);
+    observer.observe(content);
+    document.fonts?.ready.then(refit);
+  },
+
+  fitTitle() {
+    this.ensureTitleFit();
+    const screen = this.els.title || document.getElementById('title-screen');
+    const stage = document.querySelector('.title-stage');
+    const box = document.querySelector('.title-scale');
+    const content = document.querySelector('.title-content');
+    if (!screen || !stage || !box || !content || screen.classList.contains('hidden')) return;
+    const cs = getComputedStyle(stage);
+    const availW = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const availH = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (availW < 8 || availH < 8) return;
+    const widthPx = `${Math.min(availW, 1100)}px`;
+    if (content.style.width !== widthPx) content.style.width = widthPx;
+    const w = content.offsetWidth;
+    const h = content.offsetHeight;
+    if (!w || !h) return;
+    const scale = Math.min(1, (availW - 1) / w, (availH - 1) / h);
+    const transform = scale >= 0.999 ? 'none' : `scale(${scale})`;
+    const boxW = `${w * Math.min(scale, 1)}px`;
+    const boxH = `${h * Math.min(scale, 1)}px`;
+    if (content.style.transform === transform && box.style.width === boxW && box.style.height === boxH) return;
+    content.style.transformOrigin = 'top left';
+    content.style.transform = transform;
+    box.style.width = boxW;
+    box.style.height = boxH;
   },
 
   syncThemeSelection() {
@@ -400,6 +444,8 @@ export const ui = {
     bindCheck('#set-random-theme', 'autoRandomTheme');
     bindCheck('#set-fourcolor', 'fourColor');
     bindCheck('#set-contrast', 'highContrast');
+    settings.tapToPeek ??= false;
+    bindCheck('#set-tap-peek', 'tapToPeek');
     bindCheck('#set-reduced', 'reducedMotion');
     bindCheck('#set-cursor-light', 'cursorLight');
     this.setMuteIcon(settings.muted);
