@@ -30,12 +30,23 @@ createServer(async (req, res) => {
   try {
     let pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
     if (pathname.endsWith('/')) pathname += 'index.html';
-    const filePath = normalize(join(root, pathname));
+    let filePath = normalize(join(root, pathname));
     if (filePath !== root && !filePath.startsWith(root + sep)) {
       res.writeHead(403).end('Forbidden');
       return;
     }
-    const data = await readFile(filePath);
+    let data;
+    try {
+      data = await readFile(filePath);
+    } catch (err) {
+      // Match GitHub Pages: /terms serves terms/index.html.
+      // A directory read fails with EISDIR; a missing file fails with ENOENT.
+      if (!err || (err.code !== 'ENOENT' && err.code !== 'EISDIR') || extname(pathname)) throw err;
+      const indexPath = normalize(join(filePath, 'index.html'));
+      if (indexPath !== root && !indexPath.startsWith(root + sep)) throw err;
+      data = await readFile(indexPath);
+      filePath = indexPath;
+    }
     res.writeHead(200, {
       'Content-Type': TYPES[extname(filePath)] || 'application/octet-stream',
       'Cache-Control': 'no-store, no-cache, must-revalidate',
