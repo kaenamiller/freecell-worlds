@@ -115,6 +115,7 @@ export class CardMotion {
       flipped: !o.fromFlip && Math.abs((g.userData.rxState ?? g.rotation.x) - (t.rx || 0)) < 0.5,
       trail: !!o.trail,
       onLand: o.onLand || null,
+      flat: !!o.flat, // slide along the table: no lean into the direction of travel
     };
     g.userData.rxState = m.rx;
     g.userData.target = { x: t.x, y: t.y, z: t.z, rx: m.trx, ry: m.try };
@@ -192,7 +193,7 @@ export class CardMotion {
     }
     g.userData.rxState = m.rx;
     // Lean into the direction of travel; relax as it settles.
-    const lean = this.reduced ? 0 : 1;
+    const lean = this.reduced || m.flat ? 0 : 1;
     g.rotation.x = m.rx + clamp(m.vz * 0.02, -0.16, 0.16) * lean;
     g.rotation.z = clamp(-m.vx * 0.028, -0.2, 0.2) * lean;
   }

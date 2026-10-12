@@ -1,6 +1,6 @@
 // Service worker: precache the app shell, runtime-cache art/audio (cache-first),
 // and keep code files network-first so updates arrive. Bump VERSION to invalidate.
-const VERSION = 'freecell-worlds-v14-honeyhouse';
+const VERSION = 'freecell-worlds-v17-viking-runes';
 const SHELL = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/rules.js', './js/card.js', './js/animation.js', './js/textures.js', './js/themes.js', './js/theme-expansion.js',
@@ -12,6 +12,7 @@ const SHELL = [
   './js/voyage/registry.js',
   './js/voyage/boardrules.js', './tools/boss-calibration.json',
   './js/voyage/content/bosses.js', './js/voyage/content/special/boss.fog.js',
+  './js/voyage/content/broadcast.js',
   './js/voyage/content/aero.js',
   './js/voyage/content/arctic.js',
   './js/voyage/content/azulejo.js',
@@ -23,6 +24,7 @@ const SHELL = [
   './js/voyage/content/concrete.js',
   './js/voyage/content/conservatory.js',
   './js/voyage/content/cove.js',
+  './js/voyage/content/cutpaper.js',
   './js/voyage/content/cyber.js',
   './js/voyage/content/deco.js',
   './js/voyage/content/deepstorage.js',
@@ -40,15 +42,19 @@ const SHELL = [
   './js/voyage/content/library.js',
   './js/voyage/content/lowtide.js',
   './js/voyage/content/mint.js',
+  './js/voyage/content/moth.js',
   './js/voyage/content/muertos.js',
   './js/voyage/content/museum.js',
   './js/voyage/content/nighttrain.js',
   './js/voyage/content/pinecone.js',
   './js/voyage/content/prizelights.js',
+  './js/voyage/content/risograph.js',
   './js/voyage/content/riverboat.js',
   './js/voyage/content/roman.js',
+  './js/voyage/content/runes.js',
   './js/voyage/content/saffron.js',
   './js/voyage/content/safetypin.js',
+  './js/voyage/content/sewing.js',
   './js/voyage/content/saloon.js',
   './js/voyage/content/space.js',
   './js/voyage/content/special/canopy.zipline.js',

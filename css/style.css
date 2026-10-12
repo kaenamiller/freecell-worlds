@@ -230,6 +230,16 @@ button, input, select { font-family: inherit; color: inherit; }
 .modal-card h3 { margin: 0; font-size: 20px; letter-spacing: 0.18em; text-transform: uppercase; }
 .modal-body { padding: 4px 22px 22px; overflow: auto; }
 .modal-body h4 { margin: 20px 0 8px; font-size: 11px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--accent); }
+.dev-menu-kicker { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
+.dev-menu-kicker kbd { padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); font-family: inherit; font-size: 11px; }
+.dev-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.dev-toggle { margin: 0 0 14px; font-size: 13px; }
+.dev-readout { padding: 12px 14px; font-size: 12px; line-height: 1.45; }
+.dev-readout-placeholder { margin: 0; color: var(--muted); }
+.dev-readout dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+.dev-readout dt { color: var(--muted); }
+.dev-readout dd { margin: 0; font-variant-numeric: tabular-nums; }
+body.dev-unlocked .dev-only:not([hidden]) { display: inline-flex !important; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 9px 0; font-size: 14px; letter-spacing: 0.04em; }
 .row input[type=range] { flex: 0 0 55%; accent-color: var(--accent); }
 .row select { flex: 0 0 55%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: rgba(0,0,0,0.35); }
@@ -391,8 +401,7 @@ body[data-theme='carvings'] { --tool-fs: 9px; }
 body[data-theme='carvings'] .title-logo { font-weight: 700; letter-spacing: 0.035em; text-shadow: 0 4px 22px #100e0b; }
 body[data-theme='carvings'] .title-logo span { color: #83b6b0; }
 body[data-theme='carvings'] .btn.primary { background: linear-gradient(180deg, #c8583c, #963326); color: #fff0d9; }
-body[data-theme='carvings'] .panel { border-top: 3px solid #ae3e2d; box-shadow: 0 14px 42px rgba(0,0,0,0.5), inset 0 0 0 3px #1f1711, inset 0 0 0 4px rgba(131,182,176,0.25); }
-body[data-theme='carvings'] .controls { border-bottom: 3px solid #ae3e2d; }
+body[data-theme='carvings'] .panel { box-shadow: 0 14px 42px rgba(0,0,0,0.5), inset 0 0 0 3px #1f1711, inset 0 0 0 4px rgba(131,182,176,0.25); }
 body[data-theme='carvings'] .eyebrow { letter-spacing: 0.3em; }
 
 /* ---- Varsity Club: cream stitching, athletic lettering and navy wool ---- */
@@ -413,7 +422,6 @@ body[data-theme='driftwood'] .title-logo span { color: #b0cfc5; }
 body[data-theme='driftwood'] .btn, body[data-theme='driftwood'] .tool, body[data-theme='driftwood'] .chip { font-weight: 700; }
 body[data-theme='driftwood'] .btn.primary { background: linear-gradient(180deg, #c5ded1, #8db7ac); color: #172a33; }
 body[data-theme='driftwood'] .panel { box-shadow: 0 12px 38px rgba(12,30,40,0.45), inset 0 0 0 3px #172a33, inset 0 0 0 4px rgba(176,207,197,0.3); }
-body[data-theme='driftwood'] .controls { border-bottom: 2px solid #d1c5a8; }
 body[data-theme='driftwood'] .eyebrow { letter-spacing: 0.26em; }
 
 /* ---- Camp Pinecone: canvas stitching, cedar and campfire warmth ---- */
@@ -422,7 +430,6 @@ body[data-theme='pinecone'] .title-logo { font-weight: 700; text-shadow: 0 4px 2
 body[data-theme='pinecone'] .title-logo span { color: #f0b16d; }
 body[data-theme='pinecone'] .btn.primary { background: linear-gradient(180deg, #f5c78a, #df9651); color: #162b20; }
 body[data-theme='pinecone'] .panel { outline: 1px dashed rgba(228,199,150,0.5); outline-offset: -7px; }
-body[data-theme='pinecone'] .controls { border-bottom: 3px solid #98734b; }
 body[data-theme='pinecone'] .btn, body[data-theme='pinecone'] .tool, body[data-theme='pinecone'] .chip { font-weight: 700; }
 
 /* ---- Winterglass: silver keylines and luminous crystal tones ---- */
@@ -431,7 +438,6 @@ body[data-theme='winterglass'] .title-logo { font-weight: 700; letter-spacing: 0
 body[data-theme='winterglass'] .title-logo span { color: #c8b5ee; }
 body[data-theme='winterglass'] .btn.primary { background: linear-gradient(135deg, #e2f5ff, #a9ddf3 55%, #c8b5ee); color: #172541; }
 body[data-theme='winterglass'] .panel { box-shadow: 0 16px 48px rgba(10,20,45,0.5), inset 0 0 0 3px #172541, inset 0 0 0 4px rgba(169,221,243,0.3); }
-body[data-theme='winterglass'] .controls { border-bottom: 2px solid #8da9c9; }
 body[data-theme='winterglass'] .eyebrow { letter-spacing: 0.3em; }
 
 /* ---- Concrete Playground: bold poster type and painted color blocks ---- */
@@ -440,99 +446,103 @@ body[data-theme='concrete'] .title-logo { text-transform: uppercase; font-weight
 body[data-theme='concrete'] .title-logo span { color: #ff8175; }
 body[data-theme='concrete'] .btn { font-weight: 700; letter-spacing: 0.12em; }
 body[data-theme='concrete'] .btn.primary { background: #f2dc59; color: #191b22; box-shadow: 3px 3px 0 #466dcc; }
-body[data-theme='concrete'] .panel { border-top: 3px solid #ff8175; border-bottom: 3px solid #466dcc; }
-body[data-theme='concrete'] .controls { border-bottom: 3px solid #f2dc59; }
 body[data-theme='concrete'] .eyebrow { color: #f2dc59; }
 
 /* ---- Eleven new worlds: shared readable type with material-specific frames ---- */
-body:is([data-theme='library'], [data-theme='conservatory'], [data-theme='nighttrain'], [data-theme='lowtide'], [data-theme='canopy'], [data-theme='cove'], [data-theme='toybox'], [data-theme='honeyhouse']) { --tool-fs: 10.5px; }
-body:is([data-theme='saffron'], [data-theme='forge'], [data-theme='harvest'], [data-theme='carnival'], [data-theme='theater'], [data-theme='lapis'], [data-theme='keep']) { --tool-fs: 9px; }
-body:is([data-theme='canyon'], [data-theme='saloon'], [data-theme='diner'], [data-theme='deepstorage'], [data-theme='prizelights'], [data-theme='safetypin']) { --tool-fs: 11px; }
-body:is([data-theme='library'], [data-theme='conservatory'], [data-theme='nighttrain'], [data-theme='saffron'], [data-theme='harvest'], [data-theme='carnival'], [data-theme='canyon'], [data-theme='lowtide'], [data-theme='theater'], [data-theme='forge'], [data-theme='saloon'], [data-theme='lapis'], [data-theme='canopy'], [data-theme='diner'], [data-theme='cove'], [data-theme='keep'], [data-theme='deepstorage'], [data-theme='toybox'], [data-theme='prizelights'], [data-theme='safetypin'], [data-theme='honeyhouse']) :is(.btn, .tool, .chip, .title-logo) { font-weight: 700; }
-body:is([data-theme='library'], [data-theme='conservatory'], [data-theme='nighttrain'], [data-theme='saffron'], [data-theme='harvest'], [data-theme='carnival'], [data-theme='canyon'], [data-theme='lowtide'], [data-theme='theater'], [data-theme='forge'], [data-theme='saloon'], [data-theme='lapis'], [data-theme='canopy'], [data-theme='diner'], [data-theme='cove'], [data-theme='keep'], [data-theme='deepstorage'], [data-theme='toybox'], [data-theme='prizelights'], [data-theme='safetypin'], [data-theme='honeyhouse']) .btn.primary { background: linear-gradient(160deg, var(--text), var(--accent)); color: var(--bg); }
-body:is([data-theme='library'], [data-theme='conservatory'], [data-theme='nighttrain'], [data-theme='saffron'], [data-theme='harvest'], [data-theme='carnival'], [data-theme='canyon'], [data-theme='lowtide'], [data-theme='theater'], [data-theme='forge'], [data-theme='saloon'], [data-theme='lapis'], [data-theme='canopy'], [data-theme='diner'], [data-theme='cove'], [data-theme='keep'], [data-theme='deepstorage'], [data-theme='toybox'], [data-theme='prizelights'], [data-theme='safetypin'], [data-theme='honeyhouse']) .title-logo { text-shadow: 0 4px 24px var(--bg); }
+body:is([data-theme='library'], [data-theme='conservatory'], [data-theme='nighttrain'], [data-theme='lowtide'], [data-theme='canopy'], [data-theme='cove'], [data-theme='toybox'], [data-theme='honeyhouse'], [data-theme='moth'], [data-theme='cutpaper'], [data-theme='broadcast'], [data-theme='sewing'], [data-theme='risograph']) { --tool-fs: 10.5px; }
+body:is([data-theme='saffron'], [data-theme='forge'], [data-theme='harvest'], [data-theme='carnival'], [data-theme='theater'], [data-theme='lapis'], [data-theme='keep'], [data-theme='runes']) { --tool-fs: 9px; }
+body:is([data-theme='canyon'], [data-theme='saloon'], [data-theme='diner'], [data-theme='deepstorage'], [data-theme='prizelights'], [data-theme='safetypin'], [data-theme='broadcast'], [data-theme='risograph']) { --tool-fs: 11px; }
+body:is([data-theme='library'], [data-theme='conservatory'], [data-theme='nighttrain'], [data-theme='saffron'], [data-theme='harvest'], [data-theme='carnival'], [data-theme='canyon'], [data-theme='lowtide'], [data-theme='theater'], [data-theme='forge'], [data-theme='saloon'], [data-theme='lapis'], [data-theme='canopy'], [data-theme='diner'], [data-theme='cove'], [data-theme='keep'], [data-theme='deepstorage'], [data-theme='toybox'], [data-theme='prizelights'], [data-theme='safetypin'], [data-theme='honeyhouse'], [data-theme='moth'], [data-theme='cutpaper'], [data-theme='broadcast'], [data-theme='sewing'], [data-theme='risograph'], [data-theme='runes']) :is(.btn, .tool, .chip, .title-logo) { font-weight: 700; }
+body:is([data-theme='library'], [data-theme='conservatory'], [data-theme='nighttrain'], [data-theme='saffron'], [data-theme='harvest'], [data-theme='carnival'], [data-theme='canyon'], [data-theme='lowtide'], [data-theme='theater'], [data-theme='forge'], [data-theme='saloon'], [data-theme='lapis'], [data-theme='canopy'], [data-theme='diner'], [data-theme='cove'], [data-theme='keep'], [data-theme='deepstorage'], [data-theme='toybox'], [data-theme='prizelights'], [data-theme='safetypin'], [data-theme='honeyhouse'], [data-theme='moth'], [data-theme='cutpaper'], [data-theme='broadcast'], [data-theme='sewing'], [data-theme='risograph'], [data-theme='runes']) .btn.primary { background: linear-gradient(160deg, var(--text), var(--accent)); color: var(--bg); }
+body:is([data-theme='library'], [data-theme='conservatory'], [data-theme='nighttrain'], [data-theme='saffron'], [data-theme='harvest'], [data-theme='carnival'], [data-theme='canyon'], [data-theme='lowtide'], [data-theme='theater'], [data-theme='forge'], [data-theme='saloon'], [data-theme='lapis'], [data-theme='canopy'], [data-theme='diner'], [data-theme='cove'], [data-theme='keep'], [data-theme='deepstorage'], [data-theme='toybox'], [data-theme='prizelights'], [data-theme='safetypin'], [data-theme='honeyhouse'], [data-theme='moth'], [data-theme='cutpaper'], [data-theme='broadcast'], [data-theme='sewing'], [data-theme='risograph'], [data-theme='runes']) .title-logo { text-shadow: 0 4px 24px var(--bg); }
 
-body[data-theme='toybox'] .panel { border-top: 4px solid #c4453a; border-bottom: 4px solid #2e5a8c; }
-body[data-theme='prizelights'] .panel { border-top: 4px solid #e23b3b; border-bottom: 4px solid #3ec6d6; }
 body[data-theme='prizelights'] .title-logo { text-transform: uppercase; letter-spacing: 0.04em; }
-body[data-theme='safetypin'] .panel { border-top: 3px solid #d23a45; border-bottom: 3px solid #c43b78; }
-body[data-theme='honeyhouse'] .panel { border-top: 4px solid #e0a23a; border-bottom: 4px solid #1a1408; }
+
+body[data-theme='moth'] .panel { box-shadow: 0 16px 44px rgba(20,8,16,0.55), inset 0 0 0 3px #2c1c26, inset 0 0 0 4px rgba(201,183,164,0.45); }
+body[data-theme='moth'] .title-logo span { color: #e7a8c4; }
+
+body[data-theme='cutpaper'] .panel { box-shadow: 6px 6px 0 #e07a6a, 12px 12px 0 #1a2a55; }
+body[data-theme='cutpaper'] .btn.primary { box-shadow: 3px 3px 0 #1a2a55; }
+body[data-theme='cutpaper'] .title-logo span { color: #f0c14a; }
+
+body[data-theme='broadcast'] .panel { border-left: 3px solid #e8a040; }
+body[data-theme='broadcast'] .title-logo { text-transform: uppercase; letter-spacing: 0.04em; }
+body[data-theme='broadcast'] .title-logo span { color: #5ec8c0; }
+
+body[data-theme='sewing'] .panel { outline: 1px dashed rgba(232,184,90,0.7); outline-offset: -7px; }
+body[data-theme='sewing'] .title-logo span { color: #d4788a; }
+
+body[data-theme='risograph'] .title-logo { text-transform: uppercase; letter-spacing: 0.03em; text-shadow: 3px 0 #3a5ec8, -2px 2px 0 #d6452a; }
+body[data-theme='risograph'] .title-logo span { color: #e2b43a; text-shadow: none; }
+body[data-theme='risograph'] .btn.primary { box-shadow: 3px 0 0 #3a5ec8, -2px 2px 0 #d6452a; }
+
+body[data-theme='runes'] .panel { border-left: 3px solid #8a8478; box-shadow: inset 0 0 0 1px rgba(212,146,58,0.35); }
+body[data-theme='runes'] .title-logo span { color: #d4923a; }
 
 body[data-theme='library'] .panel { box-shadow: 0 16px 44px rgba(0,0,0,0.5), inset 0 0 0 3px #30231d, inset 0 0 0 4px rgba(211,183,123,0.35); }
-body[data-theme='library'] .controls { border-bottom: 3px solid #652c38; }
 body[data-theme='library'] .title-logo span { color: #86ad90; }
 
-body[data-theme='conservatory'] .panel { border-top: 2px solid #638d83; box-shadow: 0 12px 36px rgba(18,48,30,0.35), inset 0 0 0 3px #2b483b, inset 0 0 0 4px rgba(213,231,187,0.3); }
-body[data-theme='conservatory'] .controls { border-bottom: 2px solid #b9c59a; }
+body[data-theme='conservatory'] .panel { box-shadow: 0 12px 36px rgba(18,48,30,0.35), inset 0 0 0 3px #2b483b, inset 0 0 0 4px rgba(213,231,187,0.3); }
 body[data-theme='conservatory'] .title-logo span { color: #d5e7bb; }
 
 body[data-theme='nighttrain'] .panel { border-left: 3px solid #b79960; border-right: 3px solid #b79960; }
-body[data-theme='nighttrain'] .controls { border-bottom: 3px solid #743944; }
 body[data-theme='nighttrain'] .chip-deal { border-left: 3px solid #d6b980; }
 body[data-theme='nighttrain'] .title-logo span { color: #dd93a4; }
 
 body[data-theme='saffron'] .panel { box-shadow: 0 14px 42px rgba(0,0,0,0.4), inset 0 0 0 3px #2a3045, inset 0 0 0 4px rgba(235,191,101,0.4); }
-body[data-theme='saffron'] .controls { border-bottom: 2px solid #b78d50; }
 body[data-theme='saffron'] .eyebrow { color: #ebbf65; letter-spacing: 0.3em; }
 
 body[data-theme='harvest'] .panel { outline: 1px dashed rgba(240,190,114,0.5); outline-offset: -7px; }
-body[data-theme='harvest'] .controls { border-bottom: 3px solid #b9824e; }
 body[data-theme='harvest'] .title-logo span { color: #c7d18e; }
 
-body[data-theme='carnival'] .panel { border-top: 4px solid #f0989d; border-bottom: 4px solid #efc36a; }
 body[data-theme='carnival'] .btn { border-radius: 18px; }
-body[data-theme='carnival'] .controls { border-bottom: 3px solid #943d4b; }
 body[data-theme='carnival'] .title-logo span { color: #f0989d; }
 
 body[data-theme='canyon'] .panel { border-left: 4px solid #429b9b; }
-body[data-theme='canyon'] .controls { border-bottom: 3px solid #8acac1; }
 body[data-theme='canyon'] .title-logo { text-transform: uppercase; letter-spacing: 0.035em; }
 body[data-theme='canyon'] .title-logo span { color: #8acac1; }
 
 body[data-theme='lowtide'] .panel { box-shadow: 0 12px 36px rgba(12,30,40,0.4), inset 0 0 0 3px #304b54, inset 0 0 0 4px rgba(177,213,205,0.3); }
-body[data-theme='lowtide'] .controls { border-bottom: 2px solid #9fadaa; }
 body[data-theme='lowtide'] .title-logo span { color: #dfabb7; }
 
 body[data-theme='theater'] .panel { border-left: 4px solid #9c4552; border-right: 4px solid #9c4552; box-shadow: 0 18px 48px rgba(0,0,0,0.6), inset 0 0 0 1px #b79a63; }
-body[data-theme='theater'] .controls { border-bottom: 2px solid #b79a63; }
 body[data-theme='theater'] .title-logo span { color: #8bc5c5; }
 
-body[data-theme='forge'] .panel { border-top: 3px solid #d26939; }
-body[data-theme='forge'] .controls { border-bottom: 3px solid #d26939; }
 body[data-theme='forge'] .title-logo span { color: #ee9468; text-shadow: 0 0 24px rgba(238,148,104,0.2); }
 
 body[data-theme='saloon'] .panel { box-shadow: 0 14px 38px rgba(0,0,0,0.45), inset 0 0 0 3px #48342a, inset 0 0 0 4px rgba(231,189,115,0.35); }
-body[data-theme='saloon'] .controls { border-bottom: 3px solid #ad8451; }
 body[data-theme='saloon'] .title-logo { text-transform: uppercase; letter-spacing: 0.04em; }
 body[data-theme='saloon'] .title-logo span { color: #e7bd73; }
 
 body[data-theme='lapis'] .panel { box-shadow: 0 16px 44px rgba(0,0,0,0.5), inset 0 0 0 3px #2c221c, inset 0 0 0 4px rgba(228,197,110,0.4); }
-body[data-theme='lapis'] .controls { border-bottom: 3px solid #c9a24e; }
 body[data-theme='lapis'] .eyebrow { letter-spacing: 0.28em; }
 body[data-theme='lapis'] .title-logo span { color: #7ea0d4; }
 
-body[data-theme='canopy'] .panel { border-top: 3px solid #8fbf7a; box-shadow: 0 12px 36px rgba(10,30,20,0.4), inset 0 0 0 3px #24382e, inset 0 0 0 4px rgba(226,197,106,0.28); }
-body[data-theme='canopy'] .controls { border-bottom: 2px solid #b08948; }
+body[data-theme='canopy'] .panel { box-shadow: 0 12px 36px rgba(10,30,20,0.4), inset 0 0 0 3px #24382e, inset 0 0 0 4px rgba(226,197,106,0.28); }
 body[data-theme='canopy'] .title-logo span { color: #8fbf7a; }
 
-body[data-theme='diner'] .panel { border-top: 4px solid #a33b48; border-bottom: 4px solid #7ec8c0; }
-body[data-theme='diner'] .controls { border-bottom: 3px solid #a33b48; }
 body[data-theme='diner'] .title-logo { text-transform: uppercase; letter-spacing: 0.06em; }
 body[data-theme='diner'] .title-logo span { color: #7ec8c0; }
 
 body[data-theme='cove'] .panel { box-shadow: 0 14px 40px rgba(0,0,0,0.5), inset 0 0 0 3px #1e3a40, inset 0 0 0 4px rgba(226,192,120,0.35); }
-body[data-theme='cove'] .controls { border-bottom: 3px solid #5a4630; }
 body[data-theme='cove'] .title-logo span { color: #7cc2b6; }
 
-body[data-theme='keep'] .panel { border-top: 3px solid #a82836; box-shadow: 0 16px 44px rgba(0,0,0,0.5), inset 0 0 0 3px #332630, inset 0 0 0 4px rgba(216,179,101,0.35); }
-body[data-theme='keep'] .controls { border-bottom: 3px solid #b98e3e; }
+body[data-theme='keep'] .panel { box-shadow: 0 16px 44px rgba(0,0,0,0.5), inset 0 0 0 3px #332630, inset 0 0 0 4px rgba(216,179,101,0.35); }
 body[data-theme='keep'] .eyebrow { letter-spacing: 0.28em; }
 body[data-theme='keep'] .title-logo span { color: #c0555e; }
 
-body[data-theme='deepstorage'] .panel { border-top: 4px solid #d8b83e; }
-body[data-theme='deepstorage'] .controls { border-bottom: 3px solid #43484e; }
 body[data-theme='deepstorage'] .title-logo { text-transform: uppercase; letter-spacing: 0.06em; }
 body[data-theme='deepstorage'] .title-logo span { color: #e5c85a; }
+
+/* ---- Morning Ritual: clean oak, oat cream and modern coffee-shop teal ---- */
+body[data-theme='cafe'] { --tool-fs: 9px; }
+body[data-theme='cafe'] .title-logo { font-weight: 700; letter-spacing: 0.02em; text-shadow: 0 4px 24px rgba(12,35,32,0.7); }
+body[data-theme='cafe'] .title-logo span { color: #e4caa1; }
+body[data-theme='cafe'] .btn.primary { background: #e4caa1; color: #173b38; box-shadow: 0 3px 12px rgba(12,35,32,0.2); }
+body[data-theme='cafe'] .btn, body[data-theme='cafe'] .tool, body[data-theme='cafe'] .chip { font-weight: 700; }
+body[data-theme='cafe'] .panel { box-shadow: 0 14px 40px rgba(12,35,32,0.35); }
+body[data-theme='cafe'] .controls { border-bottom: 2px solid #bf8168; }
+body[data-theme='cafe'] .eyebrow { letter-spacing: 0.28em; }
 
 /* ------------------------------ Responsive ------------------------------ */
 @media (max-width: 1280px) { .brand-name, .brand-theme { display: none; } .brand { display: none; } }
@@ -623,13 +633,8 @@ body[data-theme='deepstorage'] .title-logo span { color: #e5c85a; }
 }
 body.voyage-reduced-motion .title-mode-tab, body.voyage-reduced-motion .hero-layer img { transition: none !important; animation: none !important; }
 
-/* Keep the revised right-side hero subjects visible on narrow title screens. */
-@media (max-width: 600px) {
-  body:is([data-theme="library"], [data-theme="conservatory"], [data-theme="nighttrain"], [data-theme="carnival"], [data-theme="canyon"], [data-theme="lowtide"], [data-theme="saloon"], [data-theme="lapis"], [data-theme="canopy"], [data-theme="diner"], [data-theme="cove"], [data-theme="keep"], [data-theme="deepstorage"], [data-theme="saffron"]) .hero-layer img {
-    object-position: 85% center;
-  }
-}
-
-@media (max-width: 600px) {
-  body[data-theme="diner"] .hero-layer img { object-position: 70% center; }
+/* Heroes are composed with the subject on the right and quiet space on the left.
+   Portrait cover-crop from the center drops that subject; keep the frame biased right. */
+@media (orientation: portrait), (max-width: 600px) {
+  .hero-layer img { object-position: 88% center; }
 }

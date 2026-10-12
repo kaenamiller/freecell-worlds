@@ -231,6 +231,7 @@ export const ui = {
     $('#scene').style.visibility = 'visible';
     this.els.hud.classList.remove('hidden');
     this.els.statusBar.classList.remove('hidden');
+    this.handlers.reframe?.();
     setTimeout(() => t.classList.add('hidden'), 520);
   },
 
@@ -329,6 +330,41 @@ export const ui = {
     return !!document.querySelector('.modal.show');
   },
 
+  devUnlocked: false,
+
+  setDevUnlocked(on) {
+    this.devUnlocked = !!on;
+    document.body.classList.toggle('dev-unlocked', this.devUnlocked);
+    this.syncDevVoyageHint();
+  },
+
+  syncDevVoyageHint() {
+    const btn = $('#btn-voyage-hint');
+    const toggle = $('#dev-voyage-hint');
+    if (!btn || !toggle) return;
+    const show = this.devUnlocked && toggle.checked;
+    btn.hidden = !show;
+  },
+
+  toggleDevMenu() {
+    const open = !$('#modal-dev')?.classList.contains('show');
+    if (open) {
+      this.setDevUnlocked(true);
+      this.openModal('modal-dev');
+      this.handlers.devMenuOpened?.();
+    } else this.closeModals();
+    return open;
+  },
+
+  renderDevReadout(html) {
+    const el = $('#dev-readout');
+    if (el) el.innerHTML = html;
+  },
+
+  setDevReadoutBusy(busy) {
+    $('#dev-readout')?.classList.toggle('busy', busy);
+  },
+
   renderStats() {
     const rate = stats.played ? Math.round((stats.won / stats.played) * 100) : 0;
     const cells = [
@@ -397,6 +433,13 @@ export const ui = {
     on('#btn-win-new', () => H().newGame());
     on('#btn-win-menu', () => H().home());
     on('#btn-reset-stats', () => H().resetStats());
+
+    on('#dev-auto-solve', () => H().devSolve?.());
+    on('#dev-hint', () => H().devHint?.());
+    on('#dev-check', () => H().devAnalyze?.());
+    on('#dev-reset-board', () => H().devResetBoard?.());
+    on('#btn-voyage-hint', () => H().devHint?.());
+    $('#dev-voyage-hint')?.addEventListener('change', () => this.syncDevVoyageHint());
 
     this.els.dealInput.addEventListener('keydown', (e) => {
       e.stopPropagation();

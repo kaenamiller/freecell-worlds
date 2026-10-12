@@ -15,8 +15,9 @@ for dir in "$SRC"/*/; do
   w "$dir/backdrop.png" "scale=1600:900:flags=lanczos,gblur=sigma=7,eq=brightness=-0.06" 80 "$OUT/$t/backdrop.webp"
   # Environment map for reflections (2:1 equirect, unblurred; PMREM prefilters it).
   w "$dir/backdrop.png" "scale=1024:512:flags=lanczos"                               80 "$OUT/$t/env.webp"
-  w "$dir/hero.png"     "scale=1920:1080:flags=lanczos"                              80 "$OUT/$t/hero.webp"
-  w "$dir/hero.png"     "scale=640:360:flags=lanczos"                                78 "$OUT/$t/thumb.webp"
+  # Cover the 16:9 frame and crop overflow. Plates are not always exactly 16:9.
+  w "$dir/hero.png"     "scale=1920:1080:force_original_aspect_ratio=increase:flags=lanczos,crop=1920:1080" 80 "$OUT/$t/hero.webp"
+  w "$dir/hero.png"     "scale=640:360:force_original_aspect_ratio=increase:flags=lanczos,crop=640:360" 78 "$OUT/$t/thumb.webp"
   w "$dir/back.png"     "scale=768:1024:flags=lanczos"                               88 "$OUT/$t/back.webp"
   for r in j q k; do w "$dir/court_$r.png" "scale=768:768:flags=lanczos" 88 "$OUT/$t/court_$r.webp"; done
 done

@@ -44,6 +44,12 @@ import './toybox.js';
 import './prizelights.js';
 import './safetypin.js';
 import './honeyhouse.js';
+import './moth.js';
+import './cutpaper.js';
+import './broadcast.js';
+import './sewing.js';
+import './risograph.js';
+import './runes.js';
 
 import './special/cyber.ghost.js';
 import './special/space.tractor.js';

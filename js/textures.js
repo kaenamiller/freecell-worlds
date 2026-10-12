@@ -222,7 +222,7 @@ function drawCourt(ctx, id, suit, rank, color) {
 
   if (img) {
     const srcH = (img.naturalHeight || img.height) * (hh / w);
-    const sy = Math.max(0, (img.naturalHeight || img.height) * 0.4 - srcH / 2);
+    const sy = Math.max(0, (img.naturalHeight || img.height) * (th.courtFocusY ?? 0.4) - srcH / 2);
     const sw = img.naturalWidth || img.width;
     for (const flip of [false, true]) {
       ctx.save();

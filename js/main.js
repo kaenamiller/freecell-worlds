@@ -19,6 +19,8 @@ import { findNode } from './voyage/map.js';
 import { scoreBoard, starsFor, starThresholds } from './voyage/scoring.js';
 import { loadBank, prepare as prepareDeals, dealFor, setBusyProbe } from './voyage/dealer.js';
 import { voyageStats, recordRunStart, recordRunEnd, recordBoardCleared, recordCharmPick, resetVoyageStats } from './voyage/stats.js';
+import { computeBury, shortSolve } from './difficulty.js';
+import { VOYAGE_STUCK_IDLE_MS, VOYAGE_STUCK_PROOF_MS, VOYAGE_STUCK_SETTLE_MS, voyageStuckPlan } from './voyage/stuck.js';
 
 // ---------------------------------------------------------------------------
 // Layout constants
@@ -166,7 +168,93 @@ function frameBoard() {
     D = fitDistance(tz);
   }
   evalView(D, tz);
+
+  // Short cover screens (iPhone Duo ~14:10, Fold 8 ~16:10) and phone landscape.
+  // The natural fit above is unchanged when the table already clears the bars.
+  const chrome = boardChrome();
+  const field = fieldScreenBounds();
+  const pad = 8;
+  const covered = field.top < chrome.top + pad || (chrome.bottom > 0 && field.bottom > window.innerHeight - chrome.bottom - pad);
+  const compact = window.innerWidth <= 760 || window.innerHeight <= 540;
+  if (compact && covered) {
+    const H = window.innerHeight;
+    const y1 = Math.min(maxFrac, 1 - 2 * (chrome.top + pad) / H);
+    const y0 = Math.max(-maxFrac, -1 + 2 * (chrome.bottom + pad) / H);
+    if (y1 - y0 > 0.28) fitFieldTo(evalView, { x0: -maxFrac, x1: maxFrac, y0, y1 });
+  }
   camera.updateProjectionMatrix();
+}
+
+// Pixel edges of the bars that sit over the table. Bottom chrome is only reserved on
+// short viewports, where the dock and status pill would otherwise cover the columns.
+function boardChrome() {
+  const hud = document.getElementById('hud');
+  let top = 0;
+  if (hud && !hud.classList.contains('hidden')) {
+    const bottom = hud.getBoundingClientRect().bottom;
+    if (bottom > 0) top = bottom;
+  }
+  let bottom = 0;
+  if (window.innerHeight <= 540) {
+    const h = window.innerHeight;
+    const edge = (el) => {
+      if (!el || el.hidden || el.classList.contains('hidden')) return;
+      const r = el.getBoundingClientRect();
+      if (r.height > 1 && r.top < h && r.top > h * 0.4) bottom = Math.max(bottom, h - r.top);
+    };
+    if (document.body.dataset.mode === 'voyage') edge(document.getElementById('voyage-dock'));
+    edge(document.getElementById('status-bar'));
+  }
+  return { top, bottom };
+}
+
+function fieldScreenBounds() {
+  const tmp = new THREE.Vector3();
+  const H = window.innerHeight;
+  let top = Infinity;
+  let bottom = -Infinity;
+  for (const x of [FIELD.minX, FIELD.maxX]) {
+    for (const z of [FIELD.minZ, FIELD.maxZ]) {
+      const y = (1 - tmp.set(x, 0, z).project(camera).y) * 0.5 * H;
+      top = Math.min(top, y);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  return { top, bottom };
+}
+
+// Fit the table inside an NDC rectangle and center it there. Used only when the
+// natural frame runs under the HUD or, on a short screen, the bottom bars.
+function fitFieldTo(evalView, lim) {
+  const tx = (lim.x0 + lim.x1) / 2;
+  const ty = (lim.y0 + lim.y1) / 2;
+  const inside = (r) => r.cx - r.fx >= lim.x0 - 1e-3 && r.cx + r.fx <= lim.x1 + 1e-3
+    && r.cy - r.fy >= lim.y0 - 1e-3 && r.cy + r.fy <= lim.y1 + 1e-3;
+  const fitDistance = (tz) => {
+    let lo = 2;
+    let hi = 140;
+    let best = hi;
+    for (let i = 0; i < 60; i++) {
+      const D = (lo + hi) / 2;
+      if (inside(evalView(D, tz))) { best = D; hi = D; }
+      else lo = D;
+    }
+    return best;
+  };
+  let tz = FIELD.centerZ;
+  let D = fitDistance(tz);
+  for (let it = 0; it < 16; it++) {
+    const r = evalView(D, tz);
+    if (Math.abs(r.cy - ty) < 0.002 && Math.abs(r.cx - tx) < 0.002) break;
+    const eps = 0.2;
+    const r2 = evalView(D, tz + eps);
+    const dcy = (r2.cy - r.cy) / eps;
+    const dcx = (r2.cx - r.cx) / eps;
+    if (Math.abs(dcy) > 1e-4) tz -= (r.cy - ty) / dcy;
+    else if (Math.abs(dcx) > 1e-4) tz -= (r.cx - tx) / dcx;
+    D = fitDistance(tz);
+  }
+  evalView(D, tz);
 }
 frameBoard();
 
@@ -617,7 +705,7 @@ function setPeek(col, idx) {
   const next = col == null ? null : { col, idx };
   if ((peek?.col ?? -1) === (next?.col ?? -1) && (peek?.idx ?? -1) === (next?.idx ?? -1)) return;
   peek = next;
-  if (game) applyLayout(true);
+  if (game) applyLayout(true, { peek: true });
 }
 // Peek the card under the pointer when it is buried in a condensed column.
 function peekFromCard(id) {
@@ -691,6 +779,11 @@ function applyLayout(_animate = true, opts = {}) {
     if (!g || g.userData.dragging) continue;
     g.userData.dest = tg.kind;
     if (targetsEqual(g.userData.target, tg)) continue;
+    if (opts.peek) {
+      // Peek just slides the cards below along the table: no lift, overshoot or landing fx.
+      moveCard(g, tg, { arc: 0, damping: 1, stiffness: 260, flat: true, onLand: noop });
+      continue;
+    }
     const dist = Math.hypot(g.position.x - tg.x, g.position.z - tg.z);
     if (dist > 2.2 && !dealing) audio.slide(panOf(g.position.x));
     moveCard(g, tg, { arc: 0.4 + Math.min(0.5, dist * 0.08), stiffness: dist > 3 ? 160 : 190, trail: tg.kind === 'found' });
@@ -846,7 +939,121 @@ function afterMove({ noAuto = false } = {}) {
   updateHUD();
   persistGame();
   checkWin();
+  refreshDevPanel();
   if (!noAuto) scheduleAuto();
+}
+
+function devMenuOpen() {
+  return document.getElementById('modal-dev')?.classList.contains('show');
+}
+
+function devSnapshotRows() {
+  if (!game) return [['Table', 'No active deal']];
+  const st = game.state;
+  const home = st.found[0] + st.found[1] + st.found[2] + st.found[3];
+  const legal = generateMoves(st, { fullOnly: true, rules: game.rules }).length;
+  const rows = [
+    ['Mode', mode],
+    ['Deal #', game.dealNumber],
+    ['Cards home', `${home} / 52`],
+    ['Manual moves', manualMoves()],
+    ['Legal moves', legal],
+    ['Bury score', computeBury(st).toFixed(1)],
+  ];
+  if (mode === 'voyage' && vy.run?.current && vy.boardLive) {
+    const cur = vy.run.current;
+    const extra = scoringContext(vy.run, { elapsed: run.elapsed, rules: game.rules });
+    const sb = scoreBoard(game.history, cur.par, vy.effects, extra);
+    rows.push(['Voyage board score', String(sb.total)]);
+    rows.push(['Par', String(cur.par)]);
+    rows.push(['Star thresholds', starThresholds(cur.par, vy.effects, extra).join(' · ')]);
+  }
+  return rows;
+}
+
+function renderDevReadout(extraRows = []) {
+  const rows = [...devSnapshotRows(), ...extraRows];
+  const body = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  ui.renderDevReadout(`<dl>${body}</dl>`);
+}
+
+function refreshDevPanel() {
+  if (!devMenuOpen()) return;
+  renderDevReadout();
+}
+
+function solvabilityLabel(r) {
+  if (r.solvable === true) {
+    const n = r.solution?.length ?? 0;
+    return `Winnable — solver found a ${n}-move line`;
+  }
+  if (r.solvable === false) return 'Unwinnable — no solution from here';
+  return 'Unknown — search limit reached';
+}
+
+async function devAnalyzePosition() {
+  if (!game || dealing || busy) return;
+  busy = true;
+  ui.setSolverBusy(true);
+  ui.setDevReadoutBusy(true);
+  renderDevReadout([['Analysis', 'Searching…']]);
+  try {
+    const r = await requestSolve({ timeLimitMs: 8000 });
+    const extra = [['Solvability', solvabilityLabel(r)]];
+    if (r.solvable === true && r.solution?.length) {
+      extra.push(['Remaining solver steps', String(r.solution.length)]);
+    }
+    if (r.solvable === true) {
+      const short = shortSolve(cloneState(game.state), { rules: game.rules, budgetMs: 3000 });
+      if (short) {
+        extra.push(['Est. manual moves', String(short.manualMoves)]);
+        extra.push(['Short-path nodes', String(short.nodes ?? '—')]);
+      } else extra.push(['Est. manual moves', '— (short search timed out)']);
+    }
+    extra.push(['Solver nodes', String(r.nodes ?? '—')]);
+    extra.push(['Solver time', `${r.elapsedMs ?? '—'} ms`]);
+    renderDevReadout(extra);
+  } catch (err) {
+    renderDevReadout([['Analysis error', err.message]]);
+  } finally {
+    busy = false;
+    ui.setSolverBusy(false);
+    ui.setDevReadoutBusy(false);
+  }
+}
+
+async function devResetBoard() {
+  if (!game || dealing || busy || autoplay.running) return;
+  stopSolve();
+  clearSelection();
+  won = false;
+  ui.hideWin();
+  autoTok++;
+  if (mode === 'voyage' && vy.boardLive && vy.run?.current) {
+    const cur = vy.run.current;
+    cur.history = [];
+    cur.elapsed = 0;
+    cur.override = null;
+    cur.liveRules = null;
+    run.elapsed = 0;
+    run.timerOn = false;
+    lastTimerText = -1;
+    tickTimer();
+    voyageDealBoard({ restore: null });
+    setStatus('Board reset to opening deal.', 'ok');
+    refreshDevPanel();
+    return;
+  }
+  game.state = cloneState(game.initial);
+  game.history = [];
+  game.override = null;
+  run.solved = false;
+  introDismissed = false;
+  applyLayout(true);
+  updateHUD();
+  persistGame();
+  setStatus('Board reset to opening deal.', 'ok');
+  refreshDevPanel();
 }
 
 // ---------------------------------------------------------------------------
@@ -962,11 +1169,13 @@ function syncFog() {
   const ctx = fogContext();
   if (fogInput.peek && (fogInput.peek.game !== game || !ctx || ui.modalOpen || won || !ui.els.title.classList.contains('hidden'))) endFogPeek();
   const peek = fogInput.peek;
+  let revealed = false;
   if (peek) for (const id of peek.ids) {
     const g = cardGroups.get(id);
-    if (g?.userData.concealed) setCardConcealed(g, false);
+    if (g?.userData.concealed) { setCardConcealed(g, false); revealed = true; }
   }
   layer?.setFog?.(ctx ? game.state : null, fogInput.hidden, peek?.col ?? -1);
+  if (revealed) syncRankHighlight();
 }
 function endFogPeek() {
   const peek = fogInput.peek;
@@ -979,6 +1188,7 @@ function endFogPeek() {
       const g = cardGroups.get(id);
       if (g) setCardConcealed(g, hidden.has(id));
     }
+    syncRankHighlight();
   }
 }
 function beginFogPeek(col, source) {
@@ -1080,22 +1290,41 @@ function refreshCardEmissive(cid) {
   }
 }
 
+function faceDown(id) {
+  return !!cardGroups.get(id)?.userData.concealed;
+}
+
+function sameIds(a, b) {
+  if (a.size !== b.size) return false;
+  for (const id of a) if (!b.has(id)) return false;
+  return true;
+}
+
 function setRankHighlight(rank) {
-  if (rank === highlightRank) return;
+  const next = new Set();
+  if (rank != null) {
+    for (const id of cardGroups.keys()) {
+      // Face-down cards keep the back texture on the visible face. Lighting
+      // them would mark which hidden cards match the held rank.
+      if ((((id - 1) % 13) + 1) === rank && !faceDown(id)) next.add(id);
+    }
+  }
+  if (rank === highlightRank && sameIds(next, highlightedIds)) return;
   // Drop the old set before refreshing. refreshCardEmissive treats membership
   // as the highlight, so painting first would leave the glow stuck on.
   const stale = [...highlightedIds];
   highlightedIds.clear();
+  for (const id of next) highlightedIds.add(id);
   highlightRank = rank;
-  if (rank != null) {
-    for (const id of cardGroups.keys()) {
-      if ((((id - 1) % 13) + 1) === rank) highlightedIds.add(id);
-    }
-  }
   for (const id of stale) {
     if (!highlightedIds.has(id)) refreshCardEmissive(id);
   }
   for (const id of highlightedIds) refreshCardEmissive(id);
+}
+
+// Concealment can change while a rank key is still held (reveal, undo, peek).
+function syncRankHighlight() {
+  if (highlightRank != null) setRankHighlight(highlightRank);
 }
 
 // '1'/'a' -> ace, '2'..'9' -> number, '0' -> ten, 'j'/'q'/'k' -> court.
@@ -1363,11 +1592,24 @@ worker.onerror = (e) => {
   pending.clear();
 };
 
+function solverOptions(extra = {}) {
+  if (mode === 'voyage') {
+    return {
+      fullOnly: false,
+      maxDepth: 320,
+      timeLimitMs: extra.timeLimitMs ?? 8000,
+      ...extra,
+    };
+  }
+  return extra;
+}
+
 function requestSolve(options = {}) {
   const id = ++solveSeq;
+  const merged = solverOptions(options);
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject });
-    worker.postMessage({ id, state: cloneState(game.state), rules: game.rules, options });
+    worker.postMessage({ id, state: cloneState(game.state), rules: game.rules, options: merged });
   });
 }
 
@@ -1459,8 +1701,9 @@ async function doCheck() {
   }
 }
 
-async function doHint() {
+async function doHint({ dev = false } = {}) {
   if (busy || !game || won) return;
+  if (mode === 'voyage' && !dev && !ui.devUnlocked) return;
   busy = true;
   ui.setSolverBusy(true);
   setStatus('Looking for a good move…', 'warn');
@@ -1476,12 +1719,13 @@ async function doHint() {
       setStatus('No moves available.', 'bad');
       audio.invalid();
     } else {
-      run.hints++;
+      if (mode !== 'voyage') run.hints++;
       audio.hint();
       game.applyDescriptor(move);
       clearSelection();
       afterMove();
       setStatus('Hint played.', 'ok');
+      refreshDevPanel();
     }
   } catch (err) {
     setStatus('Solver error: ' + err.message, 'bad');
@@ -1492,9 +1736,10 @@ async function doHint() {
 }
 
 let autoplay = { running: false };
-async function doSolve() {
+async function doSolve({ dev = false } = {}) {
   if (autoplay.running) return stopSolve();
   if (busy || !game || won) return;
+  if (mode === 'voyage' && !dev && !ui.devUnlocked) return;
   busy = true;
   ui.setSolverBusy(true);
   setStatus('Solving…', 'warn');
@@ -1532,6 +1777,7 @@ async function doSolve() {
   ui.setSolveActive(false);
   persistGame();
   checkWin();
+  refreshDevPanel();
   if (!game.isWon()) setStatus('Solution playback stopped.', 'warn');
 }
 
@@ -1851,6 +2097,8 @@ const vy = {
   ability: null,
   applyingCharm: false,
   stuckTok: 0,
+  stuckIdle: 0,
+  stuckWarned: false,
 };
 
 const vyView = () => {
@@ -1873,6 +2121,8 @@ function enterVoyageMode() {
 // Back to classic: the Voyage run stays saved and can be continued from the title screen.
 function leaveVoyageMode() {
   if (mode !== 'voyage') return;
+  voyageDisarmStuck();
+  voyageClearStuckWarning();
   voyagePersist();
   mode = 'classic';
   vy.effects = null;
@@ -1992,15 +2242,19 @@ async function voyagePickNode(nodeId) {
   if (!ui.els.title.classList.contains('hidden')) ui.hideTitle();
   await switchTheme(r.current.theme);
   await voyageUI.showBossIntro(runView(r));
-  voyageDealBoard();
   await voyageUI.showBoardIntro(vyView());
+  voyageDealBoard();
   if (r.current?.boss) {
     voyageUI.flashBossTell(vyView());
     layer?.flashBossTell?.();
     if (!settings.reducedMotion) {
-      for (const g of cardGroups.values()) if (g.userData.mark === 'crown' || g.userData.mark === 'thorn') {
-        pulses.ring(g.position.x, g.position.z, currentTheme.fx.flash, .6);
-      }
+      // Marks are still in the deck until the entrance and deal land.
+      setTimeout(() => {
+        if (vy.run?.current !== r.current) return;
+        for (const g of cardGroups.values()) if (g.userData.mark === 'crown' || g.userData.mark === 'thorn') {
+          pulses.ring(g.position.x, g.position.z, currentTheme.fx.flash, .6);
+        }
+      }, 1900);
     }
   }
   if (r.current?.finaleStipend) ui.toast('✦', 'Finale stipend', `+${r.current.finaleStipend} undos for the final table.`, 3200);
@@ -2020,7 +2274,10 @@ function voyageRuntimeAPI() {
     notify: (text) => ui.toast('✦', 'Charm', text, 2600),
     mark: (ids, style) => { for (const id of ids) { const g = cardGroups.get(id); if (g) setCardMark(g, style); } },
     clearMarks: () => { for (const g of cardGroups.values()) setCardMark(g, null); },
-    conceal: (ids) => { for (const id of ids) { const g = cardGroups.get(id); if (g) setCardConcealed(g, true); } },
+    conceal: (ids) => {
+      for (const id of ids) { const g = cardGroups.get(id); if (g) setCardConcealed(g, true); }
+      syncRankHighlight();
+    },
     reveal: (ids) => {
       const targets = computeTargets();
       for (const id of ids) {
@@ -2030,6 +2287,7 @@ function voyageRuntimeAPI() {
         if (!settings.reducedMotion) { g.rotation.x = Math.PI; g.userData.rxState = Math.PI; }
         moveCard(g, target, { arc: settings.reducedMotion ? 0 : 0.22, onLand: noop });
       }
+      syncRankHighlight();
     },
     hint: async () => { const n = game.history.length; await doHint(); return game.history.length > n; },
     autoHome: () => {
@@ -2127,9 +2385,13 @@ async function voyagePickTarget({ kind, filter = () => true }) {
 // Deal run.current onto the table with its charms active.
 function voyageDealBoard({ restore = null } = {}) {
   const cur = vy.run.current;
+  voyageDisarmStuck();
+  voyageClearStuckWarning();
   vy.settingUp = true;
   vy.positions = null;
   voyageUI.cancelPick?.();
+  voyageUI.setHud(vyView());
+  frameBoard();
   vy.effects = new BoardEffects(cur.active, {
     seed: vy.run.seed, boardIndex: cur.idx, memo: (cur.memo ??= {}), run: vy.run, api: voyageRuntimeAPI(),
   });
@@ -2169,6 +2431,7 @@ function voyageHud() {
   if (!vy.run) return;
   voyageUI.setHud(vyView());
   voyageLiveScore();
+  frameBoard();
 }
 
 // Report new history entries to the charm hooks, update the HUD and watch for a dead end.
@@ -2212,39 +2475,93 @@ function voyageUndone() {
   voyageHud();
 }
 
-// With undos left the player can always back out, so we only say when no move exists at all.
-// With none left, a position the solver proves unwinnable ends the run.
-async function voyageCheckStuck() {
-  const tok = ++vy.stuckTok;
-  if (won || !game || game.isWon() || vy.effects?.using || vy.effects?.hasAvailableAbility()) return;
-  if (game.override) return;
-  const noMoves = generateMoves(game.state, { rules: game.rules }).length === 0;
-  if (vy.run.undos > 0) {
-    if (noMoves) setStatus('No moves left — undo, or abandon the board.', 'warn');
+// A dead end with undos left is a warning: undo can still reach a live position. With none left,
+// a position the solver proves unwinnable ends the run. See voyageStuckPlan in js/voyage/stuck.js.
+function voyageDisarmStuck() {
+  vy.stuckTok++;
+  if (vy.stuckIdle) {
+    clearTimeout(vy.stuckIdle);
+    vy.stuckIdle = 0;
+  }
+}
+
+function voyageClearStuckWarning() {
+  if (!vy.stuckWarned) return;
+  vy.stuckWarned = false;
+  ui.clearStatus();
+}
+
+function voyageStuckBlocked() {
+  return mode !== 'voyage' || won || !vy.boardLive || vy.settingUp || !vy.run || vy.run.status !== 'board'
+    || !game || game.isWon() || vy.effects?.using || vy.effects?.hasAvailableAbility() || game.override;
+}
+
+function voyageWarnStuck(text) {
+  vy.stuckWarned = true;
+  setStatus(text, 'warn');
+}
+
+async function voyageProveStuck(tok, { settle = true } = {}) {
+  if (settle) {
+    await new Promise((r) => setTimeout(r, VOYAGE_STUCK_SETTLE_MS));
+    if (tok !== vy.stuckTok || voyageStuckBlocked()) return;
+  }
+  let dead = false;
+  try {
+    const result = await requestSolve({ timeLimitMs: VOYAGE_STUCK_PROOF_MS, fullOnly: false });
+    dead = result.solvable === false;
+  } catch {
+    dead = false;
+  }
+  if (tok !== vy.stuckTok || voyageStuckBlocked()) return;
+  if (!dead) {
+    voyageClearStuckWarning();
     return;
   }
-  let dead = noMoves;
-  if (!dead) {
-    await new Promise((r) => setTimeout(r, 900)); // let auto-play settle first
-    if (tok !== vy.stuckTok || won) return;
-    try {
-      const r = await requestSolve({ timeLimitMs: 5000, fullOnly: false });
-      dead = r.solvable === false;
-    } catch {
-      dead = false;
-    }
+  if (vy.run.undos > 0) {
+    voyageWarnStuck('No way forward from here — undo, or abandon the board.');
+    return;
   }
-  if (!dead || tok !== vy.stuckTok || won || mode !== 'voyage') return;
-  if (vy.run.undos > 0 || vy.effects?.hasAvailableAbility()) return;
   const cancelled = vy.effects?.emit('stuck');
   voyageRefresh();
-  if (cancelled || vy.run.undos > 0 || vy.effects?.hasAvailableAbility()) return;
+  if (cancelled || tok !== vy.stuckTok || vy.run.undos > 0 || vy.effects?.hasAvailableAbility() || voyageStuckBlocked()) return;
   voyageLose('stuck');
+}
+
+async function voyageCheckStuck() {
+  voyageDisarmStuck();
+  const tok = vy.stuckTok;
+  if (voyageStuckBlocked()) return;
+  const moves = generateMoves(game.state, { rules: game.rules });
+  const plan = voyageStuckPlan(moves, vy.run.undos);
+  if (plan === 'warn') {
+    voyageWarnStuck('No moves left — undo, or abandon the board.');
+    return;
+  }
+  if (plan === 'lose') {
+    const cancelled = vy.effects?.emit('stuck');
+    voyageRefresh();
+    if (cancelled || tok !== vy.stuckTok || vy.run.undos > 0 || vy.effects?.hasAvailableAbility() || voyageStuckBlocked()) return;
+    voyageLose('stuck');
+    return;
+  }
+  if (plan === 'idle') {
+    voyageClearStuckWarning();
+    vy.stuckIdle = setTimeout(() => {
+      vy.stuckIdle = 0;
+      if (tok !== vy.stuckTok || voyageStuckBlocked()) return;
+      voyageProveStuck(tok, { settle: false });
+    }, VOYAGE_STUCK_IDLE_MS);
+    return;
+  }
+  voyageProveStuck(tok);
 }
 
 function voyageLose(reason) {
   const r = vy.run;
   if (!r || r.status === 'lost') return;
+  voyageDisarmStuck();
+  voyageClearStuckWarning();
   loseRun(r, reason);
   recordRunEnd(r);
   saveRun(r);
@@ -2267,6 +2584,8 @@ async function voyageAbandon() {
 
 function voyageWin() {
   const r = vy.run;
+  voyageDisarmStuck();
+  voyageClearStuckWarning();
   const result = winBoard(r, game.history, vy.effects, { elapsed: run.elapsed, rules: game.rules });
   vy.effects?.emit('win', { result });
   recordBoardCleared(result);
@@ -2318,6 +2637,7 @@ const voyageHandlers = {
 };
 
 ui.handlers = {
+  reframe: () => frameBoard(),
   click: () => {
     audio.unlock();
     audio.ui();
@@ -2375,6 +2695,11 @@ ui.handlers = {
     voyageRefreshTitle();
     ui.toast('✓', 'Statistics reset', 'Fresh start.');
   },
+  devMenuOpened: () => refreshDevPanel(),
+  devSolve: () => doSolve({ dev: true }),
+  devHint: () => doHint({ dev: true }),
+  devAnalyze: () => devAnalyzePosition(),
+  devResetBoard: () => devResetBoard(),
   settings: (k) => {
     audio.applyVolumes();
     if (k === 'autoRandomTheme') ui.syncThemeSelection();
@@ -2395,7 +2720,12 @@ ui.handlers = {
 
 window.addEventListener('keydown', (e) => {
   audio.unlock();
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.code === 'Backquote' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    e.preventDefault();
+    if (!e.repeat) ui.toggleDevMenu();
+    return;
+  }
   if (!game || ui.modalOpen || !ui.els.title.classList.contains('hidden')) return;
   const k = e.key.toLowerCase();
   if (fogContext() && !e.metaKey && !e.ctrlKey && !e.altKey) {

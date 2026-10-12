@@ -4,13 +4,21 @@
 //
 // Nodes are generated lazily as the player advances. A node's id encodes its route from the root
 // ('n1' → 'n1.0' → 'n1.0.1'), and its theme comes from a stream seeded by that id, so the chart is
-// deterministic in the run seed whatever order nodes are revealed in. A node's children avoid
-// every theme on the route to it, so no theme repeats on a path, and siblings never share one.
+// deterministic in the run seed and the route taken.
+//
+// No board is ever shown twice in a run: each new node takes a theme that no node revealed so far
+// has used, including tables behind choices the player never takes. A full run reveals 29 nodes
+// (9 at the start, then 4 per board for boards 1-5), so this needs at least 29 themes. With fewer,
+// it falls back gracefully: themes on the route to the node are still never repeated, and
+// siblings never share a theme.
 import { THEME_ORDER } from '../themes.js';
 import { VOYAGE } from './config.js';
 import { stream } from './rng.js';
 
 const rowOf = (id) => id.split('.').length - 1;
+
+// Every theme already on the chart, in any branch.
+const usedThemes = (map) => new Set(Object.values(map.nodes).map((n) => n.theme));
 
 function routeThemes(map, id) {
   const out = [];
@@ -25,13 +33,28 @@ function grow(map, parentId, bannedTheme) {
   const row = parent ? parent.row + 1 : 0;
   if (row >= VOYAGE.boards) return;
   const count = parent ? VOYAGE.branch : VOYAGE.firstRowWidth;
-  const avoid = new Set(parent ? routeThemes(map, parentId) : []);
+  const used = usedThemes(map);
+  const route = new Set(parent ? routeThemes(map, parentId) : []);
   const r = stream(map.seed, 'node', parentId || 'root');
-  const preferred = r.shuffle(THEME_ORDER.filter((t) => !avoid.has(t) && !bannedTheme?.(t, row)));
-  const fallback = r.shuffle(THEME_ORDER.filter((t) => !avoid.has(t)));
+  const order = r.shuffle(THEME_ORDER);
+  const banned = (t) => !!bannedTheme?.(t, row);
+  // Most to least strict: never seen this run, then (only if the pool is too small) not on this
+  // route. Each tier first honours bannedTheme (boss/finale clashes), then relaxes it.
+  const tiers = [
+    (t) => !used.has(t) && !banned(t),
+    (t) => !used.has(t),
+    (t) => !route.has(t) && !banned(t),
+    (t) => !route.has(t),
+    () => true,
+  ];
   const ids = [];
   for (let k = 0; k < count; k++) {
-    const theme = preferred.shift() || fallback.find((t) => !ids.some((id) => map.nodes[id].theme === t)) || THEME_ORDER[k];
+    const taken = new Set(ids.map((id) => map.nodes[id].theme));
+    let theme = null;
+    for (const ok of tiers) {
+      theme = order.find((t) => !taken.has(t) && ok(t));
+      if (theme) break;
+    }
     const id = parentId ? `${parentId}.${k}` : `n${k}`;
     map.nodes[id] = { id, row, lane: k, theme, parent: parentId, links: [] };
     ids.push(id);

@@ -13,7 +13,12 @@ const theme = (id) => THEMES[id] || { name: id || 'Unknown table', tagline: '', 
 const art = (id) => theme(id).art?.thumb ? new URL(`../../${theme(id).art.thumb.replace(/^\.\//, '')}`, import.meta.url).href : '';
 const starText = (n) => `${'★'.repeat(Math.max(0, Number(n) || 0))}${'☆'.repeat(Math.max(0, 3 - (Number(n) || 0)))}`;
 const relationBadge = (c) => c?.relation ? `<b class="voyage-boss-relation relation-${c.relation === '+' ? 'help' : c.relation === '!' ? 'weak' : 'neutral'}" title="${esc(c.relationText)}" aria-label="${esc(c.relationText)}">${esc(c.relation)}</b>` : '';
-const compactCharm = (c, extra = '', interactive = false) => c ? `<button type="button" class="voyage-charm ${c.placeholder ? 'placeholder' : ''} ${extra} ${interactive && c.ability ? 'voyage-ability' : ''}" ${interactive && c.ability ? `data-ability="${esc(c.id)}" aria-disabled="${!c.ability.available}"` : ''} aria-label="${esc(`${c.name}. ${c.text}${c.badge ? ` ${c.badge}.` : ''}${c.relationText ? ` ${c.relationText}.` : ''}${interactive && c.ability ? ` ${c.ability.label}, ${c.ability.uses} uses left.` : ''}`)}" aria-describedby="voyage-tooltip" data-tip-name="${esc(c.name)}" data-tip-text="${esc(c.text + (c.relationText ? ` ${c.relationText}.` : ''))}"><span aria-hidden="true">${esc(c.icon || '✦')}</span>${c.badge ? `<b class="voyage-charm-badge">${esc(c.badge)}</b>` : ''}${relationBadge(c)}${interactive && c.ability ? `<b class="voyage-use-pip" aria-hidden="true">${c.ability.uses}</b>` : ''}</button>` : '';
+const charmArt = (c) => (c?.id && !c.placeholder ? new URL(`../../assets/art/charms/${c.id}.webp`, import.meta.url).href : '');
+const charmGlyph = (c) => {
+  const src = charmArt(c);
+  return src ? `<img src="${esc(src)}" alt="" draggable="false">` : esc(c?.icon || '✦');
+};
+const compactCharm = (c, extra = '', interactive = false) => c ? `<button type="button" class="voyage-charm ${c.placeholder ? 'placeholder' : ''} ${extra} ${interactive && c.ability ? 'voyage-ability' : ''}" ${interactive && c.ability ? `data-ability="${esc(c.id)}" aria-disabled="${!c.ability.available}"` : ''} aria-label="${esc(`${c.name}. ${c.text}${c.badge ? ` ${c.badge}.` : ''}${c.relationText ? ` Boss interaction: ${c.relationText}.` : ''}${interactive && c.ability ? ` ${c.ability.label}, ${c.ability.uses} uses left.` : ''}`)}" aria-describedby="voyage-tooltip" data-tip-name="${esc(c.name)}" data-tip-text="${esc(c.text)}"${c.relationText ? ` data-tip-relation="${esc(c.relationText)}"` : ''}><span aria-hidden="true">${charmGlyph(c)}</span>${c.badge ? `<b class="voyage-charm-badge">${esc(c.badge)}</b>` : ''}${relationBadge(c)}${interactive && c.ability ? `<b class="voyage-use-pip" aria-hidden="true">${c.ability.uses}</b>` : ''}</button>` : '';
 const charmCard = (c, action = '') => `<article class="voyage-charm-card"><div class="voyage-charm-card-icon">${compactCharm(c)}</div><div><small>${esc(c.kind || 'charm')}</small><h4>${esc(c.name)}</h4><p>${esc(c.text)}</p></div>${action}</article>`;
 const localDate = (key) => key ? `Daily Voyage · ${esc(key)}` : 'Voyage';
 const formatTime = (seconds) => `${Math.floor((seconds || 0) / 60)}:${String(Math.round((seconds || 0) % 60)).padStart(2, '0')}`;
@@ -208,7 +213,7 @@ export const voyageUI = {
     const view = this.mapView;
     const all = view.map.flat();
     const byId = new Map(all.map((node) => [node.id, node]));
-    const nodeHtml = (node, compact = false) => `<button type="button" class="voyage-node ${esc(node.state)} ${node.final ? 'final' : ''} ${compact ? 'compact' : ''}" data-node="${esc(node.id)}" data-node-id="${esc(node.id)}" data-parent="${esc(node.parent || '')}" aria-label="${esc(`${theme(node.theme).name}, board ${node.row + 1}, ${node.state}. Challenge: ${node.challenge?.name || 'none'}`)}" aria-pressed="${node.id === this.selectedNode}"><img src="${esc(art(node.theme))}" alt="" loading="lazy"><span class="voyage-node-shade"></span><span class="voyage-node-challenge" aria-hidden="true">${esc(node.challenge?.icon || '◆')}</span><span class="voyage-node-name">${esc(theme(node.theme).name)}</span><span class="voyage-node-state">${node.state === 'available' ? 'Choose' : node.state === 'current' ? 'Here' : node.state === 'visited' ? 'Cleared' : node.final ? 'Boss' : node.state === 'skipped' ? 'Passed' : 'Ahead'}</span></button>`;
+    const nodeHtml = (node, compact = false) => `<button type="button" class="voyage-node ${esc(node.state)} ${node.final ? 'final' : ''} ${compact ? 'compact' : ''}" data-node="${esc(node.id)}" data-node-id="${esc(node.id)}" data-parent="${esc(node.parent || '')}" aria-label="${esc(`${theme(node.theme).name}, board ${node.row + 1}, ${node.state}. Challenge: ${node.challenge?.name || 'none'}`)}" aria-pressed="${node.id === this.selectedNode}"><img src="${esc(art(node.theme))}" alt="" loading="lazy"><span class="voyage-node-shade"></span><span class="voyage-node-challenge" aria-hidden="true">${node.challenge ? charmGlyph(node.challenge) : '◆'}</span><span class="voyage-node-name">${esc(theme(node.theme).name)}</span><span class="voyage-node-state">${node.state === 'available' ? 'Choose' : node.state === 'current' ? 'Here' : node.state === 'visited' ? 'Cleared' : node.final ? 'Boss' : node.state === 'skipped' ? 'Passed' : 'Ahead'}</span></button>`;
     const history = view.map.map((row, i) => {
       const route = row?.find((node) => node.state === 'visited' || node.state === 'current');
       if (!route) return '';
@@ -291,7 +296,7 @@ export const voyageUI = {
     this.hideMap();
     this.setPreparing(false);
     this.syncMotion();
-    $('voyage-intro-card').innerHTML = `<p class="voyage-kicker">Board 7 · The finale</p><div class="voyage-boss-icon" aria-hidden="true">${esc(boss.icon)}</div><h2 id="voyage-intro-title">${esc(boss.name)}</h2><p>${esc(boss.text)}</p><p class="voyage-boss-watch">Watch for: ${esc(boss.tell)}</p>${view.current.budgeted ? '<p class="voyage-detail-note">Challenge eased for the finale.</p>' : ''}<button type="button" class="btn primary voyage-intro-continue" data-intro-continue>Continue</button>`;
+    $('voyage-intro-card').innerHTML = `<p class="voyage-kicker">Board 7 · The finale</p><div class="voyage-boss-icon" aria-hidden="true">${charmGlyph(boss)}</div><h2 id="voyage-intro-title">${esc(boss.name)}</h2><p>${esc(boss.text)}</p><p class="voyage-boss-watch">Watch for: ${esc(boss.tell)}</p>${view.current.budgeted ? '<p class="voyage-detail-note">Challenge eased for the finale.</p>' : ''}<button type="button" class="btn primary voyage-intro-continue" data-intro-continue>Continue</button>`;
     return this.openIntro();
   },
 
@@ -301,7 +306,7 @@ export const voyageUI = {
     document.querySelector('.voyage-tell-flash')?.remove();
     const tell = document.createElement('div');
     tell.className = 'voyage-tell-flash'; tell.setAttribute('role', 'status');
-    tell.textContent = `${boss.icon} Watch for: ${boss.tell}`;
+    tell.innerHTML = `${charmGlyph(boss)}<span>Watch for: ${esc(boss.tell)}</span>`;
     document.body.append(tell);
     $('voyage-hud-challenge').classList.add('voyage-tell-glow');
     setTimeout(() => { tell.remove(); $('voyage-hud-challenge').classList.remove('voyage-tell-glow'); }, 2000);
@@ -512,7 +517,8 @@ export const voyageUI = {
     if (!anchor?.isConnected) return;
     this.tooltipAnchor = anchor;
     const tip = $('voyage-tooltip');
-    tip.innerHTML = `<strong>${esc(anchor.dataset.tipName)}</strong><span>${esc(anchor.dataset.tipText)}</span>`;
+    const relation = anchor.dataset.tipRelation;
+    tip.innerHTML = `<strong>${esc(anchor.dataset.tipName)}</strong><span>${esc(anchor.dataset.tipText)}</span>${relation ? `<span class="voyage-tip-relation"><b>Boss interaction</b> ${esc(relation)}</span>` : ''}`;
     tip.hidden = false;
     this.positionTooltip();
   },

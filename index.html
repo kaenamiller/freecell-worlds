@@ -112,7 +112,7 @@
 
   <div id="voyage-dock" aria-label="Voyage charms and actions" hidden>
     <div class="voyage-dock-left"><div id="voyage-hud-charms" class="voyage-tray" aria-label="Collected charms"></div><div id="voyage-hud-challenge" class="voyage-hud-effects"></div></div>
-    <div class="voyage-hud-buttons"><button class="btn" id="voyage-open-map" aria-describedby="voyage-tooltip" data-tip-name="Map" data-tip-pin="off" data-tip-text="Open the chart. You can review the tables behind you and the ones still ahead. The next table is chosen after you clear this one.">Map</button><button class="btn" id="voyage-abandon" aria-describedby="voyage-tooltip" data-tip-name="Abandon voyage" data-tip-pin="off" data-tip-text="End this voyage now. The run stops and is recorded as abandoned.">Abandon</button></div>
+    <div class="voyage-hud-buttons"><button class="btn" id="voyage-open-map" aria-describedby="voyage-tooltip" data-tip-name="Map" data-tip-pin="off" data-tip-text="Open the chart. You can review the tables behind you and the ones still ahead. The next table is chosen after you clear this one.">Map</button><button class="btn dev-only" id="btn-voyage-hint" hidden aria-label="Developer hint — play next solver move" title="Dev hint">Hint</button><button class="btn" id="voyage-abandon" aria-describedby="voyage-tooltip" data-tip-name="Abandon voyage" data-tip-pin="off" data-tip-text="End this voyage now. The run stops and is recorded as abandoned.">Abandon</button></div>
   </div>
 
   <section id="voyage-map" class="voyage-screen" role="dialog" aria-modal="true" aria-labelledby="voyage-map-title" hidden>
@@ -193,6 +193,25 @@
     <div class="modal-card panel wide">
       <header><h3 id="theme-picker-title">Choose a table</h3><button class="icon-btn close" data-close aria-label="Close theme picker">&times;</button></header>
       <div class="modal-body"><div class="theme-grid" id="theme-grid"></div></div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-dev" role="dialog" aria-modal="true" aria-labelledby="dev-menu-title">
+    <div class="modal-card panel">
+      <header><h3 id="dev-menu-title">Developer</h3><button class="icon-btn close" data-close aria-label="Close">&times;</button></header>
+      <div class="modal-body dev-menu-body">
+        <p class="dev-menu-kicker">Press <kbd>`</kbd> to toggle this menu.</p>
+        <div class="dev-actions">
+          <button type="button" class="btn primary" id="dev-auto-solve">Auto-solve</button>
+          <button type="button" class="btn" id="dev-hint">Play hint move</button>
+          <button type="button" class="btn" id="dev-check">Analyze position</button>
+          <button type="button" class="btn" id="dev-reset-board">Reset board</button>
+        </div>
+        <label class="dev-toggle row"><input type="checkbox" id="dev-voyage-hint" /> Show hint button in Voyage</label>
+        <div class="dev-readout panel" id="dev-readout" aria-live="polite">
+          <p class="dev-readout-placeholder">Open a table, then use <strong>Analyze position</strong> for solvability and difficulty metrics.</p>
+        </div>
+      </div>
     </div>
   </div>
 

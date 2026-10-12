@@ -221,7 +221,7 @@ All additional concepts in the four recent responses are retained here for futur
 | Soda Fountain | GLM, runner-up | Useful bright food-themed reserve; chrome and mid-century nostalgia sit near Jet Set |
 | Cartographer's Table | GLM, runner-up | Strong parchment/ink theme; Midnight Library takes the first paper-world slot |
 
-**Earlier parked Codex batch:** The Velvet Moth; Cut-Paper Kingdom; Porcelain Court; Midnight Broadcast; The Giant's Sewing Box; Museum of Impossible Specimens; Risograph Royalty; Cloud Terminal, Gate ∞; Stained-Glass Greenhouse; Rubber-Hose Royal Flush. These are not counted as recent consensus. Porcelain Court and Cloud Terminal have since gained close relatives in Azulejo and Jet Set; stained-glass greenhouse is an optional conservatory treatment. Velvet Moth, Cut-Paper Kingdom, Midnight Broadcast, Sewing Box, and Impossible Specimens remain particularly distinctive experimental reserves.
+**Earlier parked Codex batch:** Porcelain Court; Museum of Impossible Specimens; Cloud Terminal, Gate ∞; Stained-Glass Greenhouse; Rubber-Hose Royal Flush. These are not counted as recent consensus. Porcelain Court and Cloud Terminal have since gained close relatives in Azulejo and Jet Set; stained-glass greenhouse is an optional conservatory treatment. The Velvet Moth, Cut-Paper Kingdom, Midnight Broadcast, The Giant's Sewing Box, and Risograph Royalty are now playable worlds. Museum of Impossible Specimens remains a distinctive experimental reserve.
 
 ## Recommended first batch
 
@@ -240,15 +240,15 @@ A modest 1880s old-west saloon overlooking a dusty street at purple sunset. Weat
 
 Cream cards carry black-brown and brick-red suits. Symmetric backs pair horseshoes and desert stars with woodcut oak-leaf ornament. Courts: a young frontier card player, a female saloon proprietor holding a kerosene lamp, and an older piano player. Hand-tinted woodcut portraits use tobacco cream, saddle brown, brick red, and sunset plum. Antonio supplies bold readable indices and interface typography.
 
-## 12. Café at Dawn
+## 12. Morning Ritual
 
-*Honey wood, warm pendants, and first light on the street.*
+*Fresh coffee, tall windows, and a moment to yourself.*
 
-Adapted from the proposed Bakery at Dawn into a cozy independent coffee shop. A small café just before opening: butter-yellow awning stripes, cream enamel tile, brushed brass, a pastry case, and a big storefront window onto a cool dawn-blue street. Cool morning fill against warm pendant light.
+An airy contemporary third-wave neighborhood coffee shop, revised from Café at Dawn using the user's reference photographs and approved concept sheet. Tall black-framed windows, pale oak, warm-white plaster and subway tile, concrete floors, brushed stainless espresso equipment, warm dark-metal pendants, and greenery at the margins. Clean organized surfaces keep the coffee experience central.
 
-Table: warm honey-oak surface with cream enamel-tile rails and brass fittings. Colors: roast brown `#3A2B21`, honey butter `#EFC579`, morning blue `#A5BCC9`, terracotta red `#B5402F`, cream paper. Cards: cream faces, roast-brown and terracotta suits; backs pair a butter-yellow sun-ray medallion with coffee-cup arcs. Courts (mid-century café-poster gouache): young barista with a steam pitcher, female pastry baker with a whisk, older espresso roaster with a brass scoop. Josefin Sans.
+Table: a dark muted teal playing inset with a slim pale-oak perimeter and restrained cream keyline. Palette: teal `#173B38`, oat `#E4CAA1`, terracotta `#BF8168`, and warm-white card paper. Cards use teal-black and terracotta suits; backs feature a latte-rosetta medallion, geometric arcs, and coffee-bean motifs. Clean contemporary editorial courts depict a barista with a milk pitcher, a female pour-over specialist with a gooseneck kettle, and a seasoned roaster with a scoop of beans. Josefin Sans; the portrait crop preserves the full hair silhouette.
 
-Hero: an older café owner in her late fifties with silver-grey pinned hair, holding a brass coffee cup beside a pastry tray and cream cards — adds a mature female lead to the hero roster. Audio: brushed guitar/piano; espresso preheat hum and faint street beyond glass; saucer-tap UI, brass-and-cup chime.
+Hero: a ceramic flat white with crisp latte art and a fan of fully illustrated face-down cards, against a sunlit espresso bar. A shaded teal wall leaves room for the title. Audio: brushed guitar/piano/bass, espresso preheat hum and faint street sounds, saucer-tap UI and brass-and-cup chime. The stable `cafe` identifier preserves saved settings and Voyage content. Production artwork uses the built-in image generation tool with the approved sheet as reference; exact prompts are saved in `docs/previews/cafe-modern-generation.json`.
 
 ## 13. Arctic Station
 
@@ -308,13 +308,13 @@ A classic roadside diner in sunny late-morning daylight. Medium warm-grey lamina
 
 A smugglers' sea-cave hideout at night: salt-stained oak, rope edging, aged brass, and an oil lantern against a moonlit teal sea. Separate from Riverboat Royale's polished gambling salon and Driftwood Bay's quiet working harbor — this is adventure piracy, no skulls or horror. The hero is an unoccupied chart room: an open chest of coins, a blank chart, a compass, and cards, with an anchored sloop through the cave mouth. Courts: a young powder-monkey deckhand, a mermaid lookout with a spyglass, and a weathered grey-braided captain. Hand-tinted engraved nautical-chart portraits on parchment cream. Cormorant Garamond. Concertina and nylon guitar over low strings; cave surf and rope creaks.
 
-## 16. High Keep
+## 16. Bannerkeep
 
 *Banners in the rafters, wax seals, and a long oak table.*
 
 A medieval great hall after the feast: aged oak, deep-crimson wool banners, beeswax candles, and a banked stone hearth. Grounded history rather than high fantasy, distinct from Enchanted Forest's fae woodland. The courts map to the ranks themselves — knight, queen, king — painted as illuminated-manuscript portraits with gold leaf on vellum cream. The hero is the regal queen beside the long table, banners and hearth glow behind. Cinzel with sharp 5px corners. Lute and recorder over low strings; hearth crackle and wind beyond tall windows.
 
-## 17. Deep Storage
+## 17. Hangar 18
 
 *Halogen hum, quarantine tape, and one covered disk.*
 

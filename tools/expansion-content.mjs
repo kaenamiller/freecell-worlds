@@ -184,13 +184,13 @@ export const EXPANSION_CONTENT = {
     win: 'a short warm nylon-guitar and flute phrase with one soft brass bell',
   },
   cafe: {
-    style: 'cozy independent corner café at first light, warm honey wood, butter-yellow awning stripes, cream enamel tiles, brushed brass fittings and fresh pastry trays, cool blue morning light through a big storefront window, warm intimate interior glow, mid-century gouache poster portraits, cinematic tactile premium game art, no brand names and no readable signage',
-    board: 'Continuous warm honey-oak café table playing surface with fine quiet wood grain, cream enamel-tile painted rails and small brushed-brass corner fittings only at the outer edges. A very subtle butter-yellow stripe runs in the rail, no pastry, cups or objects in the center.',
-    backdrop: 'A small independent café interior just before opening, butter-yellow awning stripes visible through a big storefront window onto a quiet cool-blue dawn street, wooden bistro chairs stacked on tables, a brass espresso machine, a pastry case and fresh flower jars at the margins, warm pendant lights, no crowds, no staff, no lettering on signs.',
-    hero: 'On the RIGHT a kind older café owner in her late fifties with silver-grey hair pinned up, a honey-brown apron over a cream blouse and rolled sleeves, holding a small brass coffee cup and saucer beside a fresh pastry tray and a small fan of face-down playing cards on a wooden café table. The card backs are fully designed: warm honey field, a butter-yellow sun-ray medallion, coffee-cup arcs and terracotta edging. The cards must not be blank, empty, or plain cream paper. Warm pendant light on her face, cool dawn-blue storefront window behind. Fully visible head with safe margins. LEFT third quiet shaded honey wood and awning stripes.',
-    back: 'A symmetric butter-yellow sun-ray medallion over paired coffee-cup arcs, cream and roast-brown on a warm honey field, thin terracotta and brass edging, flat printed mid-century café poster ornament.',
-    courts: ['a cheerful young barista in a butter-yellow tee and brown apron holding a small steam pitcher', 'a confident female pastry baker in her thirties with flour-dusted forearms, a cream apron and a small whisk', 'an older espresso roaster with grey hair, a honey-brown cardigan and a small brass coffee scoop'],
-    portraitStyle: 'original mid-century café poster gouache portrait, clean warm shapes, honey wood, butter yellow, cream, terracotta and brass gold, friendly and specific',
+    style: 'airy contemporary third-wave neighborhood coffee shop, tall black-framed windows, pale oak, warm off-white plaster, white subway-tile coffee bar, concrete flooring, brushed stainless espresso equipment, warm restrained pendant lights, deep desaturated teal, oat cream, espresso brown and terracotta, fiddle-leaf plants and trailing pothos at the margins, modern editorial coffee-professional portraits, cinematic tactile premium game art, clean organized surfaces, no farmhouse decor, branding or readable signage',
+    board: 'Continuous deep muted teal-green matte playing inset with extremely subtle tactile grain, slim pale-oak perimeter, a fine charcoal keyline and restrained oat-cream terrazzo details only at the outermost edge. Tiny abstract latte-rosetta corner inlays. The center is evenly dark and empty, no plants, cups, cards, shadows, objects or medallions in the playing area.',
+    backdrop: 'An airy contemporary specialty coffee shop with tall black-framed windows, pale-oak chairs, deep teal upholstered seats, warm-white subway-tile coffee bar, a beautiful stainless espresso machine and grinder, neatly stacked ceramic cups and a small pour-over station. Concrete flooring, a little exposed brick, understated dark-metal pendants with warm bulbs, large leafy plants and trailing pothos at the margins, soft early-morning daylight. Coffee equipment is the focus, no crowds, pastries or rustic clutter.',
+    hero: 'On the RIGHT foreground an oat-white ceramic flat white with beautifully clear latte art on a pale-oak table, beside a small fan of face-down playing cards entirely inside the frame. Backs are fully illustrated deep teal with oat-cream latte-rosetta medallions and fine coffee-inspired geometry, never blank. Behind: an airy contemporary third-wave coffee shop, tall dark-framed windows, organized white-tile bar, stainless espresso machine, grinder, ceramic cups, restrained warm pendants and fresh leafy plants. Coffee is the hero, no human lead. LEFT third quiet shaded desaturated teal interior wall and window framing for title readability, no bright windows behind the title, no lettering or brand names.',
+    back: 'A restrained point-symmetric latte-art rosetta medallion with fine clean geometric arcs and small coffee-bean motifs, deep desaturated teal field, oat cream and espresso ink, a fine simple cream architectural border and a tiny warm terracotta accent. Modern premium flat print design with ample negative space, no ornate gilt flourishes or lettering.',
+    courts: ['a young adult barista with wavy dark hair, cream rolled-sleeve shirt and a deep teal apron, holding a stainless milk pitcher near the chest', 'a confident female pour-over specialist with dark hair in a loose bun, a cream shirt and terracotta apron, holding a black gooseneck kettle near the chest', 'a seasoned coffee roaster with salt-and-pepper hair, glasses, neat grey beard, charcoal work shirt and espresso-brown apron, holding a small scoop of roasted beans near the chest'],
+    portraitStyle: 'original clean contemporary editorial illustration matching a modern specialty coffee shop, crisp readable ink contours, limited oat cream, desaturated teal, espresso and terracotta colors, warm natural character, restrained coffee foliage near the shoulders',
     bg: 'a plain flat warm cream background',
     music: 'gentle brushed acoustic guitar, soft warm piano and upright bass, unhurried first-light café mood with a hint of morning bustle',
     ambience: 'a quiet café before opening, soft espresso machine preheat hum, faint gentle street sounds beyond glass and a very occasional cup clink, no speech or music',
@@ -351,6 +351,97 @@ export const EXPANSION_CONTENT = {
     ui: 'one wooden frame set into a hive box', chime: 'one small glass-jar note',
     win: 'a short warm cello phrase with one soft glass-jar note',
   },
+  moth: {
+    style: 'midnight velvet lounge built for moths, plum velvet drapery, tarnished silver, enormous pale flowers, warm shaded lamps and drifting wing-dust, luxurious and slightly eerie, painted moth aristocrats with extravagant collars, cinematic tactile premium game art, no lettering',
+    board: 'Continuous deep plum velvet playing surface with very fine quiet pile. Tarnished silver corner plates and a narrow darker velvet rail only at the extreme outer edges. No flowers, lamps or wing patterns in the center.',
+    backdrop: 'A midnight lounge of plum velvet, enormous pale flowers and tarnished silver lamps, warm pools of light and a little drifting dust, intimate and slightly eerie, no people and no moths large enough to read as characters.',
+    hero: 'Painted cinematic key art, not a photograph. On the RIGHT a moth aristocrat with a human-like poised face, feathery antennae, patterned wings held behind the shoulders and an extravagant plum velvet collar stands beside a tarnished silver lamp and enormous pale flowers. A fan of face-down playing cards rests on a velvet ledge. The card backs are fully designed: plum field, a symmetrical moth-wing medallion and a tarnished silver border. The cards must not be blank, empty, or plain paper. The entire fan sits fully inside the frame. Fully visible head, antennae and collar with safe margins. LEFT third quiet dark plum drapery.',
+    back: 'Ignore the lounge. Flat ornament only, point-symmetric through the center, filling the frame edge to edge: a symmetrical moth-wing pattern in plum, dusty rose and tarnished silver on a deep plum field. No scenery, lamps, flowers, physical card edges or letters.',
+    courts: ['a young moth aristocrat with a human-like face, feathery antennae, folded patterned wings and a high ruffled silver collar, shown head and shoulders', 'a moth queen with a human-like face, feathery antennae, patterned wings and an enormous lace-and-velvet collar, shown head and shoulders', 'an older moth monarch with a human-like lined face, grey antennae, broad patterned wings and a tarnished silver collar, shown head and shoulders'],
+    portraitStyle: 'original painted portrait of a moth aristocrat, plum, dusty rose, tarnished silver and warm ivory, clear silhouette, antennae fully inside the frame',
+    bg: 'a plain flat warm ivory background',
+    music: 'a soft slow waltz for felt piano and a little music box, luxurious midnight lounge, gentle and slightly eerie',
+    ambience: 'a quiet velvet lounge, soft room tone, a very occasional delicate glass chime and faint dust in still air, no close fluttering',
+    ui: 'one soft velvet-covered tap', chime: 'one delicate glass-chime note',
+    win: 'a short gentle waltz phrase for felt piano and one glass chime',
+  },
+  cutpaper: {
+    style: 'handmade layered construction-paper kingdom, folded castles, scalloped clouds, paper crowns and little trees with visible cut edges, coral, butter yellow, cobalt and cream, charming paper-puppet court, visible layered shadows, cinematic tactile premium game art, no lettering',
+    board: 'Continuous matte cobalt construction-paper playing surface. At the extreme outer edges only, layered scalloped sheets of coral, butter yellow and cream with visible cut edges and soft drop shadows between the layers. The center is one flat even sheet with no pattern.',
+    backdrop: 'A handmade paper landscape: a folded cobalt castle, scalloped butter-yellow clouds, cream trees with visible cut edges and coral hills, layered paper shadows, bright craft-table daylight, no people.',
+    hero: 'Layered construction-paper illustration, not a photograph. On the RIGHT a charming paper-puppet queen with a scalloped coral crown, visible cut edges and a butter-yellow collar stands in front of a folded cobalt castle and scalloped clouds. A fan of face-down playing cards rests on a cream paper ledge. The card backs are fully designed: cobalt field, a symmetrical layered paper-crown medallion, coral and butter-yellow scallops. The cards must not be blank, empty, or plain paper. The entire fan sits fully inside the frame. Fully visible paper head and crown with safe margins. LEFT third a quiet cream paper field with one soft layered shadow.',
+    back: 'Ignore the castle. Flat ornament only, point-symmetric through the center, filling the frame edge to edge: layered scalloped paper shapes in coral, butter yellow and cream around a small paper crown, on a cobalt field, with a slight printed shadow between layers. No scenery, puppets, physical card edges or letters.',
+    courts: ['a charming paper-puppet page with a small folded cobalt hat, coral collar and visible cut edges, shown head and shoulders', 'a paper-puppet queen with a scalloped coral crown, butter-yellow collar and visible cut edges, shown head and shoulders', 'a paper-puppet king with a tall cream paper crown, cobalt cape and visible cut edges, shown head and shoulders'],
+    portraitStyle: 'original layered construction-paper puppet portrait, coral, butter yellow, cobalt and cream, thick cut edges and a soft drop shadow, strong silhouette',
+    bg: 'a plain flat cream paper background',
+    music: 'a small music box and soft plucked strings, handmade paper-craft kingdom, gentle and playful',
+    ambience: 'a quiet craft table, very faint paper rustle and still room tone, no voices',
+    ui: 'one crisp folded-paper tap', chime: 'one small music-box note',
+    win: 'a short music-box phrase with one soft plucked-string accent',
+  },
+  broadcast: {
+    style: 'deserted 1970s television studio after sign-off, walnut consoles, amber indicator lights, smoked glass and a softly glowing color-bar test pattern, surreal broadcast personalities with television heads and antenna crowns, cinematic tactile premium game art, no readable words, no channel numbers and no logos',
+    board: 'Continuous dark walnut playing surface with very fine quiet grain. Smoked-glass rails and tiny amber indicator lamps only at the extreme outer corners. No screens, patterns or lights in the center.',
+    backdrop: 'A deserted 1970s television control room after sign-off, walnut consoles, a few amber indicator lights, smoked glass and one monitor showing only soft color bars, no people, no readable screens and no logos.',
+    hero: 'An entirely unoccupied television studio with NO PEOPLE, faces, hands or human silhouettes. On the RIGHT a walnut broadcast console with amber indicator lights, smoked glass and a monitor of soft geometric color bars is the main subject. A fan of face-down playing cards rests on the console. The card backs are fully designed: walnut brown, an amber and cyan geometric station medallion and a smoked-glass border. The cards must not be blank, empty, or plain paper. The entire fan sits fully inside the frame. No words, numbers or logos on any screen. LEFT third quiet dark studio shadow.',
+    back: 'Ignore the studio. Flat ornament only, point-symmetric through the center, filling the frame edge to edge: a geometric station graphic of amber, cyan and cream bars on walnut brown. No monitors, consoles, people, physical card edges, letters or numbers.',
+    courts: ['a surreal young broadcast personality with a small television for a head, a short antenna and a walnut-brown jacket, shown head and shoulders', 'a surreal broadcast host with a television for a head, an antenna crown and an amber satin collar, shown head and shoulders', 'an older surreal station engineer with a television for a head, a taller antenna crown and a smoked-glass visor, shown head and shoulders'],
+    portraitStyle: 'original surreal portrait, a television set as the head with a soft color-bar glow inside the screen and no readable picture, walnut, amber, cyan and cream, antenna fully inside the frame',
+    bg: 'a plain flat warm cream background',
+    music: 'mellow electric piano over soft tape warmth, deserted television studio after sign-off, unhurried and odd',
+    ambience: 'quiet tape hiss in an empty studio, a very faint distant tuning tone and soft room tone, no voices and no program audio',
+    ui: 'one soft console-switch click', chime: 'one gentle tuning-oscillator note',
+    win: 'a short mellow electric-piano phrase with one soft tuning note',
+  },
+  sewing: {
+    style: 'tiny scale inside a giant sewing box, a pincushion table surrounded by oversized spools, scissors, buttons and ribbons, embroidered fabric-patch cards, warm afternoon light and floating dust, cozy tactile premium game art, no people in the scenery and no lettering',
+    board: 'Continuous warm linen playing surface with a very fine woven texture. A narrow wooden rail and a few oversized button-like discs only at the extreme outer corners. No spools, scissors, pins or ribbon across the center.',
+    backdrop: 'The inside of a wooden sewing box seen at tiny scale, oversized spools of coral and gold thread, brass scissors, giant buttons and a silk ribbon framing the edges, warm afternoon light and a little dust, no people.',
+    hero: 'An entirely unoccupied sewing box with NO PEOPLE, faces, hands or human silhouettes. On the RIGHT the viewer is tiny on a round pincushion, with oversized wooden spools, a brass scissors, giant buttons and a coral ribbon as the main subjects. A fan of face-down playing cards rests on the pincushion. The card backs are fully designed: linen weave, a stitched button medallion and a coral ribbon border. The cards must not be blank, empty, or plain paper. The entire fan sits fully inside the frame. Warm afternoon light. LEFT third the shadowed wooden wall of the box.',
+    back: 'Ignore the sewing box. Flat ornament only, point-symmetric through the center, filling the frame edge to edge: a woven linen field, a stitched button in the center and a mirrored ribbon border in coral and gold. No spools, scissors, pins, physical card edges or letters.',
+    courts: ['a young embroidered apprentice with practical tied-back hair and a linen collar, shown head and shoulders as a stitched portrait', 'an embroidered seamstress with silver-threaded hair, a coral ribbon at the collar and a calm expression, shown head and shoulders', 'an older embroidered tailor with a grey beard, a brass-button waistcoat and a gold thread collar, shown head and shoulders'],
+    portraitStyle: 'original embroidered textile portrait, visible stitches and woven cloth, linen, coral, gold thread and wood brown, strong silhouette',
+    bg: 'a plain flat linen-cream background',
+    music: 'warm nylon guitar and a soft music box, cozy afternoon inside a sewing box, gentle and tactile',
+    ambience: 'a quiet wooden box, soft room tone, faint afternoon air and a very occasional tiny button click, no voices',
+    ui: 'one small satisfying button click', chime: 'one tiny brass-scissors note',
+    win: 'a short warm guitar phrase with one button click and a soft music-box note',
+  },
+  risograph: {
+    style: 'bold risograph print-shop aesthetic, limited vermilion ultramarine and mustard ink, halftone dots, slightly misaligned printing, warm paper, strange editorial portraits, a printer’s workbench, graphic and tactile, cinematic premium game art, no lettering',
+    board: 'Continuous warm tan paper playing surface with a very fine quiet tooth. A narrow misregistered ink border in vermilion and ultramarine only at the extreme outer edges, with a mustard halftone strip. The center is flat unprinted paper, slightly darker than a playing card.',
+    backdrop: 'A printer’s workbench, ink drums and warm paper stacks at the margins, a proof sheet of abstract vermilion, ultramarine and mustard shapes with halftone dots and slight misregistration, no readable type and no people.',
+    hero: 'Risograph editorial illustration, not a photograph. On the RIGHT a strange regal person with an inventive face, printed in misregistered vermilion, ultramarine and mustard halftone, stands at a printer’s workbench beside ink drums. A fan of face-down playing cards rests on warm paper. The card backs are fully designed: warm paper, a punchy abstract medallion in vermilion, ultramarine and mustard with halftone dots. The cards must not be blank, empty, or plain paper. The entire fan sits fully inside the frame. Fully visible head with safe margins. LEFT third quiet warm paper.',
+    back: 'Ignore the workshop. Flat ornament only, point-symmetric through the center, filling the frame edge to edge: a punchy abstract medallion of overlapping circles and halftone dots in vermilion, ultramarine and mustard on warm paper, with a slight misregistration. No people, drums, scenery, physical card edges or letters.',
+    courts: ['a strange young editorial figure in a mustard collar, printed with halftone dots and a slight vermilion misregistration, shown head and shoulders', 'a strange regal editorial figure in an ultramarine collar, printed with halftone dots and a slight mustard misregistration, shown head and shoulders', 'an older strange editorial monarch in a vermilion collar, printed with halftone dots and a slight ultramarine misregistration, shown head and shoulders'],
+    portraitStyle: 'original risograph editorial portrait, only vermilion, ultramarine, mustard and warm paper, visible halftone dots and slight misregistration, strong silhouette, no likeness of a real person',
+    bg: 'a plain flat warm-paper background',
+    music: 'dry electric piano and a soft bass, print-shop afternoon, bold but unobtrusive',
+    ambience: 'a quiet print shop, soft room tone and a very occasional paper feed, no voices and no rhythmic machinery',
+    ui: 'one soft ink-drum tap', chime: 'one dry electric-piano note',
+    win: 'a short dry electric-piano phrase with one soft bass note',
+  },
+  runes: {
+    style: 'Norse shipwright workshop inside a turf-roofed longhouse, weathered oak, iron rivets, madder wool, woad blue, amber and bone, carved knotwork and Viking runes as ornament, cool fjord daylight through an open door and a banked fire, cinematic tactile premium game art, no weapons raised, no horned helmets, no Latin alphabet',
+    lettering: ' No Latin alphabet, Arabic numerals, logos, or watermarks. Carved Viking runes are allowed as ornament.',
+    board: 'Continuous dark weathered oak with very fine quiet grain. Iron rivets and a narrow carved knotwork band only at the extreme outer edge. At each of the four corners, one large carved Viking rune stave, chosen by the artist, not a word and not a row of writing. The center is plain matte oak.',
+    backdrop: 'A turf-roofed longhouse workshop, oak beams, iron tools at rest, a carved ship prow, wool and amber beads at the margins, a banked fire, and an open door onto grey fjord water. No people, no battle, no blizzard.',
+    hero: 'An entirely unoccupied longhouse with NO PEOPLE, faces, hands or human silhouettes. On the RIGHT a carved oak ship prow, a coil of madder wool, amber beads and a banked fire, with grey fjord light through an open door. No carved writing and no rune sentence on the beams. A fan of face-down playing cards rests on the bench. The card backs are fully designed: dark oak, an iron-and-woad knot medallion and a few carved rune staves. The cards must not be blank or plain paper. The entire fan sits fully inside the frame. LEFT third is a quiet dark turf wall.',
+    back: 'Ignore the longhouse. Flat ornament only, point-symmetric through the center, filling the frame edge to edge: a Norse knot medallion in iron and woad on dark oak, with a few large carved Viking rune staves worked into the knot. Do not spell a word and do not use Latin letters. No scenery, people, physical card edges or weapons.',
+    extras: [
+      {
+        id: 'back-egg', aspect: '3:4',
+        prompt: 'Flat printed playing-card back, point-symmetric through the center, full-bleed, dark oak with an iron and woad Norse knot medallion. In the border, carve this exact sequence of eight Viking runes and no other writing: ᚠᚱᛖᛖᚳᛖᛚᛚ. Repeat that same sequence opposite it, rotated, so the back stays point-symmetric. Copy those glyphs. Do not transliterate them into Latin letters. No scenery, people, weapons, physical card edges, logos or Arabic numerals.',
+      },
+    ],
+    courts: ['a young Norse woodcarver with tied-back hair and a wool tunic, a carving chisel held at rest, shown head and shoulders', 'a Norse woman with dark braided hair, a woad-blue cloak and a necklace of amber beads, shown head and shoulders', 'an older shipwright with a grey beard, an oak-brown tunic and a small carved wooden prow fragment held at chest height, shown head and shoulders'],
+    portraitStyle: 'original painted portrait with the weight of carved oak and wool, bone, iron, madder, woad and amber, clear silhouette, no helmet, no weapon, no nameplate, no rune banner and no card outline',
+    bg: 'a plain flat bone-colored background',
+    music: 'a tagelharpa and a very sparse frame drum, quiet longhouse by a fjord, slow and unhurried',
+    ambience: 'a quiet turf longhouse, soft fire, faint wind and distant water beyond an open door, no voices',
+    ui: 'one iron nail tapped into oak', chime: 'one small iron bell note',
+    win: 'a short tagelharpa phrase with one soft frame-drum accent and a small iron bell',
+  },
 };
 
 export const EXPANSION_AUDIO = Object.fromEntries(Object.entries(EXPANSION_CONTENT).map(([id, d]) => [id, {
@@ -365,12 +456,13 @@ const NO_TEXT = ' Absolutely no text, letters, numbers, writing, logos, watermar
 export function expansionArtManifest() {
   const out = [];
   for (const [theme, d] of Object.entries(EXPANSION_CONTENT)) {
-    const add = (id, aspect, prompt) => out.push({ theme, id, aspect, size: '2K', prompt: `${prompt}${NO_TEXT}` });
+    const add = (id, aspect, prompt) => out.push({ theme, id, aspect, size: '2K', prompt: `${prompt}${d.lettering || NO_TEXT}` });
     add('board', '16:9', `Flat material texture map for a card-game playing surface, strict top-down orthographic view, filling the full frame edge to edge. ${d.board} This is a texture map, not a scene or a picture of a table in a room. No background or surrounding environment may appear at any edge. The central eighty percent must be uniformly medium-dark, flat, evenly lit and low contrast with no ornament, objects, light beams, hard shadows, medallions or cards. No perspective or visible table legs.`);
     add('backdrop', '16:9', `Wide cinematic atmospheric environment panorama for a premium solitaire game's blurred backdrop and reflection map, in a ${d.style}. ${d.backdrop}`);
     add('hero', '16:9', `Premium solitaire-game key art, in a ${d.style}. ${d.hero} Any fanned playing cards must be face-down physical cards with fully illustrated backs matching this theme: ${d.back} Apply that description to the printed decoration on each card, preserving the fan and scene perspective. Never show blank paper, empty cards or a generic unrelated card-back pattern. Strong readable right-side subject, quiet empty left third for title readability.`);
     add('back', '3:4', `Flat printed playing-card back design, point-symmetric through the center, straight-on orthographic full-bleed art filling the frame, in a ${d.style}. ${d.back} No physical card edges, no table, perspective, cast shadows or rounded-card outline.`);
     d.courts.forEach((subject, i) => add(`court_${'jqk'[i]}`, '1:1', `Playing-card court portrait: ${subject}. ${d.portraitStyle}. Centered head-and-shoulders with generous safe margins: full head and all hair or headwear inside the middle seventy percent, torso visible, no hands or essential props at the extreme top or bottom. Strong silhouette readable at small size, ${d.bg}. Full-bleed illustration with no inner card frame or border.`));
+    for (const extra of d.extras || []) add(extra.id, extra.aspect, extra.prompt);
   }
   return out;
 }

@@ -476,7 +476,7 @@ Unassigned ability shapes live in `docs/voyage/parked-abilities.md`. When genera
 | parrot | Parrot | 🦜 | The first time on each board you send a card home from a free cell, +1 undo. | `on.foundation` with free-cell source | S |
 | challenge | Cursed Gold | 🪙 | 1 + s cursed cards; each move one spends in a free cell costs 3 points. | `mark(curse)`; `replay`; tags SCORE | S |
 
-### High Keep (`keep`)
+### Bannerkeep (`keep`)
 | key | Name | Icon | Effect | Impl | |
 | --- | --- | --- | --- | --- | --- |
 | siegeengine | Siege Engine | 🪨 | Once per board, break an obstacle: unseal a column, thaw a frozen cell or uncover a face-down column; with none, refund an undo. | ability + charm move mutating `game.rules`/state | C |
@@ -484,7 +484,7 @@ Unassigned ability shapes live in `docs/voyage/parked-abilities.md`. When genera
 | hearth | Hearth | 🔥 | +1 undo at the start of board 4 and +2 at the start of the final board. | `on.start` with `run.boardIdx` | S |
 | challenge | Siege | 🏹 | Free-cell placements cost 10s points (s1–2); one fewer free cell (s3–7). | score / `freeCells −= 1`; tags CELLS | S |
 
-### Deep Storage (`deepstorage`)
+### Hangar 18 (`deepstorage`)
 | key | Name | Icon | Effect | Impl | |
 | --- | --- | --- | --- | --- | --- |
 | clearance | Clearance | 🪪 | Face-down cards on your boards start face-up; on boards without any, +1 undo. | `setup` (after challenge) → `reveal` all; else `on.start` | S |
@@ -492,7 +492,7 @@ Unassigned ability shapes live in `docs/voyage/parked-abilities.md`. When genera
 | archive | Archive | 🗄️ | One extra free cell. | `freeCells += 1` | S |
 | challenge | Redacted | ⬛ | 1 + ⌊s/2⌋ columns are face-down below their top card until uncovered. | `setup` rng cols → `conceal`; tags VIS | S |
 
-### Café at Dawn (`cafe`)
+### Morning Ritual (`cafe`)
 | key | Name | Icon | Effect | Impl | |
 | --- | --- | --- | --- | --- | --- |
 | espresso | Espresso Shot | 🫘 | Your first 5 moves on each board don't count against par. | efficiency line recomputed | S |
@@ -555,6 +555,54 @@ Unassigned ability shapes live in `docs/voyage/parked-abilities.md`. When genera
 | nectar | Nectar | 🍯 | +12 for every heart sent home. | score | S |
 | stores | Winter Stores | 🛖 | From board 4 on, start with +1 undo and score that board ×1.05. | `on.start` + `sb.mult` | S |
 | challenge | Capped Comb | 🍯 | One suit's queens are capped, and the seal spreads downward: Queens (s1–2), jack–queen (s3–4), 9–queen (s5–6), 7–queen (s7). Kings stay open. Marked with the `cap` overlay. | `barren`; `mark(…, 'cap')`; tags STACK | S |
+
+### The Velvet Moth (`moth`)
+| key | Name | Icon | Effect | Impl | |
+| --- | --- | --- | --- | --- | --- |
+| lampglow | Lampglow | 🕯️ | The first two Queens sent home each grant +1 undo. | `on.foundation` | S |
+| waltz | Waltz | 🦋 | A run of 8 or more cards home scores the board ×1.1. | `sb.stat.chains` | S |
+| silver | Tarnished Silver | 🥈 | +16 for every King sent home. | score | S |
+| challenge | Folded Wings | 🌙 | One suit is sealed from the top down: Kings (s1–2), queen–king (s3–4), jack–king (s5–6), 10–king (s7). | `barren`; `mark(…, 'bar')`; tags STACK | S |
+
+### Cut-Paper Kingdom (`cutpaper`)
+| key | Name | Icon | Effect | Impl | |
+| --- | --- | --- | --- | --- | --- |
+| octavo | Octavo | 📄 | Eights are wild: they ignore colour when stacking. | `wildRanks` 8 | S |
+| musicbox | Music Box | 🎶 | The first chain of 8+ cards home grants +1 undo. | `on.foundation` + `on.move` | S |
+| crown | Paper Crown | 👑 | +22 for every King sent home. | score | S |
+| challenge | Crease | ✂️ | Empty columns only accept jacks and above (s1–2), queens and above (s3–4), or kings (s5–7). | `emptyMinRank`; tags COLUMN | S |
+
+### Midnight Broadcast (`broadcast`)
+| key | Name | Icon | Effect | Impl | |
+| --- | --- | --- | --- | --- | --- |
+| tuning | Tuning | 📡 | The first 7 sent home grants +1 undo. | `on.foundation` | S |
+| bars | Color Bars | 📺 | +10 for every heart and diamond sent home. | score | S |
+| signoff | Sign-off | 🌙 | If the previous board was 3★, this board scores ×1.12. | `sb.mult` | S |
+| challenge | Dead Air | 📻 | Foundations stay within 4 ranks (s1–2), 3 (s3–4), or 2 (s5–7). | `foundationSpread`; tags FOUND | S |
+
+### The Giant's Sewing Box (`sewing`)
+| key | Name | Icon | Effect | Impl | |
+| --- | --- | --- | --- | --- | --- |
+| thread | Red Thread | 🧵 | Hearts may also be built down in suit. | `suitBuild` ♥ | S |
+| button | Button | 🔘 | The first emptied column grants +1 undo. | `on.columnEmpty` | S |
+| ribbon | Ribbon | 🎀 | +14 for every heart sent home. | score | S |
+| challenge | Snag | 📌 | Kings (s1–2), queens and kings (s3–4), or jacks through kings (s5–7) can't enter free cells. | `noCellRanks`; tags CELLS | S |
+
+### Risograph Royalty (`risograph`)
+| key | Name | Icon | Effect | Impl | |
+| --- | --- | --- | --- | --- | --- |
+| misprint | Misprint | 🖨️ | Twos are wild: they ignore colour when stacking. | `wildRanks` 2 | S |
+| ultramarine | Ultramarine | 🔵 | +12 for every spade sent home. | score | S |
+| edition | Second Edition | 🗞️ | +4% score per board already cleared, up to +20%. | `sb.mult` | S |
+| challenge | Off Register | 🟥 | One suit has a barren rank (s1–3) or two consecutive barren ranks (s4–7). Never an Ace. | `barren`; `mark(…, 'bar')`; tags STACK | S |
+
+### Viking Runes (`runes`)
+| key | Name | Icon | Effect | Impl | |
+| --- | --- | --- | --- | --- | --- |
+| amber | Amber | 🟠 | +14 for every Jack, Queen and King sent home. | score | S |
+| keel | Keel | 🛶 | The first chain of 9+ cards home grants +1 undo. | `on.foundation` + `on.move` | S |
+| woad | Woad | 🫐 | Each board, one rank from 5 through 9 is wild. | `wildRanks` from `rules` rng | S |
+| challenge | Frozen Harbor | 🧊 | Empty columns only accept jacks and above (s1–2), queens and above (s3–4), or kings (s5–7). | `emptyMinRank`; tags COLUMN | S |
 
 ---
 

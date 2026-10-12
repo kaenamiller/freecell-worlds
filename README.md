@@ -1,6 +1,6 @@
 # FreeCell Worlds
 
-FreeCell Worlds — FreeCell in three.js with forty-two fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
+FreeCell Worlds — FreeCell in three.js with forty-eight fully themed tables, spring-physics cards, positional sound, post-processing, a built-in solver and an installable PWA shell.
 
 ```
 npm run serve        # http://localhost:8080  (any static server works)
@@ -42,12 +42,19 @@ npm run serve        # http://localhost:8080  (any static server works)
 | **Canopy Station** | dark teak + field-green rails, naturalist watercolor biologists | humid daylight motes | brass bell, nylon guitar + flute, canopy drips |
 | **Cherry Counter** | daylight grey laminate + cherry vinyl and chrome, mid-century diner poster court | daylight motes | coffee-cup tap, electric piano + guitar, quiet highway diner |
 | **Treasure Cove** | salt-stained oak + rope and aged brass, engraved nautical-chart court | lantern-lit motes | ship's bell, concertina + guitar, sea-cave surf |
-| **High Keep** | aged oak + crimson wool and iron, illuminated-manuscript court | hearth-lit motes + warm edge glow | bronze handbell, lute + recorder, banked hearth |
-| **Deep Storage** | brushed concrete + gunmetal and hazard striping, classified-file court | halogen dust + tarp-glow accent light | sonar ping, analog synth + vibraphone, ventilation hum |
+| **Bannerkeep** | aged oak + crimson wool and iron, illuminated-manuscript court | hearth-lit motes + warm edge glow | bronze handbell, lute + recorder, banked hearth |
+| **Hangar 18** | brushed concrete + gunmetal and hazard striping, classified-file court | halogen dust + tarp-glow accent light | sonar ping, analog synth + vibraphone, ventilation hum |
+| **Morning Ritual** | deep teal + pale oak, white-tile specialty café and editorial coffee-professional court | sparse morning motes | ceramic saucer taps, guitar + piano + bass, quiet espresso-machine ambience |
 | **The Toy Box** | maple table + primary block rail, vintage toy-catalog court | afternoon motes | wooden-block tap, toy piano + glockenspiel, quiet playroom |
 | **Prize Lights** | navy felt + bulb-colored rail, 1970s broadcast court | marquee motes + cyan accent light | podium tap, electric piano + light brass, hushed TV stage |
 | **Safety Pin** | matte black stage paint + silver tape, photocopied club court | magenta-gel motes | bottle tap, dry snare + bass through a wall, club room tone |
 | **Honey House** | amber table + black-and-yellow rail, dripping comb and bee courts | honey-gold light | hive-frame tap, solo cello, distant bees beyond the screen |
+| **The Velvet Moth** | plum velvet + tarnished silver, moth aristocrats in extravagant collars | warm lamp motes | velvet tap, felt-piano waltz, quiet lounge |
+| **Cut-Paper Kingdom** | layered cobalt paper + coral and butter scallops, paper-puppet court | falling paper scraps | paper tap, music box, quiet craft table |
+| **Midnight Broadcast** | walnut console + amber lamps, television-headed broadcast court | amber indicator glow | switch click, electric piano, tape hiss |
+| **The Giant's Sewing Box** | linen pincushion + oversized spools and buttons, embroidered court | afternoon dust | button click, nylon guitar, quiet sewing box |
+| **Risograph Royalty** | warm paper + misregistered ink, halftone editorial court | sparse print-shop motes | ink-drum tap, dry electric piano, quiet press room |
+| **Viking Runes** | weathered oak + iron rivets, wool-and-amber carver court | fjord-light ash motes | nail tap, tagelharpa, fire and distant water |
 
 Themes live in `js/themes.js` (palette, card style, lighting, bloom, materials, art + audio names). Adding one means: an entry in `js/themes.js`, prompts in `tools/art-manifest.mjs` and `tools/sfx-manifest.mjs`, then `node tools/gen-art.mjs`, `node tools/gen-sfx.mjs`, `node tools/gen-sfx.mjs --music`, `bash tools/optimize-assets.sh`. Fonts are declared in `css/style.css`; UI skinning is `body[data-theme=…]` rules at the end of that file.
 
@@ -76,7 +83,7 @@ Voyage is a roguelite mode alongside Classic. It's a run of 7 boards across them
 | File | Role |
 | --- | --- |
 | `js/voyage/run.js` | run state machine (map → board → reward), `runView` view model, saving |
-| `js/voyage/map.js` | 7-row chart: 3 starting tables, 2 links per node, rows generated two ahead so no theme repeats on a path |
+| `js/voyage/map.js` | 7-level branching tree: 3 opening tables, each table forks into 2 of its own, revealed two levels ahead. No theme is ever shown twice in a run (a run reveals 29 tables, so this needs ≥ 29 themes; with fewer it only avoids repeats along the route) |
 | `js/voyage/charms.js` | charm registry and hooks (`rules`, `ease`, `setup`, `score`, `on.*`, `onPick`), board composition, placeholder content |
 | `js/voyage/scoring.js` | score breakdown (cards, efficiency vs par, free-cell use, chains) and stars |
 | `js/voyage/dealer.js` | picks deals from the seed bank for a board's tier, rules and charm ease; background preparation |

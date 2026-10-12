@@ -83,6 +83,40 @@ Already shipped, so do not re-skin these:
 
 ---
 
+## Suit Spur
+
+**Shape.** Once per board, send one free card home as the base of a fifth foundation. That suit then finishes in two piles: the original builds only up to the rank below the chosen card, and the new pile builds from the chosen card up to the King.
+
+**Player text (placeholder).** Once per board, send a free card home onto a fifth foundation and finish that suit there.
+
+**Use.** Pick the exposed card of a column, or a card sitting in a free cell. Buried cards stay put. The card's rank must be at least two above that suit's current foundation, so the move skips at least one rank; the next card the original pile already wants is an ordinary home move. One use. The fifth slot appears only after the pick.
+
+**The two piles.** Suppose hearts are built through 3 and the player sends 7♥ to the spur.
+
+- The original hearts pile still accepts 4, then 5, then 6, and then stops. It never takes 7–K, so it ends short of a King.
+- The spur already holds 7♥ and then accepts 8♥, 9♥, … K♥ in order.
+- 8–K do not wait for 4–6. That is the shortcut.
+
+Every card still goes home somewhere. Low ranks climb the original pile in order. High ranks climb the spur. The board is won when all 52 cards are on a foundation, counting both piles. Sending a King homes it immediately; the spur then has nothing left to take, and the original pile still has to climb to the Queen.
+
+**Rules that already assume one pile per suit.** The spur is solver-visible help. After it exists, move generation, the solver, hints, the stuck check, safe auto-play, and `canFinishWithFoundationOnly` all have to offer both destinations. `isSolved` today is `found[0]+found[1]+found[2]+found[3] === 52`, so spur cards have to count or a finished board never wins. State needs a saved spur `{ suit, base, top }`, included in `hashState`.
+
+`foundationSpread` (Formation Flying, Dead Air, and the boss that tightens it) measures how far ahead one suit is. The plant, and later builds on either pile of that suit, count that suit as the higher of its two tops. A plant that would break the spread is illegal.
+
+Safe auto-play can then clear a long high run onto the spur without waiting for the gap. Kings-home charms still score a King that lands on the spur. A suit is complete when the original pile has reached `base - 1` and the spur has reached King.
+
+`foundationReturn` may take back the top card of either pile. It cannot take back the spur's base; undoing the ability itself removes the slot and returns that card. Later home moves undo one at a time.
+
+**Layout.** The top row is built for four foundations. Using the ability adds a fifth slot, labelled with the suit, and the original slot for that suit shows its ceiling (`base - 1`) so it does not look stuck short of a King.
+
+**Kernel.** The plant is a custom move that stores the spur on the state and rules. Foundation moves gain a destination (original or spur). `foundationAccepts`, `safeToFoundation`, `legalFoundationMoves`, `isSolved`, foundation-return, and the spread check all read it. The table renders the extra slot from that state.
+
+**Ease.** `+0.5`. Homing a high card before its suit is built is a large, solver-visible shortcut.
+
+**Build.** Complex. Rules kernel and the foundation row; the charm is the one-use pick.
+
+---
+
 ## Claimed
 
 | Idea | Charm id | Theme |
