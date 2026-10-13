@@ -2137,12 +2137,15 @@ window.addEventListener('pointermove', onPointerMove, true);
 window.addEventListener('pointerup', onPointerUp, true);
 window.addEventListener('pointercancel', () => {
   cancelFogPointer(); endFogPeek();
-  if (fogInput.ctx && drag) {
+  // A second finger (pinch-zoom) cancels the drag pointer. Put the cards back
+  // instead of leaving them stuck above the table.
+  if (drag) {
     for (const id of drag.ids) {
       const g = cardGroups.get(id);
       if (g) { g.userData.dragging = false; g.userData.target = null; g.rotation.set(0, g.rotation.y, 0); }
     }
     drag = null; hideValidTargets(); applyLayout(true);
+    canvas.style.cursor = 'default';
   }
 }, true);
 canvas.addEventListener('lostpointercapture', () => {
@@ -3614,6 +3617,8 @@ window.addEventListener('keydown', (e) => {
   audio.unlock();
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
   if (e.code === 'Backquote' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    // The menu exists only on localhost, or with ?dev=1 plus the local dev opt-in.
+    if (!document.getElementById('modal-dev')) return;
     e.preventDefault();
     if (!e.repeat) ui.toggleDevMenu();
     return;

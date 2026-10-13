@@ -28,10 +28,15 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; transition: background-color 0.4s; }
+/* Title screen is the scrollport so the about copy sits below the menu. A live game locks scroll again. */
+body.title-open { overflow-x: hidden; overflow-y: auto; }
 button, input, select { font-family: inherit; color: inherit; }
 .hidden { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+/* Cards are drawn on this canvas. touch-action: none keeps a drag or double-tap
+   from turning into a page scroll or zoom. Pinch-zoom still works on the title screen. */
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; touch-action: none; }
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 90; transition: opacity 0.28s ease; }
 #intro-skip { position: fixed; left: 50%; bottom: calc(70px + var(--safe-bottom)); transform: translateX(-50%); z-index: 21; padding: 5px 14px; border-radius: 99px; background: var(--panel); border: 1px solid var(--border); color: var(--text); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
 #intro-skip.on { opacity: 0.7; transition-delay: 0.8s; }
@@ -90,9 +95,12 @@ button, input, select { font-family: inherit; color: inherit; }
 @keyframes pulse { 50% { transform: scale(1.12); opacity: 0.8; } }
 
 /* ------------------------------ Title screen ------------------------------ */
-#title-screen { position: fixed; inset: 0; z-index: 40; overflow: hidden; transition: opacity 0.5s ease, transform 0.5s ease; }
+#title-screen { position: fixed; inset: 0; z-index: 40; overflow: hidden; transition: opacity 0.5s ease, transform 0.5s ease; touch-action: manipulation; }
 #title-screen.leaving { opacity: 0; transform: scale(1.04); pointer-events: none; }
+body.title-open #title-screen { position: relative; inset: auto; height: 100%; min-height: 100%; }
 .hero-layer { position: fixed; inset: 0; background: #000; }
+body.title-open .hero-layer,
+body.title-open .hero-shade { position: absolute; }
 .hero-layer img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.9s ease; animation: kenburns 28s ease-in-out infinite alternate; }
 .hero-layer img.show { opacity: 1; }
 @keyframes kenburns { from { transform: scale(1.04) translate(0, 0); } to { transform: scale(1.14) translate(-1.5%, -1%); } }
@@ -101,7 +109,7 @@ button, input, select { font-family: inherit; color: inherit; }
 .title-scale { flex: none; max-width: 100%; }
 .title-content { position: relative; width: min(100%, 1100px); height: auto; padding: clamp(14px, 4.5vh, 60px) clamp(22px, 6vw, 90px); display: flex; flex-direction: column; justify-content: flex-start; gap: clamp(8px, 1.5vh, 18px); max-width: 1100px; overflow: visible; }
 .eyebrow { margin: 0; font-size: 13px; letter-spacing: 0.4em; text-transform: uppercase; color: var(--accent); }
-.title-logo { margin: 0; font-size: clamp(32px, min(11vw, 18vh), 132px); line-height: 0.92; font-weight: 800; letter-spacing: 0.04em; text-shadow: 0 6px 40px rgba(0,0,0,0.6), 0 0 40px var(--glow); }
+.title-logo { position: relative; margin: 0; font-size: clamp(32px, min(11vw, 18vh), 132px); line-height: 0.92; font-weight: 800; letter-spacing: 0.04em; text-shadow: 0 6px 40px rgba(0,0,0,0.6), 0 0 40px var(--glow); }
 .title-logo span { color: var(--accent); }
 .title-tagline { margin: 0 0 6px; font-size: clamp(13px, min(2vw, 2.4vh), 20px); color: var(--muted); max-width: 34em; line-height: 1.5; }
 .title-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
@@ -141,6 +149,25 @@ button, input, select { font-family: inherit; color: inherit; }
 .title-legal a:hover { color: var(--accent); opacity: 1; }
 .title-legal a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; opacity: 1; }
 .hint { font-size: 12px; color: var(--muted); letter-spacing: 0.06em; opacity: 0.8; }
+
+/* Crawlable how-to and FAQ. Full-bleed so it covers the fixed canvas when the title screen scrolls.
+   While a game is open the copy stays in the document and drops behind the table. */
+.seo-content {
+  position: relative; z-index: 2; width: 100%; margin: 0; scroll-margin-top: 12px;
+  padding: 36px max(20px, calc((100% - 720px) / 2)) calc(72px + var(--safe-bottom));
+  background: var(--bg); color: var(--text);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  font-size: 17px; line-height: 1.6; touch-action: manipulation;
+}
+body:not(.title-open) .seo-content { z-index: 0; pointer-events: none; }
+.seo-content h2, .seo-content h3 { font-family: var(--font-ui, Georgia, serif); letter-spacing: 0.03em; line-height: 1.25; color: var(--text); }
+.seo-content h2 { font-size: 1.45rem; margin: 1.5em 0 0.45em; }
+.seo-content section:first-child h2 { margin-top: 0; }
+.seo-content h3 { font-size: 1.05rem; margin: 1.15em 0 0.25em; }
+.seo-content p { margin: 0.35em 0 0.75em; }
+.seo-content ul, .seo-content ol { margin: 0.2em 0 0.85em; padding-left: 1.25em; }
+.seo-content li { margin: 0.28em 0; }
+.seo-content kbd { font-family: inherit; font-size: 0.92em; padding: 0 0.35em; border: 1px solid var(--border); border-radius: 4px; }
 
 /* ------------------------------ HUD ------------------------------ */
 /* One row at every desktop width: brand and the Deal chip drop out first, then the tools

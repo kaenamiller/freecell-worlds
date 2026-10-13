@@ -21,6 +21,10 @@ const paths = [
   'privacy',
   'refunds',
   'contact',
+  // Requested from the site root. Not part of the app shell, so they stay out of sw.js SHELL.
+  'robots.txt',
+  'sitemap.xml',
+  '.nojekyll',
   // js/voyage/boardrules.js now imports js/voyage/boss-yields.json (copied with js/),
   // so the 5.8 MB tools/boss-calibration.json no longer ships.
 ];

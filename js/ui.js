@@ -1,11 +1,38 @@
 // DOM layer: title screen, HUD, modals, toasts and win overlay. It owns no game
 // state — main.js supplies handlers via ui.handlers.
 import { THEMES, THEME_ORDER } from './themes.js';
-import { settings, saveSettings } from './store.js';
+import { settings, saveSettings, load } from './store.js';
 import { stats, ACHIEVEMENTS, fmtTime, dailyDone } from './stats.js';
 import { initFullscreen } from './fullscreen.js';
 
 const $ = (s) => document.querySelector(s);
+
+// The developer menu is not in the production HTML. Mount it for local play,
+// or when a developer has opted in (localStorage freecellworlds.dev = true)
+// and opened the page with ?dev=1. Either condition alone is not enough off localhost.
+export function devToolsAllowed() {
+  const host = location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return true;
+  return load('dev', false) === true && new URLSearchParams(location.search).get('dev') === '1';
+}
+
+const DEV_MODAL_HTML = `<div class="modal" id="modal-dev" role="dialog" aria-modal="true" aria-labelledby="dev-menu-title">
+    <div class="modal-card panel">
+      <header><h3 id="dev-menu-title">Developer</h3><button class="icon-btn close" data-close aria-label="Close">&times;</button></header>
+      <div class="modal-body dev-menu-body">
+        <p class="dev-menu-kicker">Press <kbd>\`</kbd> to toggle this menu.</p>
+        <div class="dev-actions">
+          <button type="button" class="btn primary" id="dev-auto-solve">Auto-solve</button>
+          <button type="button" class="btn" id="dev-hint">Play hint move</button>
+          <button type="button" class="btn" id="dev-check">Analyze position</button>
+          <button type="button" class="btn" id="dev-reset-board">Reset board</button>
+        </div>
+        <div class="dev-readout panel" id="dev-readout" aria-live="polite">
+          <p class="dev-readout-placeholder">Open a table, then use <strong>Analyze position</strong> for solvability and difficulty metrics.</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
 
 export const ui = {
   handlers: {},
@@ -23,6 +50,7 @@ export const ui = {
     E.loader = $('#loader');
     E.fade = $('#fade');
 
+    this.mountDevTools();
     this.buildThemeUI();
     this.wireButtons();
     this.wireSettings();
@@ -71,7 +99,7 @@ export const ui = {
     $('#title-eyebrow').textContent = classic ? 'The classic. Reimagined.' : 'A new world at every table';
     $('#title-tagline').textContent = classic ? chosen.tagline : 'Chart seven tables, collect charms, and face the final boss.';
     $('#title-hint').textContent = classic ? 'Drag cards · double-click to send home · H hint · U undo' : 'Choose your route · collect charms · reach the final table';
-    if (this.titleHeroUrl !== chosen.art.hero) { this.titleHeroUrl = chosen.art.hero; this.setHero(chosen.art.hero); }
+    if (this.titleHeroUrl !== chosen.art.hero) { this.titleHeroUrl = chosen.art.hero; this.setHero(chosen.art.hero, chosen.name); }
   },
   setTitleMode(mode, { persist = true } = {}) {
     this.titleMode = mode === 'voyage' ? 'voyage' : 'classic';
@@ -147,12 +175,15 @@ export const ui = {
   },
 
   heroFlip: false,
-  setHero(url) {
+  setHero(url, themeName = '') {
     const a = $('#hero-a');
     const b = $('#hero-b');
     const [on, off] = this.heroFlip ? [a, b] : [b, a];
     this.heroFlip = !this.heroFlip;
     on.src = url;
+    on.alt = themeName
+      ? `FreeCell Worlds ${themeName} themed 3D FreeCell table`
+      : 'FreeCell Worlds 3D themed FreeCell table';
     const show = () => {
       on.classList.add('show');
       off.classList.remove('show');
@@ -215,6 +246,7 @@ export const ui = {
 
   // --- screens -----------------------------------------------------------------------
   showTitle() {
+    document.body.classList.add('title-open');
     this.titleUserSwitched = false;
     this.closeModals();
     this.els.win.classList.remove('show');
@@ -229,6 +261,9 @@ export const ui = {
   },
 
   hideTitle() {
+    document.body.classList.remove('title-open');
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
     const t = this.els.title;
     t.classList.add('leaving');
     $('#scene').style.visibility = 'visible';
@@ -340,8 +375,20 @@ export const ui = {
     document.body.classList.toggle('dev-unlocked', this.devUnlocked);
   },
 
+  mountDevTools() {
+    if (!devToolsAllowed() || $('#modal-dev')) return;
+    const host = document.createElement('div');
+    host.innerHTML = DEV_MODAL_HTML;
+    const modal = host.firstElementChild;
+    const stats = $('#modal-stats');
+    if (stats) stats.before(modal);
+    else document.body.appendChild(modal);
+  },
+
   toggleDevMenu() {
-    const open = !$('#modal-dev')?.classList.contains('show');
+    const modal = $('#modal-dev');
+    if (!modal) return false;
+    const open = !modal.classList.contains('show');
     if (open) {
       this.setDevUnlocked(true);
       this.openModal('modal-dev');
@@ -428,10 +475,10 @@ export const ui = {
     on('#btn-win-menu', () => H().home());
     on('#btn-reset-stats', () => H().resetStats());
 
-    on('#dev-auto-solve', () => H().devSolve?.());
-    on('#dev-hint', () => H().devHint?.());
-    on('#dev-check', () => H().devAnalyze?.());
-    on('#dev-reset-board', () => H().devResetBoard?.());
+    if ($('#dev-auto-solve')) on('#dev-auto-solve', () => H().devSolve?.());
+    if ($('#dev-hint')) on('#dev-hint', () => H().devHint?.());
+    if ($('#dev-check')) on('#dev-check', () => H().devAnalyze?.());
+    if ($('#dev-reset-board')) on('#dev-reset-board', () => H().devResetBoard?.());
 
     this.els.dealInput.addEventListener('keydown', (e) => {
       e.stopPropagation();
