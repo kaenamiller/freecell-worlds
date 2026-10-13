@@ -21,6 +21,10 @@ const paths = [
   'privacy',
   'refunds',
   'contact',
+  // Requested from the site root. Not part of the app shell, so they stay out of sw.js SHELL.
+  'robots.txt',
+  'sitemap.xml',
+  '.nojekyll',
   // Imported by js/voyage/boardrules.js. A missing module fails the whole graph
   // and the title loader never advances past its initial text.
   'tools/boss-calibration.json',

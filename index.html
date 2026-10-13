@@ -2,9 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>FreeCell Worlds</title>
-  <meta name="description" content="FreeCell Worlds — a premium 3D FreeCell with thirty-one themed tables, spring-physics cards and a built-in solver." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>FreeCell Worlds – Free 3D FreeCell Solitaire Online, No Download</title>
+  <meta name="description" content="Play FreeCell free in your browser on 31 themed 3D tables. Daily Challenge, Voyage mode, deals #1–1,000,000, hints, undo and a built-in solver. No download." />
+  <link rel="canonical" href="https://freecellworlds.com/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="FreeCell Worlds" />
+  <meta property="og:url" content="https://freecellworlds.com/" />
+  <meta property="og:title" content="FreeCell Worlds – Free 3D FreeCell Solitaire Online" />
+  <meta property="og:description" content="Classic FreeCell on 31 themed 3D tables. Daily Challenge, Voyage mode and a built-in solver. Free, no download." />
+  <meta property="og:image" content="https://freecellworlds.com/assets/og/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="A FreeCell game in progress on a 3D themed table in FreeCell Worlds" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="FreeCell Worlds – Free 3D FreeCell Solitaire Online" />
+  <meta name="twitter:description" content="Classic FreeCell on 31 themed 3D tables. Daily Challenge, Voyage mode and a built-in solver. Free, no download." />
+  <meta name="twitter:image" content="https://freecellworlds.com/assets/og/og-image.jpg" />
+
   <meta name="theme-color" content="#0d0806" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon-192.png" />
@@ -18,6 +37,53 @@
         "three/addons/": "./vendor/"
       }
     }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": ["VideoGame", "WebApplication"],
+        "@id": "https://freecellworlds.com/#game",
+        "name": "FreeCell Worlds",
+        "url": "https://freecellworlds.com/",
+        "description": "Free 3D FreeCell solitaire in the browser with 31 themed tables, a Daily Challenge, Voyage mode, numbered deals 1–1,000,000 and a built-in solver.",
+        "image": "https://freecellworlds.com/assets/og/og-image.jpg",
+        "applicationCategory": "GameApplication",
+        "genre": ["Card game", "Solitaire", "Puzzle"],
+        "gamePlatform": "Web browser",
+        "operatingSystem": "Any (modern web browser)",
+        "playMode": "SinglePlayer",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        },
+        "publisher": { "@type": "Organization", "name": "Naat Ventures, Inc." }
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://freecellworlds.com/#faq",
+        "mainEntity": [
+          { "@type": "Question", "name": "Is FreeCell Worlds free to play?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Classic FreeCell, the Daily Challenge and Voyage mode play free in your browser." } },
+          { "@type": "Question", "name": "Do I need to download anything?",
+            "acceptedAnswer": { "@type": "Answer", "text": "No. FreeCell Worlds runs in your web browser on desktop and mobile. You can also add it to your home screen like an app." } },
+          { "@type": "Question", "name": "Can I play a specific FreeCell deal number?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Choose “Play a specific deal” on the title screen and enter any deal from 1 to 1,000,000, or leave it blank for a random deal." } },
+          { "@type": "Question", "name": "What is Voyage mode?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Voyage is a run of seven FreeCell tables in a row. Clear each table to continue. There is no restart, and undos are shared across the whole run. A Daily Voyage is also available." } },
+          { "@type": "Question", "name": "Are there hints and undo?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Press H for a hint and U to undo. A built-in solver powers the hints. You can also turn on auto-play to send safe cards to the foundations." } },
+          { "@type": "Question", "name": "Is FreeCell Worlds accessible?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Settings include four-colour suits, high-contrast cards and a reduce-motion option." } }
+        ]
+      }
+    ]
+  }
   </script>
 </head>
 <body data-theme="roman">
@@ -36,13 +102,13 @@
 
   <!-- ========================= Title screen ========================= -->
   <section id="title-screen" class="hidden">
-    <div class="hero-layer"><img id="hero-a" alt="" /><img id="hero-b" alt="" /></div>
+    <div class="hero-layer"><img id="hero-a" alt="FreeCell Worlds 3D themed FreeCell table" /><img id="hero-b" alt="FreeCell Worlds 3D themed FreeCell table" /></div>
     <div class="hero-shade"></div>
     <div class="title-stage">
     <div class="title-scale">
     <div class="title-content">
       <p class="eyebrow" id="title-eyebrow">The classic. Reimagined.</p>
-      <h1 class="title-logo">FreeCell<br /><span>Worlds</span></h1>
+      <h1 class="title-logo">FreeCell<br /><span>Worlds</span><span class="sr-only"> – Free 3D FreeCell Solitaire</span></h1>
       <p class="title-tagline" id="title-tagline"></p>
       <div class="title-mode-tabs" role="tablist" aria-label="Game mode">
         <button type="button" class="title-mode-tab" id="title-tab-classic" role="tab" aria-controls="title-panel-classic" aria-selected="true" tabindex="0"><span class="title-mode-icon" aria-hidden="true">♠</span><span><strong>Classic</strong><small>The timeless game, your way</small></span></button>
@@ -71,7 +137,8 @@
         <button class="link" id="btn-title-settings">Settings</button>
         <span class="hint" id="title-hint">Drag cards &middot; double-click to send home &middot; H hint &middot; U undo</span>
       </div>
-      <nav class="title-legal" aria-label="Legal">
+      <nav class="title-legal" aria-label="About and legal">
+        <a href="#about">About</a>
         <a href="terms/">Terms</a>
         <a href="privacy/">Privacy</a>
         <a href="refunds/">Refunds</a>
@@ -81,6 +148,54 @@
     </div>
     </div>
   </section>
+
+  <main id="about" class="seo-content">
+    <section>
+      <h2>Play FreeCell free online, in 3D</h2>
+      <p>FreeCell Worlds is classic FreeCell solitaire reimagined on 31 themed 3D tables, with spring-physics cards and a built-in solver. It's free in your browser, with nothing to download.</p>
+    </section>
+
+    <section>
+      <h2>How to play FreeCell</h2>
+      <ol>
+        <li>All 52 cards are dealt face up into eight columns.</li>
+        <li>Build each of the four foundations by suit, from Ace up to King.</li>
+        <li>In the columns, stack cards in descending order and alternating colours (for example a red 7 on a black 8).</li>
+        <li>Use the four free cells to hold one card each while you dig for the cards you need.</li>
+        <li>Any card can go into an empty column. You win when every card is home.</li>
+      </ol>
+      <p><strong>Controls:</strong> drag cards to move them, double-click to send a card home, press <kbd>H</kbd> for a hint and <kbd>U</kbd> to undo.</p>
+    </section>
+
+    <section>
+      <h2>Features</h2>
+      <ul>
+        <li><strong>31 themed tables</strong>: pick a world, or let a random theme start each new game.</li>
+        <li><strong>Voyage mode</strong>: seven tables, one journey. No restarts, shared undos, charms to collect, plus a Daily Voyage.</li>
+        <li><strong>Daily Challenge</strong>: a new deal every day.</li>
+        <li><strong>Numbered deals</strong>: play any deal from #1 to #1,000,000.</li>
+        <li><strong>Built-in solver</strong>: powers hints when you're stuck.</li>
+        <li><strong>Stats &amp; achievements</strong>: track your best times, moves and streaks.</li>
+        <li><strong>Accessibility</strong>: four-colour suits, high-contrast cards and reduced motion.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>FreeCell FAQ</h2>
+      <h3>Is FreeCell Worlds free to play?</h3>
+      <p>Yes. Classic FreeCell, the Daily Challenge and Voyage mode play free in your browser.</p>
+      <h3>Do I need to download anything?</h3>
+      <p>No. FreeCell Worlds runs in your web browser on desktop and mobile. You can also add it to your home screen like an app.</p>
+      <h3>Can I play a specific FreeCell deal number?</h3>
+      <p>Yes. Choose “Play a specific deal” on the title screen and enter any deal from 1 to 1,000,000, or leave it blank for a random deal.</p>
+      <h3>What is Voyage mode?</h3>
+      <p>Voyage is a run of seven FreeCell tables in a row. Clear each table to continue. There is no restart, and undos are shared across the whole run. A Daily Voyage is also available.</p>
+      <h3>Are there hints and undo?</h3>
+      <p>Yes. Press H for a hint and U to undo. A built-in solver powers the hints. You can also turn on auto-play to send safe cards to the foundations.</p>
+      <h3>Is FreeCell Worlds accessible?</h3>
+      <p>Settings include four-colour suits, high-contrast cards and a reduce-motion option.</p>
+    </section>
+  </main>
 
   <!-- ============================== HUD ============================== -->
   <header id="hud" class="hidden" role="toolbar" aria-label="Game controls">
@@ -118,7 +233,7 @@
 
   <div id="voyage-dock" aria-label="Voyage charms and actions" hidden>
     <div class="voyage-dock-left"><div id="voyage-hud-charms" class="voyage-tray" aria-label="Collected charms"></div><div id="voyage-hud-challenge" class="voyage-hud-effects"></div></div>
-    <div class="voyage-hud-buttons"><button class="btn" id="voyage-open-map" aria-describedby="voyage-tooltip" data-tip-name="Map" data-tip-pin="off" data-tip-text="Open the chart. You can review the tables behind you and the ones still ahead. The next table is chosen after you clear this one.">Map</button><button class="btn dev-only" id="btn-voyage-hint" hidden aria-label="Developer hint — play next solver move" title="Dev hint">Hint</button><button class="btn" id="voyage-abandon" aria-describedby="voyage-tooltip" data-tip-name="Abandon voyage" data-tip-pin="off" data-tip-text="End this voyage now. The run stops and is recorded as abandoned.">Abandon</button></div>
+    <div class="voyage-hud-buttons"><button class="btn" id="voyage-open-map" aria-describedby="voyage-tooltip" data-tip-name="Map" data-tip-pin="off" data-tip-text="Open the chart. You can review the tables behind you and the ones still ahead. The next table is chosen after you clear this one.">Map</button><button class="btn" id="voyage-abandon" aria-describedby="voyage-tooltip" data-tip-name="Abandon voyage" data-tip-pin="off" data-tip-text="End this voyage now. The run stops and is recorded as abandoned.">Abandon</button></div>
   </div>
 
   <section id="voyage-map" class="voyage-screen" role="dialog" aria-modal="true" aria-labelledby="voyage-map-title" hidden>
@@ -199,25 +314,6 @@
     <div class="modal-card panel wide">
       <header><h3 id="theme-picker-title">Choose a table</h3><button class="icon-btn close" data-close aria-label="Close theme picker">&times;</button></header>
       <div class="modal-body"><div class="theme-grid" id="theme-grid"></div></div>
-    </div>
-  </div>
-
-  <div class="modal" id="modal-dev" role="dialog" aria-modal="true" aria-labelledby="dev-menu-title">
-    <div class="modal-card panel">
-      <header><h3 id="dev-menu-title">Developer</h3><button class="icon-btn close" data-close aria-label="Close">&times;</button></header>
-      <div class="modal-body dev-menu-body">
-        <p class="dev-menu-kicker">Press <kbd>`</kbd> to toggle this menu.</p>
-        <div class="dev-actions">
-          <button type="button" class="btn primary" id="dev-auto-solve">Auto-solve</button>
-          <button type="button" class="btn" id="dev-hint">Play hint move</button>
-          <button type="button" class="btn" id="dev-check">Analyze position</button>
-          <button type="button" class="btn" id="dev-reset-board">Reset board</button>
-        </div>
-        <label class="dev-toggle row"><input type="checkbox" id="dev-voyage-hint" /> Show hint button in Voyage</label>
-        <div class="dev-readout panel" id="dev-readout" aria-live="polite">
-          <p class="dev-readout-placeholder">Open a table, then use <strong>Analyze position</strong> for solvability and difficulty metrics.</p>
-        </div>
-      </div>
     </div>
   </div>
 
