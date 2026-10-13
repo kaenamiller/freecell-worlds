@@ -3,6 +3,7 @@
 import { THEMES, THEME_ORDER } from './themes.js';
 import { settings, saveSettings } from './store.js';
 import { stats, ACHIEVEMENTS, fmtTime, dailyDone } from './stats.js';
+import { initFullscreen } from './fullscreen.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -34,6 +35,7 @@ export const ui = {
       m.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => this.closeModals()));
     }
     window.addEventListener('keydown', (e) => e.key === 'Escape' && this.closeModals());
+    initFullscreen({ onPress: () => this.handlers.click?.() });
   },
 
   // --- loader ---------------------------------------------------------------------
