@@ -16,7 +16,7 @@
 // verified with the solver in a background worker before use; see prepare() / verify().
 import { VOYAGE, SCORE } from './config.js';
 import { stream } from './rng.js';
-import { rulesKey, hasRestrictions, composeBoard } from './boardrules.js';
+import { rulesKey, hasRestrictions, hasDealRules, applyDealRules, composeBoard } from './boardrules.js';
 import { deal, solve } from '../rules.js';
 
 const BANK_URL = new URL('../../assets/data/seedbank.json', import.meta.url);
@@ -63,7 +63,7 @@ function fallbackBank() {
   return { v: 0, weights: { minCells: 42, manualMoves: 1.15, bury: 2.4 }, tiers, tierCuts: [50, 100, 150, 200, 250, 300], fallback: true };
 }
 
-const bankAnswers = (rules) => !hasRestrictions(rules);
+const bankAnswers = (rules, active) => !hasRestrictions(rules) && !hasDealRules(active);
 
 // Effective composite score of a bank entry under `rules`, or null when it can't be won.
 export function effectiveScore(entry, rules) {
@@ -113,7 +113,7 @@ export function pickDeal(plan, { seed, exclude = [], parFactor = SCORE.parFactor
     score: Math.round(blendedScore(e, plan) * 100) / 100,
     tier: plan.tier,
     effective: effectiveScore(e, plan.rules),
-    verified: bankAnswers(plan.rules) && !bank.fallback,
+    verified: bankAnswers(plan.rules, plan.active) && !bank.fallback,
   };
 }
 
@@ -126,7 +126,7 @@ export function pickDeal(plan, { seed, exclude = [], parFactor = SCORE.parFactor
 const cache = new Map(); // planKey -> pick
 const verifiedBosses = new Map(); // charm-less rulesKey -> verified bank candidates
 export const bossCacheInfo = () => [...verifiedBosses].map(([key, entries]) => ({ key, deals: [...entries.keys()] }));
-export const planKey = (plan, seed, exclude = []) => `${seed}|${plan.idx}|${plan.theme}|${rulesKey(plan.rules)}|${plan.ease || 0}|${plan.dealShift || 0}|${exclude.join(',')}|${(plan.active || []).map((a) => `${a.id}:${a.strength}`).join(',')}`;
+export const planKey = (plan, seed, exclude = []) => `${seed}|${plan.idx}|${plan.theme}|${rulesKey(plan.rules)}|${plan.ease || 0}|${plan.dealShift || 0}|${exclude.join(',')}|${(plan.active || []).map((a) => `${a.id}:${a.strength}:${a.level || 1}`).join(',')}|${JSON.stringify(plan.levels || {})}|${JSON.stringify(plan.stickers || {})}|${plan.confiscated || ''}|${hasDealRules(plan.active) ? 'dr' : ''}`;
 
 let worker = null;
 let queue = [];
@@ -184,7 +184,8 @@ async function pump() {
       }
       const spent = performance.now() - t0;
       const d = dutyCycle();
-      await sleep((spent * (1 - d)) / d);
+      // A table the player already picked is waiting on this queue: don't rest between its jobs.
+      if (!job.priority && !queue[0]?.priority) await sleep((spent * (1 - d)) / d);
     }
   } finally {
     running = false;
@@ -192,26 +193,41 @@ async function pump() {
 }
 
 // Solver check of one deal under `rules`. Resolves { solvable: true|false|null }.
-export function verify(deal, rules, { timeLimitMs = 6000 } = {}) {
+export function verify(deal, rules, { timeLimitMs = 6000, key = null } = {}) {
   return new Promise((done) => {
-    queue.push({ msg: { deal, rules, options: { timeLimitMs } }, done });
+    const job = { msg: { deal, rules, options: { timeLimitMs } }, done, key, priority: urgent.has(key) };
+    if (job.priority) queue.splice(queue.findIndex((j) => !j.priority) >>> 0, 0, job);
+    else queue.push(job);
     pump();
   });
 }
 
+// Plans the player is waiting on. Their queued and future verification jobs go first.
+const urgent = new Set();
+function promote(key) {
+  urgent.add(key);
+  const mine = queue.filter((j) => j.key === key), rest = queue.filter((j) => j.key !== key);
+  for (const j of mine) j.priority = true;
+  queue = [...mine, ...rest];
+}
+
 // Never cache or deliver an unverified restricted pick. Background and foreground
 // share the entire candidate loop, including challenge-strength fallback.
-async function resolvePlan(plan, { seed = plan.seed, exclude = [], candidates = 8, timeLimitMs = 6000, verifier = verify } = {}) {
+async function resolvePlan(plan, { seed = plan.seed, exclude = [], candidates = 8, timeLimitMs = 6000, verifier = verify, key: planKeyFor = null } = {}) {
   const original = plan;
   let current = plan;
   for (;;) {
     const used = [...exclude];
-    const verifyRules = current.boss || (current.active?.some((a) => a.kind === 'boon') && current.challenge)
-      ? composeBoard({ challenge: current.strength ? current.challenge : null, boss: current.boss,
+    const boonRules = composeBoard({ boons: (current.active || []).filter((a) => a.kind === 'boon').map((a) => a.id),
+      levels: current.levels, stickers: current.stickers, strength: current.requestedStrength ?? current.strength, seed, idx: current.idx, runMemo: current.runMemo }).rules;
+    const dealDependent = hasDealRules(current.active);
+    const canVerifyWithoutBoons = !dealDependent && !hasRestrictions(boonRules) && !Object.keys(boonRules.rankShift).length && !current.rules.phase && !current.rules.pinned && !current.rules.dealSkew;
+    const verifyRules = canVerifyWithoutBoons && (current.boss || (current.active?.some((a) => a.kind === 'boon') && (current.challenge || current.extraChallenges?.length)))
+      ? composeBoard({ challenge: current.strength ? current.challenge : null, extraChallenges: current.strength ? current.extraChallenges : [], boss: current.boss,
         strength: current.strength, bossStrength: current.active?.find((a) => a.kind === 'boss')?.strength ?? 7,
         seed, idx: current.idx, runMemo: current.runMemo }).rules : current.rules;
     const bossKey = rulesKey(verifyRules);
-    if (current.boss) {
+    if (current.boss && !dealDependent) {
       const band = bank.bands[Math.min(bank.bands.length - 1, current.tier - 1)];
       const ready = [...(verifiedBosses.get(bossKey)?.values() || [])].filter((entry) => {
         const score = blendedScore(entry, current);
@@ -222,41 +238,46 @@ async function resolvePlan(plan, { seed = plan.seed, exclude = [], candidates = 
         console.info('[voyage] boss pre-solve cache hit', current.boss, current.theme, entry.d, bossKey);
         return { deal: entry.d, par: parFor(entry, SCORE.parFactor), score: blendedScore(entry, current),
           tier: current.tier, verified: true, preSolveCacheHit: true, rules: current.rules, strength: current.strength,
-          active: current.active, ease: current.ease, dealShift: current.dealShift || 0, relaxed: current !== original, bossRelented: !!original.boss && !current.boss };
+          active: current.active, ease: current.ease, confiscated: current.confiscated || null, dealShift: current.dealShift || 0, relaxed: current !== original, bossRelented: !!original.boss && !current.boss };
       }
     }
-    for (let i = 0; i < candidates; i++) {
+    // The last rung before a boss relents (boss alone) gets twice the candidates: finale boards
+    // verify far less often than normal ones, and a relented boss loses the finale's identity.
+    const tries = current.boss && (!current.strength || (!current.challenge && !current.extraChallenges?.length)) ? candidates * 2 : candidates;
+    for (let i = 0; i < tries; i++) {
       let pick;
       try { pick = pickDeal(current, { seed, exclude: used }); }
       catch { break; }
       used.push(pick.deal);
-      if (!pick.verified || current.boss) {
-        const result = await verifier(pick.deal, verifyRules, { timeLimitMs });
+      if (!pick.verified || current.boss || dealDependent) {
+        const candidateRules = applyDealRules(verifyRules, current, pick.deal);
+        const result = await verifier(pick.deal, candidateRules, { timeLimitMs, key: planKeyFor });
         if (result.solvable !== true) continue;
         pick.verified = true;
         pick.solverNodes = result.nodes;
         pick.solverMoves = result.moves;
-        if (current.boss) {
+        if (current.boss && !dealDependent) {
           if (!verifiedBosses.has(bossKey)) verifiedBosses.set(bossKey, new Map());
           const entry = bank.all.find((e) => e.d === pick.deal);
           verifiedBosses.get(bossKey).set(entry.d, entry);
           console.info('[voyage] boss pre-solve verified', current.boss, current.theme, entry.d, bossKey);
         }
       }
-      return { ...pick, rules: current.rules, strength: current.strength, active: current.active,
-        ease: current.ease, dealShift: current.dealShift || 0, relaxed: current !== original, bossRelented: !!original.boss && !current.boss };
+      return { ...pick, rules: applyDealRules(current.rules, current, pick.deal), strength: current.strength, active: current.active,
+        ease: current.ease, confiscated: current.confiscated || null, dealShift: current.dealShift || 0, relaxed: current !== original, bossRelented: !!original.boss && !current.boss };
     }
     // Fallback ladder. Normal boards ease the theme challenge to zero. The finale eases it to 4,
     // then (last resorts, so board 7 can always be dealt verified) drops it, then drops the boss.
     // At strength zero the theme hook is omitted; the boss stays active and must verify.
     let strength = current.strength;
     let boss = current.boss;
-    if (current.challenge && strength > (boss ? 4 : 0)) strength--;
-    else if (boss && current.challenge && strength > 0) strength = 0;
+    if ((current.challenge || current.extraChallenges?.length) && strength > (boss ? 4 : 0)) strength--;
+    else if (boss && (current.challenge || current.extraChallenges?.length) && strength > 0) strength = 0;
     else if (boss) boss = null;
     else throw new Error('No verified Voyage deal available under these rules');
     const boons = (original.active || []).filter((a) => a.kind === 'boon').map((a) => a.id);
-    const composed = composeBoard({ boons, challenge: strength ? original.challenge : null,
+    if (original.confiscated) boons.push(original.confiscated);
+    const composed = composeBoard({ boons, levels: original.levels, stickers: original.stickers, challenge: strength ? original.challenge : null, extraChallenges: strength ? original.extraChallenges : [],
       boss, strength, boonStrength: original.requestedStrength ?? original.strength, bossStrength: original.active?.find((a) => a.kind === 'boss')?.strength ?? 7, seed, idx: original.idx, runMemo: original.runMemo });
     current = { ...original, ...composed, strength, boss };
     if (original.boss && !boss) console.warn('[voyage] no verified finale deal under the boss; the boss relents', original.boss, original.theme);
@@ -271,7 +292,7 @@ function cachedPlan(plan, options) {
     return { ...pick, preSolveCacheHit: true };
   });
   if (!cache.has(key)) {
-    const pending = resolvePlan(plan, { ...options, seed, exclude }).catch((err) => { cache.delete(key); throw err; });
+    const pending = resolvePlan(plan, { ...options, seed, exclude, key }).catch((err) => { cache.delete(key); throw err; });
     cache.set(key, pending);
   }
   return cache.get(key);
@@ -285,8 +306,12 @@ export async function prepare(plans, options = {}) {
 
 export async function dealFor(plan, options = {}) {
   await loadBank();
+  // The player picked this table: its verifications jump the background queue.
+  const key = planKey(plan, options.seed ?? plan.seed, options.exclude || []);
+  promote(key);
   // waitMs is intentionally not a verification escape hatch.
-  return cachedPlan(plan, options);
+  try { return await cachedPlan(plan, options); }
+  finally { urgent.delete(key); }
 }
 
 export const bankInfo = () => (bank ? { size: bank.all.length, tiers: bank.tiers.map((t) => t.length), fallback: bank.fallback, tierWidth: bank.tierWidth } : null);

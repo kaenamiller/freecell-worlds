@@ -1,6 +1,7 @@
-// cyber: boons + challenge. Spec: docs/voyage/charms-design.md (theme `cyber`).
-// Complex charms for this theme live in ./special/cyber.ghost.js.
+// cyber: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `cyber`).
+// Complex charms: ./special/cyber.ghost.js, ./special/cyber.zeroday.js
 import { defineCharm } from '../registry.js';
+import { paidUndo } from './kit.js';
 
 defineCharm({
   id: 'cyber.overclock',
@@ -8,26 +9,12 @@ defineCharm({
   theme: 'cyber',
   name: 'Overclock',
   icon: '⚡',
+  family: 'columns',
   text: 'You can move 2 more cards at once.',
+  upgrade: '3 more.',
   ease: 0.35,
-  rules(r) {
-    r.moveBonus = (r.moveBonus || 0) + 2;
-  },
-});
-
-defineCharm({
-  id: 'cyber.cache',
-  kind: 'boon',
-  theme: 'cyber',
-  name: 'Cache Hit',
-  icon: '💾',
-  text: 'Your first undo on each board is refunded.',
-  on: {
-    undo(ctx) {
-      if (ctx.memo.refunded) return;
-      ctx.memo.refunded = true;
-      ctx.api.addUndos(1);
-    },
+  rules(r, ctx) {
+    r.moveBonus = (r.moveBonus || 0) + (ctx.level >= 2 ? 3 : 2);
   },
 });
 
@@ -38,13 +25,15 @@ defineCharm({
   name: 'Packet Loss',
   icon: '📶',
   tags: ['SCORE'],
+  pressure: true,
   text: (s) => {
     if (s <= 2) return 'Some undos cost double: every 3rd undo costs an extra.';
     if (s <= 5) return 'Some undos cost double: every 2nd undo costs an extra.';
     return 'Every undo costs an extra undo.';
   },
   on: {
-    undo(ctx) {
+    undo(ctx, ev) {
+      if (!paidUndo(ev)) return;
       const s = ctx.strength;
       const period = s <= 2 ? 3 : s <= 5 ? 2 : 1;
       ctx.memo.undoCount = (ctx.memo.undoCount || 0) + 1;

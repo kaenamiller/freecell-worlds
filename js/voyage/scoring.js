@@ -19,7 +19,7 @@ export function historyStats(history, initial = null) {
     }
   }
   if (run) chains.push(run);
-  const cards = (initial?.found?.reduce((n, r) => n + r, 0) || 0) + history.reduce((n, m) => n + (m.t === 'F' ? 1 : m.t === 'R' ? -1 : 0), 0);
+  const cards = (initial?.found?.reduce((n, r) => n + r, 0) || 0) + history.reduce((n, m) => n + (m.t === 'F' ? 1 : m.t === 'R' ? -1 : m.t === 'X' ? (m.homeCards?.length || 0) : 0), 0); // X: charm moves that send cards home (Dolphin Leap)
   return { moves, freeCellPlacements, chains, cards };
 }
 
@@ -37,6 +37,7 @@ export class ScoreBreakdown {
     this.stat = stat;
     this.lines = []; // { key, label, pts }
     this.mults = []; // { label, x }
+    this.coinLines = []; // { key, label, coins }; independent of score multipliers
   }
   add(key, label, pts, extra) {
     const line = { key, label, pts: Math.round(pts) };
@@ -53,6 +54,13 @@ export class ScoreBreakdown {
     this.mults.push({ label, x });
     return this;
   }
+  addCoins(key, label, n) {
+    this.coinLines.push({ key, label, coins: Number.isFinite(Number(n)) ? Math.round(Number(n)) : 0 });
+    return this;
+  }
+  get coinTotal() {
+    return this.coinLines.reduce((sum, line) => sum + line.coins, 0);
+  }
   get subtotal() {
     return this.lines.reduce((s, l) => s + l.pts, 0);
   }
@@ -60,7 +68,7 @@ export class ScoreBreakdown {
     return Math.max(0, Math.round(this.mults.reduce((s, m) => s * m.x, this.subtotal)));
   }
   toJSON() {
-    return { lines: this.lines, mults: this.mults, subtotal: this.subtotal, total: this.total };
+    return { lines: this.lines, mults: this.mults, subtotal: this.subtotal, total: this.total, coinLines: this.coinLines, coinTotal: this.coinTotal };
   }
 }
 

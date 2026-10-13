@@ -1,0 +1,242 @@
+[
+  {
+    "id": "signal",
+    "name": "Signal",
+    "font": "Antonio",
+    "bg": "#101827",
+    "panel": "#1c2838",
+    "accent": "#e5b263",
+    "secondary": "#a8c7df",
+    "paper": [
+      "#f6f3e8",
+      "#e1e5e6"
+    ],
+    "suits": [
+      "#172436",
+      "#a6323f",
+      "#a6323f",
+      "#172436"
+    ],
+    "minCardContrast": 5.255537082315624,
+    "rail": "#303b48",
+    "inlay": "#b88741",
+    "particles": "motes",
+    "islandBytes": 9922
+  },
+  {
+    "id": "rink",
+    "name": "Roller Rink",
+    "font": "Josefin Sans",
+    "bg": "#291c2d",
+    "panel": "#39283d",
+    "accent": "#f1b5d4",
+    "secondary": "#86d7d1",
+    "paper": [
+      "#fff6e8",
+      "#eadfc9"
+    ],
+    "suits": [
+      "#2c2334",
+      "#aa2d60",
+      "#aa2d60",
+      "#2c2334"
+    ],
+    "minCardContrast": 4.88615745482314,
+    "rail": "#713652",
+    "inlay": "#becbd1",
+    "particles": "motes",
+    "islandBytes": 17162
+  },
+  {
+    "id": "darkroom",
+    "name": "The Darkroom",
+    "font": "Antonio",
+    "bg": "#170e10",
+    "panel": "#29181b",
+    "accent": "#ee8c80",
+    "secondary": "#c1c4c7",
+    "paper": [
+      "#fcf1de",
+      "#e8dcc5"
+    ],
+    "suits": [
+      "#241a1b",
+      "#a32936",
+      "#a32936",
+      "#241a1b"
+    ],
+    "minCardContrast": 5.285521714079836,
+    "rail": "#68232e",
+    "inlay": "#a5a8ad",
+    "particles": "motes",
+    "islandBytes": 13556
+  },
+  {
+    "id": "smokewatch",
+    "name": "Smoke Watch",
+    "font": "Antonio",
+    "bg": "#252d2e",
+    "panel": "#313b3c",
+    "accent": "#e7b177",
+    "secondary": "#a4b8d0",
+    "paper": [
+      "#fff2db",
+      "#e8dcc4"
+    ],
+    "suits": [
+      "#26332e",
+      "#a33e33",
+      "#a33e33",
+      "#26332e"
+    ],
+    "minCardContrast": 4.6948386089697145,
+    "rail": "#514d42",
+    "inlay": "#b6864c",
+    "particles": "motes",
+    "islandBytes": 15438
+  },
+  {
+    "id": "bloodmoon",
+    "name": "Bloodmoon",
+    "font": "Cinzel",
+    "bg": "#1d151c",
+    "panel": "#30212a",
+    "accent": "#e0b278",
+    "secondary": "#c77887",
+    "paper": [
+      "#faefda",
+      "#e4d4ba"
+    ],
+    "suits": [
+      "#281d22",
+      "#98283d",
+      "#98283d",
+      "#281d22"
+    ],
+    "minCardContrast": 5.3308663049952205,
+    "rail": "#492632",
+    "inlay": "#b18d56",
+    "particles": "motes",
+    "islandBytes": 12656
+  },
+  {
+    "id": "deepsea",
+    "name": "Deep Sea",
+    "font": "Cormorant Garamond",
+    "bg": "#0c202b",
+    "panel": "#173440",
+    "accent": "#8fdee4",
+    "secondary": "#e6b4c4",
+    "paper": [
+      "#f4f5e9",
+      "#dfe9df"
+    ],
+    "suits": [
+      "#16303c",
+      "#a53357",
+      "#a53357",
+      "#16303c"
+    ],
+    "minCardContrast": 5.2502622937866965,
+    "rail": "#495347",
+    "inlay": "#bda06b",
+    "particles": "bubbles",
+    "islandBytes": 11584
+  },
+  {
+    "id": "plaster",
+    "name": "Plaster Studio",
+    "font": "Cormorant Garamond",
+    "bg": "#373738",
+    "panel": "#484444",
+    "accent": "#f0d3bd",
+    "secondary": "#becbd4",
+    "paper": [
+      "#fffbf1",
+      "#eee7da"
+    ],
+    "suits": [
+      "#353438",
+      "#a14349",
+      "#a14349",
+      "#353438"
+    ],
+    "minCardContrast": 5.001689660201666,
+    "rail": "#ae8277",
+    "inlay": "#be9d86",
+    "particles": "motes",
+    "islandBytes": 15172
+  },
+  {
+    "id": "backrooms",
+    "name": "Backrooms",
+    "font": "Antonio",
+    "bg": "#373326",
+    "panel": "#484231",
+    "accent": "#e9d492",
+    "secondary": "#cad4ae",
+    "paper": [
+      "#fff7dc",
+      "#eee3bd"
+    ],
+    "suits": [
+      "#343226",
+      "#963d3e",
+      "#963d3e",
+      "#343226"
+    ],
+    "minCardContrast": 5.391767572128878,
+    "rail": "#968650",
+    "inlay": "#d1be7b",
+    "particles": "motes",
+    "islandBytes": 16494
+  },
+  {
+    "id": "vaporwave",
+    "name": "Vaporwave",
+    "font": "Josefin Sans",
+    "bg": "#36253e",
+    "panel": "#49334e",
+    "accent": "#f2b3cf",
+    "secondary": "#8cddd9",
+    "paper": [
+      "#fff8ee",
+      "#efdfdf"
+    ],
+    "suits": [
+      "#2b3349",
+      "#ad3069",
+      "#ad3069",
+      "#2b3349"
+    ],
+    "minCardContrast": 4.7863138697576355,
+    "rail": "#7c526f",
+    "inlay": "#73bfc5",
+    "particles": "motes",
+    "islandBytes": 18084
+  },
+  {
+    "id": "cinema",
+    "name": "Silent Cinema",
+    "font": "Josefin Sans",
+    "bg": "#201c20",
+    "panel": "#302730",
+    "accent": "#e0c28c",
+    "secondary": "#bec8d2",
+    "paper": [
+      "#fff4df",
+      "#e8ddc8"
+    ],
+    "suits": [
+      "#262329",
+      "#a03147",
+      "#a03147",
+      "#262329"
+    ],
+    "minCardContrast": 5.159544573708455,
+    "rail": "#612e3c",
+    "inlay": "#b99b60",
+    "particles": "motes",
+    "islandBytes": 15508
+  }
+]

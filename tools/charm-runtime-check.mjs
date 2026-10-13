@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-// Headless K2 integration check; examples are loaded ONLY by check scripts.
+// Headless runtime integration check; examples are loaded ONLY by check scripts.
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { clickTarget } from './charm-checks/_browser-pick.mjs';
 const require = createRequire(homedir() + '/Documents/mahjpods/film/package.json');
 const puppeteer = require('puppeteer-core');
-const base = process.env.VOYAGE_TEST_URL || 'http://[::1]:8132';
-const shots = '/tmp/k2-shots'; mkdirSync(shots, { recursive: true });
+const base = process.env.VOYAGE_TEST_URL || 'http://[::1]:8143';
+const shots = `/tmp/k3-shots-${new URL(base).port || 'default'}`; mkdirSync(shots, { recursive: true });
 const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage();
 await page.setBypassServiceWorker(true);
@@ -17,14 +18,18 @@ page.on('request', (request) => {
   if (request.isNavigationRequest() && request.url().replace(/\/$/, '') === base.replace(/\/$/, '')) {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8').replace('<script type="module" src="./js/main.js"></script>', '<script type="module">await import("./js/voyage/content/_examples.js"); await import("./js/main.js");</script>');
     request.respond({ status:200, contentType:'text/html', body:html });
+  } else if (/\/assets\/art\/charms\/dev\.[^/]+\.webp$/.test(request.url())) {
+    // Dev fixtures deliberately ship no production artwork. Supply their test art.
+    request.respond({status:200, contentType:'image/png', body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWZkAAAAASUVORK5CYII=', 'base64')});
   } else request.continue();
 });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') { errors.push(m.text()); console.error('CONSOLEERROR', m.text()); } });
 page.on('pageerror', (e) => { errors.push(e.stack); console.error('PAGEERROR', e.stack); });
+page.on('response', (r) => { if (r.status() >= 400) console.error('HTTPERROR', r.status(), r.url()); });
 await page.setViewport({ width: 1024, height: 768 });
 await page.evaluateOnNewDocument(() => {
-  localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme:'roman', autoRandomTheme:false, autoFoundation:false, reducedMotion:false, muted:true, quality:'low' }));
+  localStorage.setItem('freecellworlds.settings', JSON.stringify({ theme:'roman', autoRandomTheme:false, autoFoundation:false, reducedMotion:true, muted:true, quality:'low' }));
   localStorage.setItem('freecellworlds.voyageTutorial', JSON.stringify({ map:true, board:true, reward:true }));
 });
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -32,7 +37,7 @@ const settle = async () => { try { await page.waitForFunction(() => !FreeCell.bu
 const metrics = () => page.evaluate(() => {
   const r = FreeCell.voyage.run();
   const meshes = [];
-  FreeCell.scene.traverse((g) => { if (g.isGroup && g.userData.cardId) meshes.push({ id:g.userData.cardId, mark:g.userData.mark, concealed:!!g.userData.concealed, target:g.userData.target, position:g.position.toArray(), rx:g.rotation.x }); });
+  FreeCell.scene.traverse((g) => { if (g.isGroup && g.userData.cardId) meshes.push({ id:g.userData.cardId, mark:g.userData.mark, sticker:g.userData.sticker, concealed:!!g.userData.concealed, target:g.userData.target, position:g.position.toArray(), rx:g.rotation.x }); });
   return { state:FreeCell.getState(), run:JSON.parse(JSON.stringify(r)), meshes, hud:document.getElementById('voyage-hud').innerText + '\n' + document.getElementById('voyage-dock').innerText, abilities: [...document.querySelectorAll('[data-ability]')].map((e)=>({id:e.dataset.ability, disabled:e.getAttribute('aria-disabled'),uses:e.querySelector('.voyage-use-pip')?.textContent})) };
 });
 async function resumeFixture(create = false) {
@@ -45,7 +50,7 @@ async function resumeFixture(create = false) {
     const { baseRules } = await import('/js/voyage/charms.js');
     const { voyageUI } = await import('/js/voyage/ui.js');
     if (create) {
-      const r = createRun({ seed: 'k2-browser' }); r.boons = ['dev.survey','dev.workshop'];
+      const r = createRun({ seed: 'k2-browser' }); r.boss = 'boss.lockstep'; r.boons = ['dev.survey','dev.workshop'];
       const cur = startBoard(r, nextChoices(r.map)[0].id, { deal:1,par:60 });
       cur.theme = 'roman'; cur.rules = baseRules(); cur.challenge = 'dev.veil';
       cur.active = [{id:'dev.survey',kind:'boon',strength:2},{id:'dev.workshop',kind:'boon',strength:2},{id:'dev.veil',kind:'challenge',strength:2}];
@@ -54,6 +59,39 @@ async function resumeFixture(create = false) {
     await voyageUI.handlers.continueVoyage();
   }, create);
   await settle();
+}
+
+async function v2Fixture({ boons, rules = {}, levels = {}, stickers = {}, moves = [], memo = {}, undos = 5, challenge = null }) {
+  await page.evaluate(async (options) => {
+    const {createRun,startBoard,saveRun} = await import('/js/voyage/run.js');
+    const {nextChoices} = await import('/js/voyage/map.js');
+    const {baseRules} = await import('/js/voyage/charms.js');
+    const {Game} = await import('/js/rules.js');
+    const r = createRun({seed:'k3-v2'}); Object.assign(r, {boss:'boss.lockstep', boons:options.boons, levels:options.levels, stickers:options.stickers, undos:options.undos});
+    const cur = startBoard(r, nextChoices(r.map)[0].id, {deal:1,par:60});
+    cur.theme = 'roman'; cur.challenge = options.challenge; cur.rules = {...baseRules(), ...options.rules};
+    cur.active = options.boons.map((id) => ({id,kind:'boon',strength:1,level:options.levels[id] || 1}));
+    if (Object.keys(options.stickers).length) cur.active.push({id:'voyage.stickers',kind:'boon',strength:1,level:1});
+    if (options.challenge) cur.active.push({id:options.challenge,kind:'challenge',strength:7});
+    const g = new Game(1, {rules:JSON.parse(JSON.stringify(cur.rules))});
+    for (const move of options.moves) {
+      const applied = g.applyDescriptor(move);
+      if (move.auto) applied.auto = true;
+      if (move.voyageAbility) applied.voyageAbility = {...move.voyageAbility};
+    }
+    cur.history = g.history; cur.memo = options.memo; cur.initial = g.initial; saveRun(r);
+  }, {boons,rules,levels,stickers,moves,memo,undos,challenge});
+  await page.reload({waitUntil:'networkidle0'}); await resumeFixture();
+}
+async function use(id) {
+  await page.evaluate(async (id) => { const {voyageUI} = await import('/js/voyage/ui.js'); await voyageUI.handlers.useAbility(id); }, id);
+  await settle();
+}
+const uses = (id) => page.evaluate((id) => FreeCell.voyage.run().current.memo[id]._runtime.abilityUses, id);
+async function manualTop(col = 0) {
+  const id = (await metrics()).state.tableau[col].at(-1);
+  const point = await page.evaluate((id) => FreeCell.projectCard(id), id);
+  await page.mouse.click(point.x, point.y); await page.mouse.click(point.x, point.y); await settle();
 }
 try {
   await page.goto(base, { waitUntil: 'networkidle0' });
@@ -85,15 +123,15 @@ try {
   await page.screenshot({ path:`${shots}/03-hint-ability.png` });
   // Target cancellation leaves a use intact.
   await page.click('[data-ability="dev.workshop"]');
-  await page.waitForSelector('.voyage-targeting');
+  await page.waitForSelector('.voyage-target-prompt');
   await page.keyboard.press('Escape'); await pause(200);
   assert.equal((await metrics()).abilities.find((a)=>a.id==='dev.workshop').uses,'3');
   // Pick two columns and watch the custom move animate to their new layout.
   const beforeSwap = await metrics();
   await page.click('[data-ability="dev.workshop"]');
-  await page.waitForSelector('.voyage-targeting');
-  await page.click('[data-target="0"]'); await pause(100);
-  await page.click('[data-target="0"]');
+  // Click the lit targets on the table itself, as a player would.
+  await clickTarget(page);
+  await clickTarget(page);
   await settle();
   const swapped = await metrics();
   assert.equal(swapped.run.current.history.at(-1).t, 'X');
@@ -151,7 +189,7 @@ try {
     const {createRun,startBoard,saveRun}=await import('/js/voyage/run.js');
     const {nextChoices}=await import('/js/voyage/map.js');
     const {baseRules}=await import('/js/voyage/charms.js');
-    const r=createRun({seed:'k2-stuck'}); r.boons=['dev.survey','dev.workshop']; r.undos=0;
+    const r=createRun({seed:'k2-stuck'}); r.boss='boss.lockstep'; r.boons=['dev.survey','dev.workshop']; r.undos=0;
     const cur=startBoard(r,nextChoices(r.map)[0].id,{deal:1,par:60}); cur.theme='roman';
     cur.rules={...baseRules(),noCellRanks:16382,sealedCols:[0,1,2,3,4,5,6,7]}; cur.challenge='dev.veil';
     cur.active=[{id:'dev.survey',kind:'boon',strength:2},{id:'dev.workshop',kind:'boon',strength:2},{id:'dev.veil',kind:'challenge',strength:2}]; saveRun(r);
@@ -177,17 +215,128 @@ try {
   // autoHome records player moves, retains startHome card points, and wins normally.
   await page.evaluate(async () => {
     const {createRun,startBoard,saveRun}=await import('/js/voyage/run.js'); const {nextChoices}=await import('/js/voyage/map.js'); const {baseRules}=await import('/js/voyage/charms.js');
-    const r=createRun({seed:'k2-home'}); r.boons=['dev.workshop'];
+    const r=createRun({seed:'k2-home'}); r.boss='boss.lockstep'; r.boons=['dev.workshop','dev.battery'];
     const cur=startBoard(r,nextChoices(r.map)[0].id,{deal:1,par:60}); cur.theme='roman'; cur.challenge=null;
-    cur.rules={...baseRules(),startHome:12}; cur.active=[{id:'dev.workshop',kind:'boon',strength:1}]; cur.memo={'dev.workshop':{mode:'home'}}; saveRun(r);
+    cur.rules={...baseRules(),startHome:12}; cur.active=[{id:'dev.workshop',kind:'boon',strength:1},{id:'dev.battery',kind:'boon',strength:1}]; cur.memo={'dev.workshop':{mode:'home'}}; saveRun(r);
   });
   await page.reload({waitUntil:'networkidle0'}); await resumeFixture();
   await page.click('[data-ability="dev.workshop"]');
   await page.waitForFunction(()=>FreeCell.voyage.run().results.length===1);
   const homeResult=await page.evaluate(()=>FreeCell.voyage.run().results[0]);
   assert.equal(homeResult.moves,4); assert.equal(homeResult.score.lines.find((line)=>line.key==='cards').pts,520);
+  assert.equal(await page.evaluate(() => FreeCell.voyage.run().charmMemo['dev.battery'].winUses['dev.workshop']),1,'on.win receives remaining uses after the winning ability');
   console.log('OK: autoHome/player moves, startHome points, win flow');
+  // Exercise all four historical hint shapes, using live definitions when retained.
+  const hints = await page.evaluate(async () => {
+    const {legacyHintIds} = await import('/js/voyage/content/_examples.js');
+    return ['signal.lock','pinecone.compass','museum.docent','lapis.horus'].map((id) => legacyHintIds[id]);
+  });
+  await v2Fixture({boons:hints});
+  const classicSave = await page.evaluate(() => localStorage.getItem('freecellworlds.game'));
+  await page.keyboard.press('h'); await pause(100);
+  assert.equal((await metrics()).run.current.history.length,0,'classic hint shortcut stays blocked in Voyage');
+  for (const id of hints) {
+    const before = (await metrics()).run.current.history.length, count = await uses(id);
+    if (await page.$(`[data-ability="${id}"]`)) await page.click(`[data-ability="${id}"]`);
+    else await use(id); // Retired production IDs remain hidden regression fixtures.
+    await page.waitForFunction((n) => FreeCell.voyage.run().current.history.length > n, {}, before); await settle();
+    assert.equal((await metrics()).run.current.history.length,before+1, `${id}: exactly one history entry`);
+    assert.equal(await uses(id),count-1, `${id}: use consumed`);
+  }
+  assert.equal(await page.evaluate(() => localStorage.getItem('freecellworlds.game')),classicSave,'Voyage hints leave classic save alone');
+  await page.reload({waitUntil:'networkidle0'}); await resumeFixture();
+  await page.click('#btn-undo'); await settle(); assert.equal(await uses(hints[3]),1,'played hint refunds after resume');
+  await page.click('#btn-undo'); await settle(); assert.equal(await uses(hints[2]),1,'each hint has its own refund marker');
+  console.log('OK: Holo-Scan, Pocket Compass, Docent, Eye of Horus');
+  // A simple solvable tail makes preview deterministic, retaining the real worker.
+  await v2Fixture({boons:['dev.preview','dev.battery','dev.workshop','dev.weather'],rules:{startHome:11},levels:{'dev.preview':2}});
+  const beforePreview = await metrics();
+  await use('dev.weather');
+  assert.equal((await metrics()).run.current.memo['dev.weather'].answer,true);
+  assert.deepEqual((await metrics()).state,beforePreview.state); assert.equal(await page.$('#voyage-preview'),null);
+  await use('dev.preview');
+  assert(await page.$('#voyage-preview')); assert.equal((await page.$$('[data-preview-card]')).length,2);
+  assert.deepEqual((await metrics()).state,beforePreview.state); assert.deepEqual((await metrics()).run.current.history,[]);
+  assert.equal(await uses('dev.preview'),1);
+  assert.equal((await metrics()).run.current.memo['dev.battery'].events.at(-1),'dev.preview');
+  await page.screenshot({path:`${shots}/09-preview.png`});
+  await use('dev.battery'); assert.equal(await page.$('#voyage-preview'),null,'another ability clears preview');
+  assert.equal(await uses('dev.preview'),2);
+  await use('dev.battery'); await use('dev.battery'); assert.equal(await uses('dev.preview'),3,'extra uses capped at two');
+  await use('dev.preview'); await manualTop(); assert.equal(await page.$('#voyage-preview'),null,'move clears preview');
+  await use('dev.preview'); assert(await page.$('#voyage-preview'));
+  await page.click('#btn-undo'); await settle(); assert.equal(await page.$('#voyage-preview'),null,'undo clears preview');
+  console.log('OK: preview UI, unchanged state, clearing, levels, ability event, extra-use cap');
+  // Reset walks a custom cell gain and a placement backwards, at zero undos.
+  await v2Fixture({boons:['dev.reset','dev.workshop','dev.battery','library.bookmark','cyber.cache','canyon.echo','deepstorage.redundancy'],undos:0,challenge:'cyber.challenge',rules:{startHome:2},moves:[
+    {t:'X',op:'library.bookmark',token:1},
+    {t:'X',op:'voyage.cells',count:5,voyageAbility:{id:'dev.workshop',uses:2}},
+    {t:'C',src:{kind:'col',i:0},fi:4},
+  ],memo:{'library.bookmark':{anchor:1},'dev.workshop':{_runtime:{abilityUses:1}}}});
+  const beforeReset = await metrics();
+  await use('dev.reset'); const reset = await metrics();
+  assert.deepEqual(reset.state,beforeReset.run.current.initial); assert.equal(reset.state.free.length,4);
+  assert.equal(reset.run.current.history.length,0); assert.equal(reset.run.undos,0); assert.equal(reset.run.current.undosUsed,0);
+  assert.equal(await uses('dev.reset'),0); assert.equal(await uses('dev.workshop'),2);
+  assert.equal(reset.run.current.memo['library.bookmark'].anchor,null);
+  assert(!reset.run.current.memo['cyber.cache'].refunded); assert(!reset.run.current.memo['cyber.challenge'].undoCount);
+  assert.deepEqual(reset.run.current.memo['dev.battery'].undos,[{reset:true,free:false,moves:3}]);
+  assert.equal(reset.run.current.liveRules.freeCells,4);
+  await page.reload({waitUntil:'networkidle0'}); await resumeFixture(); assert.deepEqual((await metrics()).state,reset.state);
+  await page.screenshot({path:`${shots}/10-reset.png`}); console.log('OK: zero-cost reset, X/rules restoration, refunds, Bookmark, resume');
+  // Window steps include auto-plays, persist and close on the next player move.
+  await v2Fixture({boons:['dev.window','dev.workshop','dev.battery','cyber.cache','canyon.echo','deepstorage.redundancy'],undos:0,challenge:'cyber.challenge',moves:[
+    {t:'C',src:{kind:'col',i:0},fi:0}, {t:'C',src:{kind:'col',i:1},fi:1,auto:true},
+    {t:'X',op:'voyage.cells',count:5,voyageAbility:{id:'dev.workshop',uses:2}},
+  ],memo:{'dev.workshop':{_runtime:{abilityUses:1}}}});
+  await use('dev.window'); assert.equal(await uses('dev.window'),0);
+  await page.reload({waitUntil:'networkidle0'}); await resumeFixture(); assert((await metrics()).run.current.memo._undoWindow);
+  await page.click('#btn-undo'); await settle();
+  assert.equal((await metrics()).run.current.history.length,2); assert.equal(await uses('dev.workshop'),2);
+  await page.click('#btn-undo'); await settle(); const free = await metrics();
+  assert.equal(free.run.current.history.length,0); assert.equal(free.run.undos,0); assert.equal(free.run.current.undosUsed,0);
+  assert(free.run.current.memo._undoWindow); assert(!free.run.current.memo['cyber.cache'].refunded);
+  assert.deepEqual(free.run.current.memo['dev.battery'].undos,[{free:true,reset:false,moves:1},{free:true,reset:false,moves:2}]);
+  await manualTop(); assert.equal((await metrics()).run.current.memo._undoWindow,false);
+  const afterForward = (await metrics()).run.current.history.length;
+  await page.click('#btn-undo'); await settle(); assert.equal((await metrics()).run.current.history.length,afterForward,'closed window cannot undo at zero');
+  await page.evaluate(() => {FreeCell.voyage.run().undos=2;});
+  await page.click('#btn-undo'); await settle(); assert.equal((await metrics()).run.current.undosUsed,1,'only paid undos counted');
+  await page.screenshot({path:`${shots}/11-undo-window.png`}); console.log('OK: free steps/auto-plays, use refund, resume, closure, paid count');
+  await v2Fixture({boons:['dev.faucet','dev.exempt','dev.battery','dev.wager'],undos:0});
+  await use('dev.wager'); const sticker = await metrics();
+  assert.equal(sticker.run.stickers[1],'wild'); assert.deepEqual(sticker.run.current.liveRules.wildCards,[]);
+  await use('dev.faucet'); await use('dev.faucet'); await use('dev.faucet');
+  let cap = await metrics(); assert.equal(cap.run.undos,3); assert.equal(cap.run.current.memo._undoGrants,3);
+  await use('dev.exempt'); assert.equal((await metrics()).run.undos,4); assert.equal((await metrics()).run.current.memo._undoGrants,3);
+  await page.reload({waitUntil:'networkidle0'}); await resumeFixture(); await use('dev.faucet');
+  assert.equal((await metrics()).run.undos,4); assert.equal((await metrics()).run.current.memo._undoGrants,3);
+  await manualTop();
+  await page.evaluate(() => { FreeCell.voyage.run().current.memo['dev.wager']._runtime.abilityUses=1; });
+  await use('dev.wager'); assert.equal(await uses('dev.wager'),1,'start-only use stays unavailable after playing');
+  assert.deepEqual((await metrics()).run.current.liveRules.wildCards,[],'new sticker never changes this board, including after resume');
+  console.log('OK: persisted undo cap, exemption, next-board sticker, start-only gate');
+  await v2Fixture({boons:['dev.weather','dev.preview','dev.battery'],rules:{noCellRanks:16382,sealedCols:[0,1,2,3,4,5,6,7]}});
+  const dead = await metrics(); await use('dev.weather');
+  assert.equal((await metrics()).run.current.memo['dev.weather'].answer,false,'solver proves immobile board unreachable');
+  await use('dev.preview'); assert.equal(await uses('dev.preview'),1,'no solution does not consume a preview use');
+  assert.equal(await page.$('#voyage-preview'),null); assert.deepEqual((await metrics()).state,dead.state);
+  assert.equal((await metrics()).run.current.history.length,0);
+  console.log('OK: silent reachability verdict, no invented preview on an unsolvable board');
+  const surveyCard = await page.evaluate(async () => {
+    const { Game } = await import('/js/rules.js');
+    const { baseRules } = await import('/js/voyage/charms.js');
+    return new Game(1, { rules: baseRules() }).tableau[0].at(-1);
+  });
+  await v2Fixture({boons:['dev.survey'],stickers:{[surveyCard]:'wild'},rules:{wildCards:[surveyCard]}});
+  const marked = (await metrics()).meshes.find((m) => m.id === surveyCard);
+  assert.equal(marked.mark,'wanted'); assert.equal(marked.sticker,'sticker-wild');
+  await page.reload({waitUntil:'networkidle0'}); await resumeFixture();
+  const restoredMark = (await metrics()).meshes.find((m) => m.id === surveyCard);
+  assert.equal(restoredMark.mark,'wanted'); assert.equal(restoredMark.sticker,'sticker-wild');
+  await page.screenshot({path:`${shots}/12-sticker-resumed.png`});
+  console.log('OK: normal/sticker mark coexistence and pseudo-boon resume rendering');
   assert.deepEqual(errors, []);
-  writeFileSync(`${shots}/report.json`, JSON.stringify({ passed:true, screenshots:8, errors, state:undone.state, abilities:undone.abilities },null,2));
-  console.log(`PASS: marks, conceal/uncover, hint ability, targeting/cancel, X animation/undo, persisted resume, dynamic cells, override, stuck protection/rescue, autoHome/win. Screenshots: ${shots}`);
+  writeFileSync(`${shots}/report.json`, JSON.stringify({ passed:true, base, screenshots:12, errors, state:undone.state, abilities:undone.abilities },null,2));
+  console.log(`PASS: runtime v2 and existing runtime regressions; no console errors. Screenshots: ${shots}`);
 } finally { await browser.close(); }

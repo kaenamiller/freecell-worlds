@@ -496,33 +496,61 @@ const DETAIL_PROFILES = {
   paper: { strength: 2, variation: 0.035 },
 };
 const detailClamp = (v, a, b) => Math.min(b, Math.max(a, v));
-function detailNoise(u, v, cells, seed) {
+// Periodic value noise over a cells×cells lattice. The lattice is hashed once
+// up front: per-sample hashing dominated the cost of building these maps.
+function noiseLattice(cells, seed) {
+  const out = new Float64Array(cells * cells);
+  for (let b = 0; b < cells; b++) {
+    for (let a = 0; a < cells; a++) {
+      let n = Math.imul(a + seed, 374761393) ^ Math.imul(b + seed, 668265263);
+      n = Math.imul(n ^ (n >>> 13), 1274126177);
+      out[b * cells + a] = ((n ^ (n >>> 16)) >>> 0) / 4294967295;
+    }
+  }
+  return out;
+}
+function detailNoise(lattice, cells, u, v) {
   const x = u * cells, y = v * cells;
   const ix = Math.floor(x), iy = Math.floor(y);
-  const hash = (a, b) => {
-    a = ((a % cells) + cells) % cells;
-    b = ((b % cells) + cells) % cells;
-    let n = Math.imul(a + seed, 374761393) ^ Math.imul(b + seed, 668265263);
-    n = Math.imul(n ^ (n >>> 13), 1274126177);
-    return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
-  };
-  const smooth = (t) => t * t * (3 - 2 * t);
-  const fx = smooth(x - ix), fy = smooth(y - iy);
-  const top = hash(ix, iy) * (1 - fx) + hash(ix + 1, iy) * fx;
-  const bottom = hash(ix, iy + 1) * (1 - fx) + hash(ix + 1, iy + 1) * fx;
+  const x0 = ix % cells, y0 = iy % cells;
+  const x1 = (x0 + 1) % cells, y1 = (y0 + 1) % cells;
+  const tx = x - ix, ty = y - iy;
+  const fx = tx * tx * (3 - 2 * tx), fy = ty * ty * (3 - 2 * ty);
+  const top = lattice[y0 * cells + x0] * (1 - fx) + lattice[y0 * cells + x1] * fx;
+  const bottom = lattice[y1 * cells + x0] * (1 - fx) + lattice[y1 * cells + x1] * fx;
   return top * (1 - fy) + bottom * fy;
 }
+// The pixels depend only on (kind, roughness, size), so random-theme deals that
+// revisit a material reuse the canvases and only pay for the GPU upload.
+const detailCanvasCache = new Map();
 function materialDetailTextures(kind, baseRoughness, size = 512) {
+  const key = `${kind}|${baseRoughness}|${size}`;
+  let cached = detailCanvasCache.get(key);
+  if (!cached) {
+    cached = paintMaterialDetail(kind, baseRoughness, size);
+    detailCanvasCache.set(key, cached);
+  }
+  const normal = new THREE.CanvasTexture(cached.normalCanvas);
+  const roughnessMap = new THREE.CanvasTexture(cached.roughCanvas);
+  for (const texture of [normal, roughnessMap]) {
+    texture.colorSpace = THREE.NoColorSpace;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.anisotropy = 4;
+  }
+  return { normal, roughnessMap, roughness: cached.roughness };
+}
+function paintMaterialDetail(kind, baseRoughness, size) {
   const profile = DETAIL_PROFILES[kind] || DETAIL_PROFILES.lacquer;
+  const broadL = noiseLattice(8, 17), fineL = noiseLattice(64, 41), fibreL = noiseLattice(128, 79);
   const heights = new Float32Array(size * size);
   const finishes = new Float32Array(size * size);
   const tau = Math.PI * 2;
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const u = x / size, v = y / size;
-      const broad = detailNoise(u, v, 8, 17);
-      const fine = detailNoise(u, v, 64, 41);
-      const fibre = detailNoise(u, v, 128, 79);
+      const broad = detailNoise(broadL, 8, u, v);
+      const fine = detailNoise(fineL, 64, u, v);
+      const fibre = detailNoise(fibreL, 128, u, v);
       let h = fine * 0.12 + fibre * 0.06;
       if (kind === 'wood' || kind === 'paint') {
         // Long grain/brush strokes with gentle periodic wandering.
@@ -557,34 +585,29 @@ function materialDetailTextures(kind, baseRoughness, size = 512) {
   // Three multiplies roughness by its map. Encode an absolute finish range
   // relative to its upper bound so the map can make surfaces rougher as well.
   const roughness = detailClamp(baseRoughness + profile.variation, 0.04, 1);
-  const at = (x, y) => heights[((y + size) % size) * size + ((x + size) % size)];
+  const nd = normalPixels.data, rd = roughPixels.data, k = profile.strength;
   for (let y = 0; y < size; y++) {
+    // Wrapped neighbour rows/columns (the maps tile).
+    const row = y * size, up = ((y + size - 1) % size) * size, down = ((y + 1) % size) * size;
     for (let x = 0; x < size; x++) {
-      const dx = (at(x + 1, y) - at(x - 1, y)) * profile.strength;
-      const dy = (at(x, y + 1) - at(x, y - 1)) * profile.strength;
-      const length = Math.hypot(dx, dy, 1);
-      const i = y * size + x, o = i * 4;
-      normalPixels.data[o] = (-dx / length * 0.5 + 0.5) * 255;
+      const left = (x + size - 1) % size, right = (x + 1) % size;
+      const dx = (heights[row + right] - heights[row + left]) * k;
+      const dy = (heights[down + x] - heights[up + x]) * k;
+      const inv = 1 / Math.sqrt(dx * dx + dy * dy + 1);
+      const i = row + x, o = i * 4;
+      nd[o] = (-dx * inv * 0.5 + 0.5) * 255;
       // Canvas rows run downward; tangent-space +Y runs upward.
-      normalPixels.data[o + 1] = (dy / length * 0.5 + 0.5) * 255;
-      normalPixels.data[o + 2] = (1 / length * 0.5 + 0.5) * 255;
-      normalPixels.data[o + 3] = 255;
+      nd[o + 1] = (dy * inv * 0.5 + 0.5) * 255;
+      nd[o + 2] = (inv * 0.5 + 0.5) * 255;
+      nd[o + 3] = 255;
       const finish = detailClamp(baseRoughness + (finishes[i] * 2 - 1) * profile.variation, 0.04, 1);
-      const value = Math.round(finish / roughness * 255);
-      roughPixels.data[o] = roughPixels.data[o + 1] = roughPixels.data[o + 2] = value;
-      roughPixels.data[o + 3] = 255;
+      rd[o] = rd[o + 1] = rd[o + 2] = Math.round(finish / roughness * 255);
+      rd[o + 3] = 255;
     }
   }
   normalCtx.putImageData(normalPixels, 0, 0);
   roughCtx.putImageData(roughPixels, 0, 0);
-  const normal = new THREE.CanvasTexture(normalCanvas);
-  const roughnessMap = new THREE.CanvasTexture(roughCanvas);
-  for (const texture of [normal, roughnessMap]) {
-    texture.colorSpace = THREE.NoColorSpace;
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.anisotropy = 4;
-  }
-  return { normal, roughnessMap, roughness };
+  return { normalCanvas, roughCanvas, roughness };
 }
 
 // All card faces and backs share one stable, subtle paper finish.

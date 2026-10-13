@@ -14,8 +14,7 @@
 import { THEME_ORDER } from '../themes.js';
 import { VOYAGE } from './config.js';
 import { stream } from './rng.js';
-
-const rowOf = (id) => id.split('.').length - 1;
+import { CHARMS } from './registry.js';
 
 // Every theme already on the chart, in any branch.
 const usedThemes = (map) => new Set(Object.values(map.nodes).map((n) => n.theme));
@@ -56,17 +55,33 @@ function grow(map, parentId, bannedTheme) {
       if (theme) break;
     }
     const id = parentId ? `${parentId}.${k}` : `n${k}`;
-    map.nodes[id] = { id, row, lane: k, theme, parent: parentId, links: [] };
+    map.nodes[id] = { id, row, lane: k, theme, parent: parentId, links: [], port: false, storm: false, stormChallenge: null };
     ids.push(id);
+  }
+  // Markets are on the route, not a branch you might miss. Every table on a market
+  // row docks into the same stop: stickers after board 2, charms after board 4,
+  // upgrades after board 6.
+  if (VOYAGE.markets.some((market) => market.afterBoard === row + 1)) {
+    for (const id of ids) map.nodes[id].port = true;
+  }
+  if (row >= 1 && row < VOYAGE.boards - 1) for (const id of ids) {
+    const node = map.nodes[id];
+    if (node.port || stream(map.seed, 'storm', id)() >= VOYAGE.stormChance) continue;
+    const own = Object.values(CHARMS).find((c) => c.kind === 'challenge' && c.theme === node.theme);
+    if (!own) continue;
+    const candidates = Object.values(CHARMS).filter((c) => c.kind === 'challenge' && c.theme !== node.theme && !(c.tags || []).some((tag) => own.tags?.includes(tag))).sort((a, b) => a.id.localeCompare(b.id));
+    const second = stream(map.seed, 'storm-challenge', id).pick(candidates);
+    if (second) { node.storm = true; node.stormChallenge = second.id; }
   }
   if (parent) parent.links = ids;
   else map.roots = ids;
 }
 
 // Make sure everything within `lookahead` levels of the current position exists.
-function reveal(map, bannedTheme) {
+export function revealMap(map, { bannedTheme, lookahead = map.lookahead ?? VOYAGE.lookahead } = {}) {
+  map.lookahead = Math.max(1, Math.min(4, Number.isFinite(lookahead) ? Math.floor(lookahead) : VOYAGE.lookahead));
   let frontier = map.path.length ? [map.path[map.path.length - 1]] : [null];
-  for (let depth = 0; depth < VOYAGE.lookahead; depth++) {
+  for (let depth = 0; depth < map.lookahead; depth++) {
     const next = [];
     for (const id of frontier) {
       grow(map, id, bannedTheme);
@@ -76,9 +91,9 @@ function reveal(map, bannedTheme) {
   }
 }
 
-export function createMap(seed, { bannedTheme } = {}) {
+export function createMap(seed, { bannedTheme, lookahead = VOYAGE.lookahead } = {}) {
   const map = { seed, nodes: {}, roots: [], path: [] };
-  reveal(map, bannedTheme);
+  revealMap(map, { bannedTheme, lookahead });
   return map;
 }
 
@@ -91,10 +106,10 @@ export function nextChoices(map) {
 }
 
 // Commit to a node and reveal what lies `lookahead` levels beyond it.
-export function chooseNode(map, id, { bannedTheme } = {}) {
+export function chooseNode(map, id, { bannedTheme, lookahead = map.lookahead ?? VOYAGE.lookahead } = {}) {
   if (!nextChoices(map).some((n) => n.id === id)) throw new Error(`Node ${id} is not reachable`);
   map.path.push(id);
-  reveal(map, bannedTheme);
+  revealMap(map, { bannedTheme, lookahead });
   return map.nodes[id];
 }
 
@@ -115,7 +130,7 @@ export function mapView(map) {
   // Choices from here, and each choice's own branches.
   let frontier = nextChoices(map).map((n) => n.id);
   let state = 'available';
-  for (let depth = 0; depth < VOYAGE.lookahead && frontier.length; depth++) {
+  for (let depth = 0; depth < (map.lookahead ?? VOYAGE.lookahead) && frontier.length; depth++) {
     for (const id of frontier) visible.push({ id, state });
     frontier = frontier.flatMap((id) => map.nodes[id].links);
     state = 'upcoming';

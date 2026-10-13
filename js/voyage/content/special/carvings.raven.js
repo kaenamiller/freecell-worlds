@@ -20,14 +20,17 @@ registerCustomMove('carvings.raven', {
 
 defineCharm({
   id: 'carvings.raven', kind: 'boon', theme: 'carvings', name: "Raven's Trick", icon: '🐦‍⬛', ease: 0.35,
+  family: 'ability',
+  upgrade: 'Twice per board, swap the top cards of two different non-empty columns.',
   text: 'Once per board, swap the top cards of two different non-empty columns.',
   ability: {
-    uses: 1, label: 'Swap two column tops',
+    uses: ({ level }) => level === 2 ? 2 : 1, label: 'Swap two column tops',
     available: (ctx) => (ctx.api.state?.tableau.filter((col) => col.length).length || 0) >= 2,
     async use(ctx) {
-      const a = await ctx.api.pick({ kind: 'column', filter: (i, st) => nonempty(st, i) });
+      const top = (i, st) => [st.tableau[i].at(-1)];
+      const a = await ctx.api.pick({ kind: 'column', prompt: 'Choose the first column top to swap', cards: top, filter: (i, st) => nonempty(st, i) });
       if (a == null) return false;
-      const b = await ctx.api.pick({ kind: 'column', filter: (i, st) => i !== a && nonempty(st, i) });
+      const b = await ctx.api.pick({ kind: 'column', prompt: 'Choose the column top to swap it with', cards: top, filter: (i, st) => i !== a && nonempty(st, i) });
       if (b == null) return false;
       if (!ctx.api.charmMove('carvings.raven', { a, b })) return false;
       ctx.api.notify("Raven's Trick swapped two column tops.");

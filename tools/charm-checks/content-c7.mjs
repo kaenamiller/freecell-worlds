@@ -8,17 +8,7 @@ export async function check({ assert, CHARMS, baseRules, scoreBoard, kit, BoardE
   freeze.rules(r5, { strength: 5, rng: () => 0, seed: 'c7', idx: 4, runMemo: {} });
   assert.equal(clampRules(r5).cellThaw.frozen, 2, 'arctic.challenge s5 two frozen cells');
 
-  const espresso = CHARMS['cafe.espresso'];
-  const sb = scoreBoard([...Array(10)].map(() => ({ t: 'M' })), 60, null, { boardIdx: 0 });
-  const baseEff = sb.lines.find((l) => l.key === 'efficiency').pts;
-  espresso.score(sb);
-  const waivedEff = sb.lines.find((l) => l.key === 'efficiency').pts;
-  assert.ok(waivedEff > baseEff, 'cafe.espresso waives first five moves vs par');
-
-  const regulars = CHARMS['cafe.regulars'];
-  const sb2 = scoreBoard([], 60, null, { boardIdx: 2 });
-  regulars.score(sb2, { run: { boardIdx: 2, results: [{ stars: 2 }, { stars: 2 }], boons: [], undos: 0 } });
-  assert.equal(sb2.mults.find((m) => m.label === 'Regulars')?.x, 1.06, 'cafe.regulars two-board streak');
+  // Espresso Shot and Regulars changed in v2 (undo refund, coins); v2-c5.mjs covers them.
 
   const fragile = CHARMS['museum.challenge'];
   const fixture2 = fakeBoard();

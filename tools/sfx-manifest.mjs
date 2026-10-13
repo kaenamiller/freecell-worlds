@@ -16,6 +16,78 @@ export const SHARED = [
 
 export const THEME = {
   ...EXPANSION_AUDIO,
+  // Final 52-roster worlds.
+  signal: {
+    ui: "a small radio-console toggle clicks once, soft metal and bakelite",
+    chime: "one clear rounded analog oscillator bell ping, a gentle radio lock tone, one note only",
+    win: "an original hopeful six-second flourish of warm analog synth and sparse piano, a signal resolving from soft static, no voices",
+    ambience: "quiet radio observatory at polar night, faint equipment ventilation, low tape hiss and occasional distant relay tick, subdued seamless loop, no voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: sparse analog synth, felt piano and low strings, patient polar-night radio observatory, cold stars and amber instrument glow, no drums, no vocals, seamless ambient bed",
+  },
+  rink: {
+    ui: "a roller-skate wheel gently taps a maple floor, a tiny bearing click",
+    chime: "one warm electric-piano bell note with a soft silver shimmer, one note only",
+    win: "an original joyful six-second disco instrumental flourish, electric piano, round bass, muted rhythm guitar and a silver bell, no voices",
+    ambience: "empty indoor roller rink, low ventilation and an occasional soft wheel coast over maple, subtle mirror-ball motor hum, quiet seamless loop, no voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: relaxed late-1970s instrumental disco, warm electric piano, rounded bass, muted guitar and soft brushed steady drums, magenta and teal lights over maple, restrained slow-skate groove, no vocals, seamless ambient bed",
+  },
+  darkroom: {
+    ui: "print tongs gently tap the edge of a metal developing tray",
+    chime: "one soft silver triangle ping blended with a low warm electric-piano note, one note only",
+    win: "an original quiet six-second piano and brushed-metal flourish, a clear print emerging under a red safelight, understated satisfaction, no voices",
+    ambience: "quiet photographic darkroom, tiny water drips into a developing tray, faint enlarger fan and ventilation, subdued seamless loop, no voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: sparse felt piano, bowed vibraphone and warm low bass, red safelight and photographic silver, focused contemplative darkroom mood, no drums, no vocals, seamless ambient bed",
+  },
+  smokewatch: {
+    ui: "a brass fire-finder knob turns with one small wooden click",
+    chime: "one soft brass instrument bell note with a short warm decay, one note only",
+    win: "an original reassuring six-second acoustic guitar and low-string flourish with a brass bell, lookout at dusk, no voices",
+    ambience: "wind softly brushes a high wooden fire-lookout cab, muted pine-board creaks and a tiny stove crackle, very distant forest wind, quiet seamless loop, no voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: fingerpicked acoustic guitar, low bowed strings and sparse felt piano, dusk-violet fire lookout above a smoky forest, watchful yet reassuring, no drums, no vocals, seamless ambient bed",
+  },
+  bloodmoon: {
+    ui: "an antique iron door latch makes one soft muted click",
+    chime: "one low bronze handbell note with a gentle dark shimmer, one note only",
+    win: "an original six-second restrained gothic chamber flourish, cello, harpsichord and one bronze bell, a candle surviving cold moonlight, no voices",
+    ambience: "a quiet stone castle threshold at night, faint wind in distant corridors, gentle candle crackle and occasional old oak creak, subtle seamless loop, no voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: restrained gothic chamber instrumental, solo cello, sparse harpsichord and low sustained strings, distant castle beneath a crimson moon, beautiful quiet suspense, no jump scares or drums, no vocals, seamless ambient bed",
+  },
+  deepsea: {
+    ui: "a brass pressure-gauge switch makes one muted click",
+    chime: "one delicate sonar-like glass bell note, soft and rounded with a short luminous decay, one note only",
+    win: "an original luminous six-second glass-harmonica and low-string flourish, soft celesta and a gentle sonar ping, deep ocean wonder, no voices",
+    ambience: "inside a deep-ocean brass observation sphere, low pressure-shell hum, very soft water movement and occasional restrained hull creak, peaceful quiet seamless loop, no voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: slow glass harmonica, soft celesta, submerged warm synth pads and low strings, abyssal blue water with cyan and pale-rose jellyfish, spacious calm exploration, no percussion, no vocals, seamless ambient bed",
+  },
+  plaster: {
+    ui: "a small plaster cast is gently set onto a linen-covered bench, soft dry tap",
+    chime: "one warm porcelain bell note with a delicate powdery decay, one note only",
+    win: "an original graceful six-second piano, viola and small porcelain-bell flourish, gentle studio satisfaction, no voices",
+    ambience: "quiet sculptor studio in north light, soft airy window breeze and occasional linen-sheet rustle, subtle distant brush on plaster, subdued seamless loop, no voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: gentle solo piano, viola and delicate harp harmonics, cool north light on plaster casts and linen, calm patient craft, unhurried and spacious, no drums, no vocals, seamless ambient bed",
+  },
+  backrooms: {
+    ui: "an old fluorescent light switch makes one small dull plastic click",
+    chime: "one soft glassy electric-piano notification note above a faint fluorescent overtone, one note only",
+    win: "an original uneasy but relieved six-second electric-piano and soft synth flourish, a door found in an endless corridor, no voices",
+    ambience: "empty endless office corridor, low fluorescent ballast hum, muffled ventilation and a faint distant ceiling-panel rattle, subtle seamless loop, no footsteps, voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: minimal detuned electric piano and soft sustained analog pads, empty yellow office corridors and fluorescent light, liminal stillness with gentle unease, quiet and focused, no drums or sudden sounds, no vocals, seamless ambient bed",
+  },
+  vaporwave: {
+    ui: "a cassette-deck button presses once with a soft tactile snap",
+    chime: "one mellow glassy FM-synth bell note, a short pink-and-cyan shimmer, one note only",
+    win: "an original dreamy six-second FM-synth and electric-piano flourish with soft round bass, sunset in an empty mall, no voices",
+    ambience: "deserted mall atrium, soft fountain trickle, faint air-conditioning hum and a very distant escalator motor, quiet seamless loop, no voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: original slow vaporwave instrumental, warm electric piano, soft FM bells, airy analog pads, rounded bass and gentle restrained drum-machine pulse, pink marble and cyan glass in a deserted sunset mall, no samples or recognizable existing melody, no vocals, seamless ambient bed",
+  },
+  cinema: {
+    ui: "a film projector lever makes one soft mechanical click",
+    chime: "one warm celesta note with a tiny silver bell overtone, one note only",
+    win: "an original elegant six-second silent-film piano and chamber-organ victory flourish, warm amber resolution, no voices",
+    ambience: "empty silent-era picture palace, faint steady projector mechanism through thick glass, quiet velvet-damped room tone and subtle ventilation, seamless loop, no voices or music",
+    music: "Original unobtrusive instrumental for a focused solitaire game: original gentle 1920s silent-cinema accompaniment, tender upright piano, soft chamber organ and low bowed strings, restrained lyrical warmth beneath silver projector light, no drums, no existing film melody, no vocals, seamless ambient bed",
+  },
+
   pinecone: {
     ui: 'a soft wooden canoe paddle tap on a cedar dock, warm tactile UI click',
     chime: 'one gentle clean camp dinner-bell note with a warm short ringing tail, one note only',

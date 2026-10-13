@@ -9,12 +9,17 @@ registerCustomMove(op, {
   undo() {},
 });
 const anchorIndex = ({ api, memo }) => memo.anchor == null ? -1 : api.history.findIndex((m) => m.t === 'X' && m.op === op && m.token === memo.anchor);
+function clearMissingAnchor(ctx) {
+  if (ctx.memo.anchor != null && anchorIndex(ctx) < 0) { ctx.memo.anchor = null; ctx.api.badge(''); }
+}
 
 defineCharm({
   id: op, kind: 'boon', theme: 'library', name: 'Bookmark', icon: '🔖', ease: 0,
+  family: 'undo',
+  upgrade: 'Twice per board, set a bookmark, then rewind every move since it for a single undo.',
   text: 'Once per board, set a bookmark, then rewind every move since it for a single undo.',
   ability: {
-    uses: 1, label: 'Set / rewind bookmark',
+    uses: ({ level }) => level === 2 ? 2 : 1, label: 'Set / rewind bookmark',
     available(ctx) {
       if (ctx.run.undos <= 0) return false;
       const at = anchorIndex(ctx);
@@ -40,8 +45,7 @@ defineCharm({
     },
   },
   on: {
-    undo(ctx) {
-      if (ctx.memo.anchor != null && anchorIndex(ctx) < 0) { ctx.memo.anchor = null; ctx.api.badge(''); }
-    },
+    move: clearMissingAnchor,
+    undo: clearMissingAnchor,
   },
 });

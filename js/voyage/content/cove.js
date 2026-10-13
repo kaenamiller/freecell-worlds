@@ -2,30 +2,35 @@
 import { defineCharm } from '../registry.js';
 import { countHome, replay } from './kit.js';
 
-function dealCardIds(state) {
-  const ids = [];
-  for (const col of state.tableau) ids.push(...col);
-  for (const card of state.free) if (card) ids.push(card);
-  return ids;
-}
-
 defineCharm({
   id: 'cove.treasure',
   kind: 'boon',
   theme: 'cove',
   name: 'Buried Treasure',
   icon: '💰',
-  text: 'The deepest card of one column is treasure: +150 when it goes home.',
+  family: 'coin',
+  text: 'The deepest card of one column is treasure: 15 coins if it goes home before 30 cards are home.',
+  upgrade: 'Two columns hold treasure; each pays 15 coins if it goes home before 30 cards are home.',
   setup(board, ctx) {
-    const nonempty = board.state.tableau.map((col, i) => (col.length ? i : -1)).filter((i) => i >= 0);
-    const colIdx = nonempty.length ? ctx.rng.pick(nonempty) : 0;
-    const card = board.state.tableau[colIdx][0];
-    ctx.memo.treasure = card;
-    ctx.api.mark([card], 'gold');
+    const cols = board.state.tableau
+      .map((col, i) => (col.length ? { i, card: col[0] } : null))
+      .filter(Boolean);
+    const count = ctx.level >= 2 ? 2 : 1;
+    const picks = ctx.rng.shuffle(cols).slice(0, Math.min(count, cols.length));
+    ctx.memo.treasure = picks.map((p) => p.card);
+    ctx.api.mark(ctx.memo.treasure, 'gold');
   },
   score(sb, ctx) {
-    const id = ctx.memo.treasure;
-    if (id && countHome(sb.history, (c) => c === id)) sb.add('treasure', 'Buried treasure', 150);
+    const ids = ctx.memo.treasure || [];
+    if (!ids.length) return;
+    let homes = 0;
+    let paid = 0;
+    replay(sb, (m) => {
+      if (m.t !== 'F') return;
+      homes++;
+      if (homes < 30 && ids.includes(m.card)) paid++;
+    });
+    if (paid) sb.addCoins('treasure', 'Buried treasure', paid * 15);
   },
 });
 
@@ -35,14 +40,15 @@ defineCharm({
   theme: 'cove',
   name: 'Lucky Doubloon',
   icon: '🪙',
+  family: 'undo',
   text: 'Once per board, take back your last move without spending an undo.',
+  upgrade: 'Twice per board, take back your last move without spending an undo.',
   ease: 0,
   ability: {
-    uses: 1,
+    uses: (ctx) => ctx.level,
     label: 'Flip the doubloon',
     available: (ctx) => ctx.api.history.some((m) => !m.auto),
     use(ctx) {
-      // Rewind to just before the last player move (auto-play that followed it goes too).
       const h = ctx.api.history;
       let i = h.length - 1;
       while (i >= 0 && h[i].auto) i--;
@@ -64,13 +70,23 @@ defineCharm({
   theme: 'cove',
   name: 'Parrot',
   icon: '🦜',
-  text: 'The first time on each board you send a card home from a free cell, +1 undo.',
+  family: 'ability',
+  text: 'Once per board, repeat yourself: your most recently used ability gets one more use.',
+  upgrade: 'Twice per board, repeat yourself: your most recently used ability gets one more use.',
   ease: 0.15,
   on: {
-    foundation(ctx, ev) {
-      if (ev.src?.kind !== 'free' || ctx.memo.parrot) return;
-      ctx.memo.parrot = true;
-      ctx.api.addUndos(1);
+    ability(ctx, { id }) {
+      if (id !== 'cove.parrot') ctx.memo.lastAbility = id;
+    },
+  },
+  ability: {
+    uses: (ctx) => ctx.level,
+    label: 'Parrot',
+    available: (ctx) => !!ctx.memo.lastAbility,
+    use(ctx) {
+      const id = ctx.memo.lastAbility;
+      if (!id) return false;
+      return ctx.api.grantUse(id, 1) > 0;
     },
   },
 });
@@ -82,10 +98,13 @@ defineCharm({
   name: 'Cursed Gold',
   icon: '🪙',
   tags: ['SCORE'],
-  text: (s) => `${1 + s} cursed cards; every move you make while one sits in a free cell costs 3 points per cursed card there.`,
+  pressure: true,
+  text: (s) => `${1 + s} cursed cards; each time one enters a free cell, lose 2 coins.`,
   ease: (ctx) => -0.05 * ctx.strength,
   setup(board, ctx) {
-    const pool = dealCardIds(board.state);
+    const pool = [];
+    for (const col of board.state.tableau) pool.push(...col);
+    for (const card of board.state.free) if (card) pool.push(card);
     const n = 1 + ctx.strength;
     ctx.memo.cursed = ctx.rng.shuffle(pool).slice(0, n);
     ctx.api.mark(ctx.memo.cursed, 'curse');
@@ -93,11 +112,10 @@ defineCharm({
   score(sb, ctx) {
     const cursed = new Set(ctx.memo.cursed || []);
     let penalty = 0;
-    // Charged per player move for each cursed card parked in a free cell after that move.
-    replay(sb, (move, state) => {
-      if (move.auto) return;
-      for (const card of state.free) if (card && cursed.has(card)) penalty += 3;
+    replay(sb, (move) => {
+      if (move.t === 'C' && cursed.has(move.card)) penalty += 2;
+      if (move.t === 'R' && move.to?.kind === 'free' && cursed.has(move.card)) penalty += 2;
     });
-    if (penalty) sb.add('curse', 'Cursed gold', -penalty);
+    if (penalty) sb.addCoins('curse', 'Cursed gold', -penalty);
   },
 });

@@ -46,3 +46,21 @@ export const SCORE = {
   stars: [0, 0.9, 1.15],
   bossStarScale: 0.92,
 };
+
+// Overhaul v2 (docs/voyage/overhaul/SPEC.md): coins, ports, stickers and the per-board cap on
+// undos granted by charms. Markets are scheduled stops, not a per-island chance.
+Object.assign(VOYAGE, {
+  charmUndoCap: 3,
+  stormChance: 1 / 6,
+  // afterBoard is 1-based. Every route docks after these tables.
+  markets: [
+    { afterBoard: 2, kind: 'stickers', name: 'Sticker market', wares: 'Stickers that stay on a card for the rest of the voyage.' },
+    { afterBoard: 4, kind: 'boons', name: 'Charm market', wares: 'New charms to carry into the tables ahead.' },
+    { afterBoard: 6, kind: 'upgrades', name: 'Upgrade market', wares: 'Raise a charm you already hold to its second form.' },
+  ],
+  coins: { base: 10, perStar: 6, perPoints: 150 },
+  prices: { boon: 45, boonRare: 60, upgrade: 40, undo: 15, undoMax: 3, sell: 20, reroll: 10, sticker: { wild: 30, gold: 20, lucky: 25, key: 25, fool: 40 } },
+});
+
+// idx is the 0-based board that was just cleared.
+export const marketForBoard = (idx) => VOYAGE.markets.find((market) => market.afterBoard === idx + 1) || null;

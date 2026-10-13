@@ -43,3 +43,23 @@ export function cardsOfRanks(ranks, suits = [0, 1, 2, 3]) {
   return ids;
 }
 export { rankOf, suitOf };
+
+// Pure guards for reset/window abilities. Automatic plays alone cannot be rewound
+// as a player step; a won board is never an ability target.
+export const hasPlayerMove = (history) => history.some((move) => !move.auto);
+export const boardWon = (state) => !!state && state.found.reduce((n, rank) => n + rank, 0) === 52;
+export const canUndoBoard = ({ api }) => !!api.state && !boardWon(api.state) && hasPlayerMove(api.history);
+export const paidUndo = (ev = {}) => !ev.reset && !ev.free;
+
+// Sticker abilities (Amber, Misprint): a card holds one sticker, so replacing one the
+// player already owns needs a yes. Resolves true to go ahead. Not pure: it asks via api.
+export async function confirmStickerSwap(ctx, card, type) {
+  const old = ctx.api.stickers?.[card];
+  if (!old || old === type) return true;
+  const name = (t) => t[0].toUpperCase() + t.slice(1);
+  return (await ctx.api.choose({
+    card, prompt: `This card already carries a ${name(old)} sticker. A card holds one sticker.`,
+    options: [{ value: true, label: `Replace with ${type === '?' ? 'a random one' : name(type)}` }, { value: false, label: `Keep ${name(old)}` }],
+  })) === true;
+}
+export const cardName = (card) => `${rankName(rankOf(card))} of ${suitName(suitOf(card))}`;

@@ -1,7 +1,6 @@
-// concrete: boons + challenge. Spec: docs/voyage/charms-design.md (theme `concrete`).
-// Complex charms for this theme live in ./special/concrete.*.js.
+// concrete: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `concrete`).
+// Complex: concrete.spraytag in ./special/concrete.spraytag.js
 import { defineCharm } from '../registry.js';
-import { SCORE } from '../config.js';
 
 defineCharm({
   id: 'concrete.bankshot',
@@ -9,10 +8,13 @@ defineCharm({
   theme: 'concrete',
   name: 'Bank Shot',
   icon: '🏀',
-  text: '+12 for each card sent home straight from a free cell.',
-  score(sb) {
+  family: 'coin',
+  text: '+1 coin for every card sent home straight from a free cell.',
+  upgrade: '+2 coins.',
+  score(sb, ctx) {
     const n = sb.history.filter((m) => m.t === 'F' && m.src?.kind === 'free').length;
-    if (n) sb.add('bankshot', 'Bank shots', n * 12);
+    const rate = ctx.level >= 2 ? 2 : 1;
+    if (n) sb.addCoins('bankshot', 'Bank shots', n * rate);
   },
 });
 
@@ -22,13 +24,18 @@ defineCharm({
   theme: 'concrete',
   name: 'Mixtape',
   icon: '📼',
-  text: 'Your longest chain on each board scores double.',
-  score(sb) {
-    const longest = sb.stat.chains.length ? Math.max(...sb.stat.chains) : 0;
-    if (!longest) return;
-    const k = Math.min(longest, SCORE.chainCap);
-    const bonus = (SCORE.chainUnit * k * (k - 1)) / 2;
-    if (bonus) sb.add('mixtape', `Mixtape (chain ${longest})`, bonus);
+  family: 'ability',
+  text: 'The first time each board you empty a column, your most recently used ability gets its use back.',
+  upgrade: 'The first two times.',
+  on: {
+    ability(ctx, { id }) { ctx.memo.lastAbility = id; },
+    columnEmpty(ctx) {
+      const limit = ctx.level >= 2 ? 2 : 1;
+      const used = ctx.memo.refunds ?? 0;
+      if (used >= limit || !ctx.memo.lastAbility) return;
+      ctx.memo.refunds = used + 1;
+      ctx.api.grantUse(ctx.memo.lastAbility, 1);
+    },
   },
 });
 
@@ -39,6 +46,7 @@ defineCharm({
   name: 'Shot Clock',
   icon: '⏱️',
   tags: ['SCORE'],
+  pressure: true,
   text: (s) => `Every 24 moves in a row without sending a card home costs ${10 * s} points.`,
   score(sb, ctx) {
     const cost = 10 * ctx.strength;

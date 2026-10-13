@@ -1,14 +1,13 @@
 // diner: boons + challenge. Spec: docs/voyage/charms-design.md (theme `diner`).
 import { defineCharm } from '../registry.js';
-import { cardsOfRanks, countHome, rankMask, rankName, rankOf } from './kit.js';
-import { stream } from '../rng.js';
+import { cardsOfRanks, countHome, rankOf, replay } from './kit.js';
 
 const rankBadge = (rank) => ({ 1: 'A', 11: 'J', 12: 'Q', 13: 'K' }[rank] || String(rank));
 
-function bannedRankCount(strength) {
-  if (strength <= 3) return 1;
-  if (strength <= 6) return 2;
-  return 3;
+function plateStackCells(strength) {
+  if (strength <= 2) return 2;
+  if (strength <= 5) return 3;
+  return 4;
 }
 
 defineCharm({
@@ -17,7 +16,9 @@ defineCharm({
   theme: 'diner',
   name: 'Blue Plate Special',
   icon: '🍽️',
-  text: 'Each board features a rank; its four cards are worth +20 each when sent home.',
+  family: 'coin',
+  text: 'Each board features a rank; send all four of it home before 30 cards are home for 12 coins.',
+  upgrade: 'Send all four of that rank home before 30 cards are home for 20 coins.',
   setup(board, ctx) {
     ctx.memo.rank = ctx.rng.int(13) + 1;
     ctx.api.mark(cardsOfRanks([ctx.memo.rank]), 'star');
@@ -26,8 +27,19 @@ defineCharm({
   score(sb, ctx) {
     const rank = ctx.memo.rank;
     if (!rank) return;
-    const n = countHome(sb.history, (id) => rankOf(id) === rank);
-    if (n) sb.add('blueplate', `Blue plate (${rankName(rank)})`, n * 20);
+    const pay = ctx.level >= 2 ? 20 : 12;
+    let homes = sb.initial?.found?.reduce((n, rank) => n + rank, 0) || 0;
+    let rankHomes = 0;
+    let won = false;
+    replay(sb, (m) => {
+      if (m.t !== 'F') return;
+      homes++;
+      if (rankOf(m.card) === rank) {
+        rankHomes++;
+        if (rankHomes === 4 && homes < 30) won = true;
+      }
+    });
+    if (won) sb.addCoins('blueplate', `Blue plate (${rankBadge(rank)})`, pay);
   },
 });
 
@@ -37,11 +49,13 @@ defineCharm({
   theme: 'diner',
   name: 'Bottomless Coffee',
   icon: '☕',
+  family: 'undo',
   text: '+1 undo at the start of every board.',
+  upgrade: '+2 undos at the start of every board.',
   ease: 0.15,
   on: {
     start(ctx) {
-      ctx.api.addUndos(1);
+      ctx.api.addUndos(ctx.level >= 2 ? 2 : 1);
     },
   },
 });
@@ -52,10 +66,13 @@ defineCharm({
   theme: 'diner',
   name: 'Tip Jar',
   icon: '🫙',
-  text: 'Every board scores +25 per board already cleared this run.',
-  score(sb, ctx) {
-    const cleared = ctx.run.results.length;
-    if (cleared) sb.add('tipjar', 'Tip jar', cleared * 25);
+  family: 'coin',
+  text: 'At every port, +2 coins for each board cleared so far.',
+  upgrade: 'At every port, +3 coins for each board cleared so far.',
+  onPort(run, ctx) {
+    const per = ctx.level >= 2 ? 3 : 2;
+    const cleared = run.results.length;
+    if (cleared) ctx.api.addCoins(cleared * per);
   },
 });
 
@@ -63,22 +80,16 @@ defineCharm({
   id: 'diner.challenge',
   kind: 'challenge',
   theme: 'diner',
-  name: "86'd",
-  icon: '🚫',
+  name: 'Plate Stack',
+  icon: '🍽️',
   tags: ['CELLS'],
   text: (s) => {
-    const n = bannedRankCount(s);
-    return `${n} rank${n > 1 ? 's' : ''} (never Aces or Kings) cannot enter free cells.`;
+    const k = plateStackCells(s);
+    if (k === 4) return 'Free cells stack like plates: only the last card in can come out — all 4 cells.';
+    return `Free cells stack like plates: only the last card in can come out — ${k} cells.`;
   },
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {
-    const n = bannedRankCount(ctx.strength);
-    const ranks = ctx.rng.shuffle([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).slice(0, n);
-    r.noCellRanks = rankMask(...ranks);
-  },
-  setup(_board, ctx) {
-    const n = bannedRankCount(ctx.strength);
-    const ranks = stream(ctx.seed, 'rules', ctx.run.boardIdx, ctx.id).shuffle([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).slice(0, n);
-    ctx.api.mark(cardsOfRanks(ranks), 'lock');
+    r.cellStack = plateStackCells(ctx.strength);
   },
 });

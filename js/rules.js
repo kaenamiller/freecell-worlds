@@ -17,6 +17,15 @@ export const RULE_DEFAULTS = Object.freeze({
   foundationReturn: false, startHome: 0, noCellRanks: 0, noCellCards: [],
   barren: null, foundationSpread: 0, emptyMinRank: 0, cellThaw: null,
   sealedCols: [], maxHeight: 0, cellColors: [], oneWayCellRanks: 0,
+  wildCards: [], anchorCards: [], freeCards: [], buildUp: 0, suitRunFree: 0,
+  cellLimits: [], emptyMaxRank: 0, cellClose: null, gate: null, dealSkew: null,
+  phase: null, rankShift: {},
+  emptyAlwaysCounts: false, cellStack: 0, pinned: null, maxEmpty: 0,
+  colorSpread: 0, emptyColors: [], barrenCards: [],
+  cellExitWild: false, openCols: 0,
+  twinStack: 0, shallowCols: 0,
+  loneAccepts: 0, skipBuild: 0, fullCellsBonus: 0,
+  emptyCure: 0, cellsNeedEmpty: 0, sameColorRanks: 0, noExitCols: 0,
 });
 
 export function compileRules(r = RULE_DEFAULTS) {
@@ -27,21 +36,42 @@ export function compileRules(r = RULE_DEFAULTS) {
     else out.noCellHi |= 1 << (id - 33);
   }
   // Only variant stacking pays for a lookup table; classic keeps its original predicate.
-  if (out.wildRanks || out.suitBuild || out.barren) {
+  if (out.wildRanks || out.suitBuild || out.barren || out.barrenCards.length || out.wildCards.length || out.anchorCards.length || out.buildUp || out.twinStack || out.skipBuild || out.sameColorRanks || Object.keys(out.rankShift).length) {
     out.build = new Uint8Array(53 * 53);
     for (let parent = 1; parent <= 52; parent++) for (let child = 1; child <= 52; child++) {
-      const pr = rankOf(parent), cr = rankOf(child), ps = suitOf(parent);
-      const barred = out.barren && (out.barren.suits & (1 << ps)) && (out.barren.ranks & (1 << pr));
-      out.build[parent * 53 + child] = !barred && cr === pr - 1 && (
-        colorOf(parent) !== colorOf(child) || (out.wildRanks & ((1 << pr) | (1 << cr))) ||
-        ((out.suitBuild & (1 << ps)) && ps === suitOf(child))) ? 1 : 0;
+      const pr = rankOf(parent) + (out.rankShift[parent] || 0), cr = rankOf(child) + (out.rankShift[child] || 0), ps = suitOf(parent);
+      const barred = out.barrenCards.includes(parent) || (out.barren && (out.barren.suits & (1 << ps)) && (out.barren.ranks & (1 << rankOf(parent))));
+      const same = colorOf(parent) === colorOf(child);
+      const colour = ((out.sameColorRanks & (1 << rankOf(child))) ? same : !same) || (out.wildRanks & ((1 << rankOf(parent)) | (1 << rankOf(child)))) ||
+        out.wildCards.includes(parent) || out.wildCards.includes(child) || ((out.suitBuild & (1 << ps)) && ps === suitOf(child));
+      out.build[parent * 53 + child] = !barred && (out.anchorCards.includes(parent) ||
+        (cr === pr && out.twinStack && (out.twinStack >= 2 || colour)) ||
+        (cr === pr - 1 && colour) || (cr === pr - 2 && out.skipBuild && (out.skipBuild >= 2 || same)) || (cr === pr + 1 && (out.buildUp & (1 << suitOf(child))) && colour)) ? 1 : 0;
     }
   }
   out.classic = Object.keys(RULE_DEFAULTS).every((k) => k === 'freeCells' || JSON.stringify(out[k]) === JSON.stringify(RULE_DEFAULTS[k]));
+  if (out.phase) {
+    const overrides = {};
+    for (const k of ['noCellRanks', 'oneWayCellRanks', 'foundationSpread', 'emptyMinRank', 'emptyMaxRank', 'gate', 'emptyFactor', 'moveBonus'])
+      if (Object.hasOwn(out.phase.rules || {}, k)) overrides[k] = out.phase.rules[k];
+    out.phaseRules = compileRules({ ...r, ...overrides, phase: null, _compiled: false });
+  }
   return out;
 }
 const CLASSIC_RULES = compileRules();
 const resolved = (r) => !r ? CLASSIC_RULES : r._compiled ? r : compileRules(r);
+
+export const cardsHome = (st) => st.found[0] + st.found[1] + st.found[2] + st.found[3] + (st.spur ? st.spur.top - st.spur.base + 1 : 0);
+export const suitHomeCount = (st, suit) => st.found[suit] + (st.spur?.suit === suit ? st.spur.top - st.spur.base + 1 : 0);
+export const foundationTop = (st, suit) => st.spur?.suit === suit ? Math.max(st.found[suit], st.spur.top) : st.found[suit];
+export const cardIsHome = (st, card) => rankOf(card) <= st.found[suitOf(card)] ||
+  (st.spur?.suit === suitOf(card) && rankOf(card) >= st.spur.base && rankOf(card) <= st.spur.top);
+export const foundationDestination = (st, card) => st.spur?.suit === suitOf(card) && rankOf(card) >= st.spur.base ? 'spur' : 'original';
+// Plain game.rules is deliberately recompiled: X moves may mutate nested arrays/maps in place.
+export function rulesForState(st, rules, homeAdjustment = 0) {
+  const r = resolved(rules);
+  return r.phase && cardsHome(st) + homeAdjustment >= r.phase.at ? r.phaseRules : r;
+}
 
 export function canBuildOn(parent, child, rules) {
   return builds(parent, child, resolved(rules));
@@ -55,43 +85,117 @@ function builds(parent, child, r) {
 export function activeFreeCells(st, rules, homeAdjustment = 0) {
   const r = resolved(rules), thaw = r.cellThaw;
   if (!thaw) return st.free.length;
-  const home = st.found[0] + st.found[1] + st.found[2] + st.found[3] + homeAdjustment;
+  const home = cardsHome(st) + homeAdjustment;
   let frozen = Math.min(st.free.length, Math.max(0, thaw.frozen));
   for (let i = 0; i < thaw.frozen; i++) if (home >= (thaw.at[i] ?? Infinity)) frozen--;
   return st.free.length - Math.max(0, frozen);
 }
 
-export function cellAccepts(st, i, card, rules, homeAdjustment = 0) {
+export function cellIsClosed(st, i, rules, homeAdjustment = 0) {
   const r = resolved(rules);
-  if (!card || i < 0 || i >= st.free.length || st.free[i] || i >= activeFreeCells(st, r, homeAdjustment)) return false;
+  if (r.cellsNeedEmpty && !st.tableau.some((col) => !col.length) && i >= Math.max(0, activeFreeCells(st, r, homeAdjustment) - r.cellsNeedEmpty)) return true;
+  const closed = r.cellClose?.at.filter((h) => cardsHome(st) + homeAdjustment >= h).length || 0;
+  return i >= Math.max(0, st.free.length - closed) && !st.free[i] && closed > 0;
+}
+
+export function cellIsOpen(st, i, rules, homeAdjustment = 0) {
+  return i >= 0 && i < activeFreeCells(st, rules, homeAdjustment) && !cellIsClosed(st, i, rules, homeAdjustment);
+}
+
+export function isPinned(st, card, rules) {
+  const p = resolved(rules).pinned;
+  return !!p && cardsHome(st) < p.until && p.cards.includes(card);
+}
+
+export function canLeaveCell(st, i, rules) {
+  const r = rulesForState(st, rules), card = st.free[i];
+  if (!card || isPinned(st, card, r)) return false;
+  if (i < r.cellStack) for (let j = i + 1; j < Math.min(st.free.length, r.cellStack); j++) if (st.free[j]) return false;
+  return true;
+}
+
+export function cellEntryIndex(st, i, rules) {
+  const r = resolved(rules);
+  if (i < 0 || i >= st.free.length) return i;
+  if (i < r.cellStack) return st.free.findIndex((card, j) => j < r.cellStack && !card);
+  return i;
+}
+
+function sourceOf(st, card, count = 1) {
+  const fi = st.free.indexOf(card);
+  if (fi >= 0) return { kind: 'free', i: fi };
+  const ci = st.tableau.findIndex((col) => col[col.length - count] === card);
+  return ci < 0 ? null : { kind: 'col', i: ci };
+}
+
+function noExit(st, src, r, count = 1) {
+  return src?.kind === 'col' && !!(r.noExitCols & (1 << src.i)) && st.tableau[src.i].length === count;
+}
+
+function preservesEmptyLimit(st, src, count, to, r) {
+  if (!r.maxEmpty || src?.kind !== 'col' || st.tableau[src.i].length !== count) return true;
+  const before = st.tableau.filter((c) => !c.length).length;
+  const after = before + 1 - (to != null && !st.tableau[to].length ? 1 : 0);
+  return after <= r.maxEmpty || after <= before;
+}
+
+export function cellAccepts(st, i, card, rules, homeAdjustment = 0, override) {
+  const r = rulesForState(st, rules, homeAdjustment);
+  if (!card || i < 0 || i >= st.free.length || st.free[i] || !cellIsOpen(st, i, r, homeAdjustment)) return false;
+  if ((!override?.ignoreRestrictions && noExit(st, sourceOf(st, card), r)) || isPinned(st, card, r) || !preservesEmptyLimit(st, sourceOf(st, card), 1, null, r)) return false;
+  if (i < r.cellStack) for (let j = 0; j < i; j++) if (!st.free[j]) return false;
+  if (r.freeCards.includes(card) || override?.ignoreRestrictions) return true;
   if ((r.noCellRanks & (1 << rankOf(card))) || (card <= 32
     ? r.noCellLo & (1 << (card - 1)) : r.noCellHi & (1 << (card - 33)))) return false;
   const lock = r.cellColors[i];
-  return !lock || (lock === 'red') === isRed(card);
+  const limit = r.cellLimits[i];
+  return (!lock || (lock === 'red') === isRed(card)) && (!limit ||
+    ((limit.maxRank == null || rankOf(card) <= limit.maxRank) && (limit.minRank == null || rankOf(card) >= limit.minRank) && (limit.suits == null || (limit.suits & (1 << suitOf(card))))));
 }
 
-export function canPlaceTableau(st, i, card, count = 1, rules, override) {
-  const r = resolved(rules), col = st.tableau[i];
-  if (!col || !card || (st.sealed & (1 << i)) || (r.maxHeight && col.length + count > r.maxHeight)) return false;
-  if (!canStackOn(col, card, r, override)) return false;
-  return count === 1 || override?.ignoreCap || count <= maxMoveSize(st, col.length === 0, r);
+export function canPlaceTableau(st, i, card, count = 1, rules, override, cards) {
+  const r = rulesForState(st, rules), col = st.tableau[i];
+  if (!col || !card || (!override?.ignoreRestrictions && ((st.sealed & (1 << i)) || (r.maxHeight && col.length + count > r.maxHeight)))) return false;
+  let placementOverride = override;
+  if ((col.length && ((r.openCols & (1 << i)) || (r.loneAccepts && col.length <= r.loneAccepts))) || (r.cellExitWild && st.free.includes(card)))
+    placementOverride = { ...override, ignoreColour: true, ...(col.length && ((r.openCols & (1 << i)) || (r.loneAccepts && col.length <= r.loneAccepts)) ? { ignoreRank: true } : {}) };
+  if (!override?.ignoreRestrictions && noExit(st, sourceOf(st, card, count), r, count)) return false;
+  if (!canStackOn(col, card, r, placementOverride, st)) return false;
+  if (r.pinned || r.cellStack || r.maxEmpty) {
+    const src = sourceOf(st, card, count);
+    const moving = cards || (src?.kind === 'col' ? st.tableau[src.i].slice(-count) : [card]);
+    if (moving.some((id) => isPinned(st, id, r)) || (src?.kind === 'free' && !canLeaveCell(st, src.i, r)) || !preservesEmptyLimit(st, src, count, i, r)) return false;
+  }
+  if (!col.length && !override?.ignoreRestrictions && r.emptyColors[i] && (r.emptyColors[i] === 'red') !== isRed(card)) return false;
+  if (!cards && r.suitRunFree && count > 1) cards = st.tableau.find((c) => c[c.length - count] === card)?.slice(-count);
+  return count === 1 || override?.ignoreCap || count <= maxMoveSize(st, col.length <= r.shallowCols, r, cards);
 }
 
 // R moves must remain legal after lowering the foundation (including re-freezing a cell).
-export function canReturnFoundation(st, suit, to, rules, override) {
-  const r = resolved(rules);
-  if (!r.foundationReturn || !st.found[suit] || !to) return false;
+export function canReturnFoundation(st, suit, to, rules, override, from = 'original') {
+  const r = rulesForState(st, rules, -1);
+  const spur = from === 'spur';
+  if (!r.foundationReturn || !to || (spur ? st.spur?.suit !== suit || st.spur.top <= st.spur.base : !st.found[suit])) return false;
   if (r.foundationSpread) {
     let lo = 13, hi = 0;
     for (let s = 0; s < 4; s++) {
-      const n = st.found[s] - (s === suit ? 1 : 0);
+      const original = st.found[s] - (s === suit && !spur ? 1 : 0);
+      const n = st.spur?.suit === s ? Math.max(original, st.spur.top - (s === suit && spur ? 1 : 0)) : original;
       lo = Math.min(lo, n); hi = Math.max(hi, n);
     }
     if (hi - lo > r.foundationSpread) return false;
   }
-  const card = cardId(suit, st.found[suit]);
-  return to.kind === 'free' ? cellAccepts(st, to.i, card, r, -1)
-    : to.kind === 'col' && !!canPlaceTableau(st, to.i, card, 1, r, override);
+  const card = cardId(suit, spur ? st.spur.top : st.found[suit]);
+  if (r.colorSpread && Math.abs(suitHomeCount(st, 1) + suitHomeCount(st, 2) - suitHomeCount(st, 0) - suitHomeCount(st, 3) + (RED[suit] ? -1 : 1)) > r.colorSpread) return false;
+  if (to.kind === 'free') return cellAccepts(st, to.i, card, r, -1, override);
+  if (to.kind !== 'col') return false;
+  let placementState = st;
+  if (r.emptyCure) {
+    placementState = { ...st, found: [...st.found], ...(st.spur ? { spur: { ...st.spur } } : {}) };
+    if (spur) placementState.spur.top--;
+    else placementState.found[suit]--;
+  }
+  return !!canPlaceTableau(placementState, to.i, card, 1, r, override);
 }
 
 const customMoves = new Map();
@@ -142,8 +246,23 @@ export function dealFromSequence(sequence, freeCells = 4) {
 
 export function deal(dealNumber, rules = 4) {
   const r = typeof rules === 'number' ? { freeCells: rules } : rules || RULE_DEFAULTS;
-  const st = dealFromSequence(shuffleForDeal(dealNumber), r.freeCells ?? 4);
   const home = Math.max(0, Math.min(13, Math.floor(r.startHome || 0)));
+  const sequence = shuffleForDeal(dealNumber);
+  let st;
+  if (r.dealSkew) {
+    const presets = { slope: [10, 9, 8, 7, 6, 5, 4, 3], valley: [4, 6, 7, 9, 9, 7, 6, 4] };
+    const lengths = typeof r.dealSkew === 'string' ? presets[r.dealSkew] : r.dealSkew;
+    const total = lengths?.reduce((a, b) => a + b, 0);
+    if (!Array.isArray(lengths) || lengths.length !== 8 || lengths.some((n) => !Number.isInteger(n) || n < 0) || (total !== 52 && total !== 52 - home * 4))
+      throw new Error('dealSkew needs eight nonnegative lengths totaling 52 or the cards remaining after startHome');
+    const cards = total === 52 ? sequence : sequence.filter((id) => rankOf(id) > home);
+    st = { tableau: Array.from({ length: 8 }, () => []), free: new Array(r.freeCells ?? 4).fill(0), found: [0, 0, 0, 0] };
+    let c = 0;
+    for (const card of cards) {
+      while (st.tableau[c].length >= lengths[c]) c = (c + 1) % 8;
+      st.tableau[c].push(card); c = (c + 1) % 8;
+    }
+  } else st = dealFromSequence(sequence, r.freeCells ?? 4);
   if (home) {
     st.found.fill(home);
     st.tableau = st.tableau.map((col) => col.filter((id) => rankOf(id) > home));
@@ -162,6 +281,7 @@ export function cloneState(st) {
     free: st.free.slice(),
     found: st.found.slice(),
     ...(st.sealed !== undefined ? { sealed: st.sealed } : {}),
+    ...(st.spur ? { spur: { ...st.spur } } : {}),
   };
 }
 
@@ -169,29 +289,76 @@ export function cloneState(st) {
 // Queries
 // ---------------------------------------------------------------------------
 
-export function canStackOn(column, card, rules, override) {
-  const r = resolved(rules);
-  if (column.length === 0) return !r.emptyMinRank || rankOf(card) >= r.emptyMinRank;
+export function canStackOn(column, card, rules, override, st) {
+  const r = st ? rulesForState(st, rules) : resolved(rules);
+  if (column.length === 0) return !!override?.ignoreRestrictions || ((!r.emptyCure || (st ? cardsHome(st) : 0) >= r.emptyCure) && (!r.emptyMinRank || rankOf(card) >= r.emptyMinRank) && (!r.emptyMaxRank || rankOf(card) <= r.emptyMaxRank));
   const top = column[column.length - 1];
+  if (r.loneAccepts && column.length <= r.loneAccepts) override = { ...override, ignoreRank: true, ignoreColour: true };
   if (!override) return builds(top, card, r);
-  if (r.barren && (r.barren.suits & (1 << suitOf(top))) && (r.barren.ranks & (1 << rankOf(top)))) return false;
-  if (!override.ignoreRank && rankOf(card) !== rankOf(top) - 1) return false;
-  return override.ignoreColour || colorOf(card) !== colorOf(top) ||
+  if (!override.ignoreRestrictions && (r.barrenCards.includes(top) || (r.barren && (r.barren.suits & (1 << suitOf(top))) && (r.barren.ranks & (1 << rankOf(top)))))) return false;
+  if (r.anchorCards.includes(top)) return true;
+  const pr = rankOf(top) + (r.rankShift[top] || 0), cr = rankOf(card) + (r.rankShift[card] || 0);
+  if (!override.ignoreRank && cr !== pr - 1 && !(override.rankGap === 2 && cr === pr - 2) && !(cr === pr + 1 && (r.buildUp & (1 << suitOf(card)))) && !(cr === pr && r.twinStack) && !(cr === pr - 2 && r.skipBuild)) return false;
+  if (cr === pr - 2 && r.skipBuild && !override.ignoreRank) {
+    if (override.ignoreColour || r.skipBuild >= 2 || colorOf(card) === colorOf(top)) return true;
+    if (override.rankGap !== 2) return false; // a two-rank ability still adds its ordinary colour link
+  }
+  if (cr === pr && r.twinStack >= 2) return true;
+  return override.ignoreColour || ((r.sameColorRanks & (1 << rankOf(card))) && !override.ignoreRestrictions ? colorOf(card) === colorOf(top) : colorOf(card) !== colorOf(top)) ||
     !!(r.wildRanks & ((1 << rankOf(card)) | (1 << rankOf(top)))) ||
+    r.wildCards.includes(card) || r.wildCards.includes(top) ||
     !!((r.suitBuild & (1 << suitOf(card))) && suitOf(card) === suitOf(top));
 }
 
-export function foundationAccepts(st, card, rules) {
-  if (!card || st.found[suitOf(card)] !== rankOf(card) - 1) return false;
-  const r = resolved(rules);
+export function foundationAccepts(st, card, rules, dest = foundationDestination(st, card)) {
+  if (!card) return false;
+  if (dest === 'spur') {
+    if (st.spur?.suit !== suitOf(card) || rankOf(card) !== st.spur.top + 1) return false;
+  } else if (dest !== 'original' || st.found[suitOf(card)] !== rankOf(card) - 1 || (st.spur?.suit === suitOf(card) && rankOf(card) >= st.spur.base)) return false;
+  const r = rulesForState(st, rules);
+  if (isPinned(st, card, r)) return false;
+  const src = r.cellStack || r.maxEmpty ? sourceOf(st, card) : null;
+  if (src?.kind === 'free' && !canLeaveCell(st, src.i, r)) return false;
+  // The cap governs excavation; a checked foundation-only finish must remain possible.
+  if (!preservesEmptyLimit(st, src, 1, null, r) && !canFinishWithFoundationOnly(st, compileRules({ ...r, maxEmpty: 0, _compiled: false }))) return false;
+  if (r.colorSpread && Math.abs(suitHomeCount(st, 1) + suitHomeCount(st, 2) - suitHomeCount(st, 0) - suitHomeCount(st, 3) + (isRed(card) ? 1 : -1)) > r.colorSpread) return false;
+  if (r.gate?.suit === suitOf(card) && cardsHome(st) - suitHomeCount(st, r.gate.suit) < r.gate.after) return false;
   if (!r.foundationSpread) return true;
   let lo = 13, hi = 0;
   for (let s = 0; s < 4; s++) {
-    const n = s === suitOf(card) ? rankOf(card) : st.found[s];
+    const n = s === suitOf(card) ? Math.max(foundationTop(st, s), rankOf(card)) : foundationTop(st, s);
     lo = Math.min(lo, n); hi = Math.max(hi, n);
   }
   return hi - lo <= r.foundationSpread;
 }
+
+export function canPlantSpur(st, card, rules) {
+  if (!card || st.spur || rankOf(card) < st.found[suitOf(card)] + 2) return false;
+  const r = rulesForState(st, rules), src = sourceOf(st, card);
+  if (!src || isPinned(st, card, r) || (src.kind === 'free' && !canLeaveCell(st, src.i, r))) return false;
+  if (r.gate?.suit === suitOf(card) && cardsHome(st) - suitHomeCount(st, r.gate.suit) < r.gate.after) return false;
+  if (r.colorSpread && Math.abs(suitHomeCount(st, 1) + suitHomeCount(st, 2) - suitHomeCount(st, 0) - suitHomeCount(st, 3) + (isRed(card) ? 1 : -1)) > r.colorSpread) return false;
+  const tops = st.found.map((n, s) => s === suitOf(card) ? rankOf(card) : n);
+  if (r.foundationSpread && Math.max(...tops) - Math.min(...tops) > r.foundationSpread) return false;
+  if (!preservesEmptyLimit(st, src, 1, null, r)) return false;
+  return true;
+}
+
+registerCustomMove('voyage.spur', {
+  apply(st, m, rules) {
+    const card = m.src?.kind === 'free' ? st.free[m.src.i] : st.tableau[m.src?.i]?.at(-1);
+    if ((m.card && card !== m.card) || !canPlantSpur(st, card, rules)) throw new Error('Illegal Suit Spur plant');
+    m.card = card;
+    if (m.src.kind === 'free') st.free[m.src.i] = 0;
+    else st.tableau[m.src.i].pop();
+    st.spur = { suit: suitOf(card), base: rankOf(card), top: rankOf(card) };
+  },
+  undo(st, m) {
+    delete st.spur;
+    if (m.src.kind === 'free') st.free[m.src.i] = m.card;
+    else st.tableau[m.src.i].push(m.card);
+  },
+});
 
 // Number of cards, counted from the top, that form a valid descending
 // alternating-colour run.
@@ -206,26 +373,34 @@ export function runLength(column, rules) {
 }
 
 export function freeCapacity(st, rules) {
+  const r = resolved(rules);
   let freeCells = 0;
-  const active = activeFreeCells(st, rules);
-  for (let i = 0; i < active; i++) if (st.free[i] === 0) freeCells++;
+  const active = activeFreeCells(st, r);
+  for (let i = 0; i < active; i++) if (st.free[i] === 0 && !cellIsClosed(st, i, r)) freeCells++;
   let emptyCols = 0;
-  for (const c of st.tableau) if (c.length === 0) emptyCols++;
+  for (const c of st.tableau) if (c.length <= r.shallowCols && (!r.emptyCure || cardsHome(st) >= r.emptyCure)) emptyCols++;
   return { freeCells, emptyCols };
 }
 
+function fullBonus(st, r) {
+  if (!r.fullCellsBonus) return 0;
+  const active = activeFreeCells(st, r);
+  return r.fullCellsBonus && active > 0 && st.free.slice(0, active).every(Boolean) ? r.fullCellsBonus : 0;
+}
+
 // Classic FreeCell supermove capacity: (free cells + 1) * 2^(empty columns).
-export function maxMoveSize(st, movingToEmpty, rules) {
-  const r = resolved(rules);
+export function maxMoveSize(st, movingToEmpty, rules, cards) {
+  const r = rulesForState(st, rules);
+  if (cards?.length && (r.suitRunFree & (1 << suitOf(cards[0]))) && cards.every((id) => suitOf(id) === suitOf(cards[0]))) return Infinity;
   const { freeCells, emptyCols } = freeCapacity(st, r);
   let e = emptyCols - (movingToEmpty ? 1 : 0);
   if (e < 0) e = 0;
-  if (r.emptyMinRank >= 2) e = 0;
-  return Math.max(1, (freeCells + 1) * (r.emptyFactor === 2 ? 1 << e : r.emptyFactor ** e) + r.moveBonus);
+  if ((r.emptyCure && cardsHome(st) < r.emptyCure) || (!r.emptyAlwaysCounts && (r.emptyMinRank >= 2 || r.emptyMaxRank || r.emptyColors.some(Boolean)))) e = 0;
+  return Math.max(1, (freeCells + 1) * (r.emptyFactor === 2 ? 1 << e : r.emptyFactor ** e) + r.moveBonus + fullBonus(st, r));
 }
 
 export function isSolved(st) {
-  return st.found[0] + st.found[1] + st.found[2] + st.found[3] === 52;
+  return cardsHome(st) === 52;
 }
 
 export function isValidSequence(column, count, rules) {
@@ -255,8 +430,7 @@ export function applyMove(st, m, rules) {
   if (m.t === 'X') {
     customHandler(m).apply(st, m, rules);
   } else if (m.t === 'R') {
-    m.card = cardId(m.suit, st.found[m.suit]);
-    st.found[m.suit]--;
+    m.card = cardId(m.suit, m.from === 'spur' ? st.spur.top-- : st.found[m.suit]--);
     if (m.to.kind === 'free') st.free[m.to.i] = m.card;
     else st.tableau[m.to.i].push(m.card);
   } else if (m.t === 'F') {
@@ -266,7 +440,8 @@ export function applyMove(st, m, rules) {
     } else {
       m.card = st.tableau[m.src.i].pop();
     }
-    st.found[suitOf(m.card)] = rankOf(m.card);
+    if (m.dest === 'spur' || foundationDestination(st, m.card) === 'spur') { m.dest = 'spur'; st.spur.top = rankOf(m.card); }
+    else st.found[suitOf(m.card)] = rankOf(m.card);
   } else if (m.t === 'C') {
     m.card = st.tableau[m.src.i].pop();
     st.free[m.fi] = m.card;
@@ -290,9 +465,11 @@ export function undoMove(st, m, rules) {
   else if (m.t === 'R') {
     if (m.to.kind === 'free') st.free[m.to.i] = 0;
     else st.tableau[m.to.i].pop();
-    st.found[m.suit]++;
+    if (m.from === 'spur') st.spur.top++;
+    else st.found[m.suit]++;
   } else if (m.t === 'F') {
-    st.found[suitOf(m.card)] = rankOf(m.card) - 1;
+    if (m.dest === 'spur') st.spur.top--;
+    else st.found[suitOf(m.card)] = rankOf(m.card) - 1;
     if (m.src.kind === 'free') st.free[m.src.i] = m.card;
     else st.tableau[m.src.i].push(m.card);
   } else if (m.t === 'C') {
@@ -317,22 +494,23 @@ export function undoMove(st, m, rules) {
 // ---------------------------------------------------------------------------
 
 export function generateMoves(st, opts = {}) {
-  const r = resolved(opts.rules);
+  const r = rulesForState(st, opts.rules);
   const moves = [];
   const { freeCells, emptyCols } = freeCapacity(st, r);
   const emptyFree = [];
   const nFree = st.free.length;
   const nCols = st.tableau.length;
-  for (let i = 0; i < nFree; i++) if (st.free[i] === 0 && i < activeFreeCells(st, r)) emptyFree.push(i);
+  for (let i = 0; i < nFree; i++) if (st.free[i] === 0 && cellIsOpen(st, i, r)) emptyFree.push(i);
 
   for (let fi = 0; fi < nFree; fi++) {
     const card = st.free[fi];
     if (!card) continue;
+    if (!canLeaveCell(st, fi, r)) continue;
     if (foundationAccepts(st, card, r)) {
       moves.push({ t: 'F', src: { kind: 'free', i: fi }, card, score: 1200 + rankOf(card) });
     }
     for (let d = 0; d < nCols; d++) {
-      if (!(r.oneWayCellRanks & (1 << rankOf(card))) && canPlaceTableau(st, d, card, 1, r)) {
+      if ((r.freeCards.includes(card) || !(r.oneWayCellRanks & (1 << rankOf(card)))) && canPlaceTableau(st, d, card, 1, r)) {
         const s = 800 + (st.tableau[d].length ? 40 : 0) + rankOf(card);
         moves.push({ t: 'T', src: { kind: 'free', i: fi }, count: 1, to: d, card, score: s });
       }
@@ -348,15 +526,16 @@ export function generateMoves(st, opts = {}) {
       moves.push({ t: 'F', src: { kind: 'col', i: c }, card: top, score: 1100 + rankOf(top) });
     }
 
-    if (emptyFree.length > 0) {
+    if (emptyFree.length > 0 && !isPinned(st, top, r)) {
       const s = 250 + (col.length === 1 ? 120 : 0) + (col.length > 1 ? 10 : 0);
       // Cells with distinct locks are not interchangeable; retain one per lock class.
-      let seen = 0;
+      const seen = new Set();
       for (const fi of emptyFree) {
-        const cls = r.cellColors[fi] === 'red' ? 2 : r.cellColors[fi] === 'black' ? 4 : 1;
-        if (seen & cls) continue;
+        // Future thaw/close behaviour is index-dependent too, even while all cells are open.
+        const cls = r.cellClose || r.cellThaw || r.cellStack || r.cellsNeedEmpty ? fi : `${r.cellColors[fi] || ''}:${r.cellLimits[fi]?.maxRank ?? ''}:${r.cellLimits[fi]?.minRank ?? ''}:${r.cellLimits[fi]?.suits ?? ''}`;
+        if (seen.has(cls)) continue;
         if (!cellAccepts(st, fi, top, r)) continue;
-        seen |= cls;
+        seen.add(cls);
         moves.push({ t: 'C', fi, src: { kind: 'col', i: c }, card: top, score: s });
       }
     }
@@ -366,14 +545,23 @@ export function generateMoves(st, opts = {}) {
     for (let d = 0; d < nCols; d++) {
       if (d === c) continue;
       const destEmpty = st.tableau[d].length === 0;
-      const e = r.emptyMinRank >= 2 ? 0 : Math.max(0, emptyCols - (destEmpty ? 1 : 0));
-      const cap = Math.max(1, (freeCells + 1) * (r.emptyFactor === 2 ? 1 << e : r.emptyFactor ** e) + r.moveBonus);
-      const maxK = Math.min(run, Math.floor(cap));
+      const e = (r.emptyCure && cardsHome(st) < r.emptyCure) || (!r.emptyAlwaysCounts && (r.emptyMinRank >= 2 || r.emptyMaxRank || r.emptyColors.some(Boolean))) ? 0 : Math.max(0, emptyCols - (st.tableau[d].length <= r.shallowCols ? 1 : 0));
+      const cap = Math.max(1, (freeCells + 1) * (r.emptyFactor === 2 ? 1 << e : r.emptyFactor ** e) + r.moveBonus + fullBonus(st, r));
+      let maxK = Math.min(run, Math.floor(cap));
+      if (r.suitRunFree & (1 << suitOf(top))) {
+        let sameSuit = 1;
+        while (sameSuit < run && suitOf(col[col.length - sameSuit - 1]) === suitOf(top)) sameSuit++;
+        maxK = Math.max(maxK, sameSuit);
+      }
       const ks = fullOnly ? [...new Set([maxK > 1 ? maxK : 1, 1])] : Array.from({ length: maxK }, (_, i) => i + 1);
       for (const k of ks) {
         const card = col[col.length - k];
-        if ((st.sealed & (1 << d)) || (r.maxHeight && st.tableau[d].length + k > r.maxHeight) || !canStackOn(st.tableau[d], card, r)) continue;
-        if (destEmpty && k === col.length && !(st.sealed & (1 << c))) continue; // sealed sources gain capability when emptied
+        if (r.pinned && col.slice(-k).some((id) => isPinned(st, id, r))) continue;
+        if (!preservesEmptyLimit(st, { kind: 'col', i: c }, k, d, r) || (destEmpty && r.emptyColors[d] && (r.emptyColors[d] === 'red') !== isRed(card))) continue;
+        if (r.suitRunFree && k > cap && k > maxMoveSize(st, st.tableau[d].length <= r.shallowCols, r, col.slice(-k))) continue;
+        if (r.openCols || r.loneAccepts || r.emptyCure || r.noExitCols ? !canPlaceTableau(st, d, card, k, r, null, col.slice(-k))
+          : (st.sealed & (1 << d)) || (r.maxHeight && st.tableau[d].length + k > r.maxHeight) || !canStackOn(st.tableau[d], card, r)) continue;
+        if (destEmpty && k === col.length && !(st.sealed & (1 << c)) && r.emptyColors[c] === r.emptyColors[d] && !!(r.openCols & (1 << c)) === !!(r.openCols & (1 << d)) && !!(r.noExitCols & (1 << c)) === !!(r.noExitCols & (1 << d))) continue; // distinct slots and sealed sources gain capability when moved
         let score = 600 + k;
         if (destEmpty) score = 220 + k;
         if (k === col.length) score += 70; // frees a column
@@ -392,12 +580,20 @@ export function generateMoves(st, opts = {}) {
     for (let suit = 0; suit < 4; suit++) {
       if (!st.found[suit]) continue;
       const card = cardId(suit, st.found[suit]);
-      for (let d = 0; d < nCols; d++) if (canReturnFoundation(st, suit, { kind: 'col', i: d }, r))
+      for (let d = 0; d < nCols; d++) if (canReturnFoundation(st, suit, { kind: 'col', i: d }, opts.rules))
         moves.push({ t: 'R', suit, to: { kind: 'col', i: d }, card, score: 50 });
-      for (const fi of emptyFree) if (canReturnFoundation(st, suit, { kind: 'free', i: fi }, r))
+      for (const fi of emptyFree) if (canReturnFoundation(st, suit, { kind: 'free', i: fi }, opts.rules))
         moves.push({ t: 'R', suit, to: { kind: 'free', i: fi }, card, score: 40 });
     }
+    if (st.spur && st.spur.top > st.spur.base) {
+      const suit = st.spur.suit, card = cardId(suit, st.spur.top);
+      for (let d = 0; d < nCols; d++) if (canReturnFoundation(st, suit, { kind: 'col', i: d }, opts.rules, null, 'spur'))
+        moves.push({ t: 'R', suit, from: 'spur', to: { kind: 'col', i: d }, card, score: 50 });
+      for (const fi of emptyFree) if (canReturnFoundation(st, suit, { kind: 'free', i: fi }, opts.rules, null, 'spur'))
+        moves.push({ t: 'R', suit, from: 'spur', to: { kind: 'free', i: fi }, card, score: 40 });
+    }
   }
+  if (st.spur) for (const m of moves) if (m.t === 'F' && foundationDestination(st, m.card) === 'spur') m.dest = 'spur';
   return moves;
 }
 
@@ -413,6 +609,7 @@ export function hashState(st) {
     h2 = Math.imul(h2 ^ v, 2246822519);
   };
   if (st.sealed !== undefined) { mix(251); mix(st.sealed); }
+  if (st.spur) { mix(250); mix(st.spur.suit); mix(st.spur.base); mix(st.spur.top); }
   mix(255);
   for (let i = 0; i < st.free.length; i++) mix(st.free[i]);
   mix(254);
@@ -426,9 +623,22 @@ export function hashState(st) {
   return (h1 >>> 0) * 2097152 + ((h2 >>> 0) & 0x1fffff);
 }
 
-export function safeToFoundation(st, card, rules) {
+export function safeToFoundation(st, card, rules, dest = foundationDestination(st, card)) {
   const r = resolved(rules);
-  if (!foundationAccepts(st, card, r)) return false;
+  if (r.phase && (!safeToFoundation(st, card, { ...r, phase: null }, dest) || !safeToFoundation(st, card, r.phaseRules, dest))) return false;
+  if (!foundationAccepts(st, card, r, dest)) return false;
+  // Loose bases and full-cell bonuses can disappear when their card goes home.
+  if (r.loneAccepts || (fullBonus(st, r) && st.free.includes(card))) return false;
+  // Closing a cell removes parking space, so a foundation move cannot be forced by the search.
+  if (r.cellClose?.at.length) return false;
+  if (r.openCols && (r.emptyMinRank || r.emptyMaxRank || r.emptyColors.some(Boolean))) return false;
+  // A colour balance cap can make the next opposite-colour home move necessary first.
+  if (r.colorSpread) return false;
+  if (st.spur || r.cellExitWild || r.wildCards.length || r.anchorCards.length || r.buildUp || r.suitBuild || r.twinStack || r.skipBuild || r.sameColorRanks || Object.keys(r.rankShift).length) {
+    for (let child = 1; child <= 52; child++)
+      if (child !== card && (r.cellExitWild ? canStackOn([card], child, r, { ignoreColour: true }) : builds(card, child, r)) && !cardIsHome(st, child)) return false;
+    return true;
+  }
   // Wild ranks add same-colour dependents. Every newly permitted child must be home.
   if (r.wildRanks & ((1 << rankOf(card)) | (1 << (rankOf(card) - 1)))) {
     for (let s = 0; s < 4; s++) if (st.found[s] < rankOf(card) - 1) return false;
@@ -585,8 +795,8 @@ export function solve(initial, options = {}) {
     if (!r.aborted && !r.hitDepth) {
       // The entire reachable state space was searched: provably unsolvable.
       return {
-        solvable: rules.foundationReturn || (fullOnly && !rules.classic) ? null : false,
-        confident: !rules.foundationReturn && (!fullOnly || rules.classic),
+        solvable: rules.foundationReturn || (fullOnly && (!rules.classic || initial.spur)) ? null : false,
+        confident: !rules.foundationReturn && (!fullOnly || (rules.classic && !initial.spur)),
         solution: null,
         nodes: totalNodes,
         attempts: attempt + 1,
@@ -608,7 +818,7 @@ export function solve(initial, options = {}) {
 
 export function cleanMove(m) {
   if (m.t === 'X' || m.t === 'R' || m.override) return structuredClone(m);
-  if (m.t === 'F') return { t: 'F', src: { kind: m.src.kind, i: m.src.i }, card: m.card };
+  if (m.t === 'F') return { t: 'F', src: { kind: m.src.kind, i: m.src.i }, card: m.card, ...(m.dest ? { dest: m.dest } : {}) };
   if (m.t === 'C') return { t: 'C', fi: m.fi, src: { kind: 'col', i: m.src.i }, card: m.card };
   return { t: 'T', src: { kind: m.src.kind, i: m.src.i }, count: m.count, to: m.to, card: m.card };
 }
@@ -625,6 +835,7 @@ export function safeFoundationMoves(st, rules) {
     if (col.length && safeToFoundation(st, col[col.length - 1], r)) out.push({ src: { kind: 'col', i: c }, card: col[col.length - 1] });
   }
   for (let f = 0; f < st.free.length; f++) if (st.free[f] && safeToFoundation(st, st.free[f], r)) out.push({ src: { kind: 'free', i: f }, card: st.free[f] });
+  if (st.spur) for (const m of out) if (foundationDestination(st, m.card) === 'spur') m.dest = 'spur';
   return out;
 }
 
@@ -639,6 +850,7 @@ export function legalFoundationMoves(st, rules) {
   for (let f = 0; f < st.free.length; f++) {
     if (st.free[f] && foundationAccepts(st, st.free[f], r)) out.push({ src: { kind: 'free', i: f }, card: st.free[f] });
   }
+  if (st.spur) for (const m of out) if (foundationDestination(st, m.card) === 'spur') m.dest = 'spur';
   return out.sort((a, b) => rankOf(a.card) - rankOf(b.card));
 }
 
@@ -667,6 +879,8 @@ export function canFinishWithFoundationOnly(st, rules) {
 export class Game {
   constructor(dealNumber, { freeCells, rules } = {}) {
     this.rules = structuredClone({ ...RULE_DEFAULTS, ...rules, freeCells: freeCells ?? rules?.freeCells ?? 4 });
+    // A caller may supply a search snapshot; live game rules must remain plain and mutable.
+    for (const key of ['_compiled', 'classic', 'build', 'noCellLo', 'noCellHi', 'phaseRules']) delete this.rules[key];
     this.override = null;
     freeCells = this.rules.freeCells;
     this.dealNumber = dealNumber;
@@ -703,43 +917,49 @@ export class Game {
   canMoveSequenceStart(colIndex, startIndex) {
     const col = this.tableau[colIndex];
     if (startIndex < 0 || startIndex >= col.length) return false;
+    if (this.rules.pinned && col.slice(startIndex).some((id) => isPinned(this.state, id, this.rules))) return false;
     return !!this.override?.anyCard || startIndex >= sequenceStart(col, this.rules);
   }
 
-  canDropTableau(colIndex, card, count = 1) {
-    return !!canPlaceTableau(this.state, colIndex, card, count, this.rules, this.override);
+  canDropTableau(colIndex, card, count = 1, cards) {
+    return !!canPlaceTableau(this.state, colIndex, card, count, this.rules, this.override, cards);
   }
 
-  canDropFoundation(card) {
-    return foundationAccepts(this.state, card, this.rules);
+  canDropFoundation(card, dest) {
+    return foundationAccepts(this.state, card, this.rules, dest);
   }
 
   canDropFreeCell(freeIndex, card) {
-    return card ? cellAccepts(this.state, freeIndex, card, this.rules)
-      : this.free[freeIndex] === 0 && freeIndex < activeFreeCells(this.state, this.rules);
+    freeIndex = cellEntryIndex(this.state, freeIndex, this.rules);
+    return card ? cellAccepts(this.state, freeIndex, card, this.rules, 0, this.override)
+      : this.free[freeIndex] === 0 && cellIsOpen(this.state, freeIndex, this.rules);
   }
 
   canMoveFreeToTableau(fi, destCol) {
     const card = this.free[fi];
-    return !!card && !(this.rules.oneWayCellRanks & (1 << rankOf(card))) && this.canDropTableau(destCol, card, 1);
+    const r = rulesForState(this.state, this.rules);
+    return !!card && (r.freeCards.includes(card) || !(r.oneWayCellRanks & (1 << rankOf(card)))) && this.canDropTableau(destCol, card, 1);
   }
 
-  canReturnFoundation(suit, to) {
-    return !!canReturnFoundation(this.state, suit, to, this.rules, this.override);
+  canReturnFoundation(suit, to, from) {
+    if (to?.kind === 'free') to = { ...to, i: cellEntryIndex(this.state, to.i, this.rules) };
+    return !!canReturnFoundation(this.state, suit, to, this.rules, this.override, from);
   }
 
   // --- mutations --------------------------------------------------------
 
-  moveToFoundation(src) {
+  moveToFoundation(src, dest) {
     const card = this._peek(src);
-    if (!card || !foundationAccepts(this.state, card, this.rules)) return null;
+    if (!card || !foundationAccepts(this.state, card, this.rules, dest)) return null;
     const m = { t: 'F', src, card };
+    if (foundationDestination(this.state, card) === 'spur') m.dest = 'spur';
     this._apply(m);
     this.history.push(m);
     return m;
   }
 
   moveToFreeCell(src, fi) {
+    fi = cellEntryIndex(this.state, fi, this.rules);
     const card = this._peek(src);
     if (!card || !this.canDropFreeCell(fi, card)) return null;
     if (src.kind !== 'col') return null;
@@ -754,7 +974,7 @@ export class Game {
     if (srcCol === destCol || !this.canMoveSequenceStart(srcCol, startIndex)) return null;
     const count = col.length - startIndex;
     const card = col[startIndex];
-    if (!this.canDropTableau(destCol, card, count)) return null;
+    if (!this.canDropTableau(destCol, card, count, col.slice(startIndex))) return null;
     const m = { t: 'T', src: { kind: 'col', i: srcCol }, count, to: destCol, card };
     this._apply(m);
     this.history.push(m);
@@ -770,9 +990,11 @@ export class Game {
     return m;
   }
 
-  moveFoundationReturn(suit, to) {
-    if (!this.canReturnFoundation(suit, to)) return null;
+  moveFoundationReturn(suit, to, from) {
+    if (to?.kind === 'free') to = { ...to, i: cellEntryIndex(this.state, to.i, this.rules) };
+    if (!this.canReturnFoundation(suit, to, from)) return null;
     const m = { t: 'R', suit, to: { ...to } };
+    if (from === 'spur') m.from = 'spur';
     this._apply(m);
     this.history.push(m);
     return m;
@@ -785,9 +1007,10 @@ export class Game {
 
   _apply(m) {
     const tableauDrop = m.t === 'T' || (m.t === 'R' && m.to.kind === 'col') || (m.t === 'X' && m.tableauDrop === true);
-    if (tableauDrop && this.override) m.override = { ...this.override };
+    const consumesOverride = tableauDrop || ((m.t === 'C' || (m.t === 'R' && m.to.kind === 'free')) && this.override?.ignoreRestrictions);
+    if (consumesOverride && this.override) m.override = structuredClone(this.override);
     applyMove(this.state, m, this.rules);
-    if (tableauDrop && m.override) this.override = null;
+    if (consumesOverride && m.override) this.override = null;
   }
 
   // Apply a descriptor produced by the solver (assumed legal).

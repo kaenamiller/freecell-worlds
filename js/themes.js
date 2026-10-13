@@ -958,7 +958,7 @@ export const THEMES = {
   },
 };
 
-export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'space', 'azulejo', 'jetset', 'riverboat', 'carvings', 'varsity', 'driftwood', 'pinecone', 'winterglass', 'concrete', ...EXPANSION_THEME_ORDER];
+export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'azulejo', 'jetset', 'riverboat', 'carvings', 'pinecone', 'winterglass', 'concrete', ...EXPANSION_THEME_ORDER];
 
 export function randomThemeId(currentId) {
   const others = THEME_ORDER.filter((id) => id !== currentId);
@@ -975,7 +975,9 @@ export function loadImage(url) {
   const p = new Promise((resolve) => {
     const img = new Image();
     img.decoding = 'async';
-    img.onload = () => resolve(img);
+    // Decode off the main thread now, so the first texture upload or canvas
+    // draw doesn't stall on a synchronous decode of a 2K board image.
+    img.onload = () => img.decode().then(() => resolve(img), () => resolve(img));
     img.onerror = () => resolve(null);
     img.src = url;
   });

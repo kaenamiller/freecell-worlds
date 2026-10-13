@@ -1,7 +1,17 @@
-// winterglass: boons + challenge. Spec: docs/voyage/charms-design.md (theme `winterglass`).
+// winterglass: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `winterglass`).
 import { defineCharm } from '../registry.js';
-import { SCORE } from '../config.js';
 import { cardsOfRanks, rankMask } from './kit.js';
+
+function frostColors(ctx) {
+  const s = ctx.strength;
+  if (s >= 5) return Array.from({ length: 8 }, (_, i) => (i % 2 ? 'black' : 'red'));
+  const count = s <= 2 ? 2 : 4;
+  const cols = ctx.rng.shuffle([0, 1, 2, 3, 4, 5, 6, 7]).slice(0, count);
+  const colors = Array(8).fill(null);
+  const pick = ctx.rng.int(2) ? 'red' : 'black';
+  cols.forEach((c) => { colors[c] = pick; });
+  return colors;
+}
 
 defineCharm({
   id: 'winterglass.prism',
@@ -9,12 +19,18 @@ defineCharm({
   theme: 'winterglass',
   name: 'Prism',
   icon: '💎',
-  text: 'Queens are wild: they ignore colour when stacking.',
+  family: 'wild',
+  text: 'Queens are wild.',
+  upgrade: 'Queens and Kings are wild.',
   ease: 0.25,
-  rules(r) {
-    r.wildRanks = (r.wildRanks || 0) | rankMask(12);
+  rules(r, ctx) {
+    const ranks = ctx.level === 2 ? [12, 13] : [12];
+    r.wildRanks = (r.wildRanks || 0) | rankMask(...ranks);
   },
-  setup(_board, ctx) { ctx.api.mark(cardsOfRanks([12]), 'wild'); },
+  setup(_board, ctx) {
+    const ranks = ctx.level === 2 ? [12, 13] : [12];
+    ctx.api.mark(cardsOfRanks(ranks), 'wild');
+  },
 });
 
 defineCharm({
@@ -23,28 +39,13 @@ defineCharm({
   theme: 'winterglass',
   name: 'Snowdrift',
   icon: '❄️',
-  text: 'Your free-cell point budget is 200 higher.',
-  score(sb) {
-    const n = sb.stat.freeCellPlacements;
-    const line = sb.lines.find((l) => l.key === 'freecells');
-    if (line) line.pts = Math.max(0, SCORE.freeCellBudget + 200 - n * SCORE.freeCellCost);
-  },
-});
-
-defineCharm({
-  id: 'winterglass.globe',
-  kind: 'boon',
-  theme: 'winterglass',
-  name: 'Snow Globe',
-  icon: '🌨️',
-  text: 'The first time each board you fill your last free cell, gain +1 undo.',
-  on: {
-    freecell(ctx) {
-      if (ctx.memo.used) return;
-      if (!ctx.api.state.free.every((c) => c !== 0)) return;
-      ctx.memo.used = true;
-      ctx.api.addUndos(1);
-    },
+  family: 'columns',
+  text: 'Empty columns always multiply your move capacity, even when a challenge limits what they accept.',
+  upgrade: '…and empty columns triple it.',
+  ease: 0.15,
+  rules(r, ctx) {
+    r.emptyAlwaysCounts = true;
+    if (ctx.level === 2) r.emptyFactor = Math.max(r.emptyFactor || 2, 3);
   },
 });
 
@@ -52,13 +53,16 @@ defineCharm({
   id: 'winterglass.challenge',
   kind: 'challenge',
   theme: 'winterglass',
-  name: 'Brittle Glass',
-  icon: '🧊',
-  tags: ['SCORE'],
-  text: (s) => `Each free-cell placement after the ${Math.max(2, 8 - s)}th costs 40 points.`,
-  score(sb, ctx) {
-    const allowance = Math.max(2, 8 - ctx.strength);
-    const extra = Math.max(0, sb.stat.freeCellPlacements - allowance);
-    if (extra) sb.add('brittle', 'Brittle Glass', -extra * 40);
+  name: 'Frost Pattern',
+  icon: '❄️',
+  tags: ['COLUMN'],
+  text: (s) => {
+    if (s <= 2) return 'Empty columns only accept sequences headed by a set colour: 2 columns.';
+    if (s <= 4) return 'Empty columns only accept sequences headed by a set colour: 4 columns.';
+    return 'Empty columns only accept sequences headed by a set colour: all 8, alternating red/black.';
+  },
+  ease: (ctx) => -0.1 * ctx.strength,
+  rules(r, ctx) {
+    r.emptyColors = frostColors(ctx);
   },
 });

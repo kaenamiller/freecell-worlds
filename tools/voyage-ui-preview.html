@@ -6,5 +6,9 @@
 body.preview-clean #preview-controls { display: none; }
 #preview-background { position: fixed; inset: 0; background: radial-gradient(ellipse at center, color-mix(in srgb, var(--accent) 14%, var(--bg)), var(--bg)); }
 body.preview-clean #title-screen { z-index: 1; }
+#preview-marks { position: fixed; inset: 8vh 4vw; overflow: auto; padding: 24px; background: var(--panel-solid); color: var(--text); text-align: center; }
+.preview-mark-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 15px; margin: 24px auto; max-width: 900px; }
+.preview-mark-grid figure { margin: 0; } .preview-mark-grid canvas { width: 100%; height: auto; } .preview-mark-grid figcaption { text-transform: capitalize; margin-top: 8px; }
+@media(max-width:600px) { .preview-mark-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; } #preview-marks { inset: 2vh 4vw; padding: 18px; } }
 @media(max-width:600px) { #preview-controls .note { display: none; } }
-</style></head><body data-theme="roman"><div id="preview-background"></div><div id="preview-controls"><strong>Voyage UI</strong><label>Screen <select id="preview-screen"></select></label><label>Theme <select id="preview-theme"></select></label><button id="preview-next">Next →</button><span class="note">Click nodes, charms, tabs and actions to inspect them.</span></div><script type="module" src="./voyage-ui-preview.mjs"></script></body></html>
+</style><script type="importmap">{"imports":{"three":"../vendor/three.module.js"}}</script></head><body data-theme="roman"><div id="preview-background"></div><div id="preview-controls"><strong>Voyage UI</strong><label>Screen <select id="preview-screen"></select></label><label>Theme <select id="preview-theme"></select></label><button id="preview-next">Next →</button><span class="note">Click nodes, charms, tabs and actions to inspect them.</span></div><script type="module" src="./voyage-ui-preview.mjs"></script></body></html>

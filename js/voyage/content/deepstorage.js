@@ -1,4 +1,5 @@
-// deepstorage: boons + challenge. Spec: docs/voyage/charms-design.md (theme `deepstorage`).
+// deepstorage: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `deepstorage`).
+// Complex: deepstorage.redaction in ./special/deepstorage.redaction.js
 import { defineCharm } from '../registry.js';
 
 defineCharm({
@@ -7,7 +8,9 @@ defineCharm({
   theme: 'deepstorage',
   name: 'Clearance',
   icon: '🪪',
+  family: 'vision',
   text: 'Face-down cards on your boards start face-up; on boards without any, +1 undo.',
+  upgrade: 'Face-down cards start face-up; on boards without any, +1 undo — and +1 undo on every board.',
   ease: 0.15,
   setup(board, ctx) {
     const hidden = [...ctx.api.concealed];
@@ -16,24 +19,10 @@ defineCharm({
   },
   on: {
     start(ctx) {
+      if (ctx.level === 2) ctx.api.addUndos(1);
       if (!ctx.memo.grantUndo) return;
       delete ctx.memo.grantUndo;
       ctx.api.addUndos(1);
-    },
-  },
-});
-
-defineCharm({
-  id: 'deepstorage.redundancy',
-  kind: 'boon',
-  theme: 'deepstorage',
-  name: 'Redundancy',
-  icon: '💽',
-  text: 'Every 3rd undo you spend is refunded.',
-  on: {
-    undo(ctx) {
-      ctx.runMemo.spent = (ctx.runMemo.spent || 0) + 1;
-      if (ctx.runMemo.spent % 3 === 0) ctx.api.addUndos(1);
     },
   },
 });
@@ -44,9 +33,14 @@ defineCharm({
   theme: 'deepstorage',
   name: 'Archive',
   icon: '🗄️',
-  text: 'One extra free cell.',
-  rules(r) {
-    r.freeCells += 1;
+  family: 'sticker',
+  text: 'At each port, the first sticker you buy is free.',
+  upgrade: 'The first two.',
+  price(item, cost, ctx) {
+    if (item.kind !== 'sticker') return cost;
+    const allowance = ctx.level === 2 ? 2 : 1;
+    const bought = ctx.port?.stickers?.filter((o) => o.sold).length || 0;
+    return bought < allowance ? 0 : cost;
   },
 });
 
@@ -56,6 +50,7 @@ defineCharm({
   theme: 'deepstorage',
   name: 'Redacted',
   icon: '⬛',
+  pressure: true,
   tags: ['VIS'],
   text: (s) => {
     const n = 1 + Math.floor(s / 2);

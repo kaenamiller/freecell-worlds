@@ -1,12 +1,15 @@
 // Shared S2 checks; each charm supplies its own target and illegal descriptors.
 export function check({ assert, CHARMS }) {
-  for (const id of ['space.tractor', 'carvings.raven', 'lowtide.tidepool', 'museum.digsite']) {
+  for (const id of ['signal.pull', 'carvings.raven', 'lowtide.tidepool', 'museum.digsite']) {
     const charm = CHARMS[id];
     assert(charm && !charm.placeholder);
     assert.equal(charm.kind, 'boon');
     assert.equal(charm.theme, id.split('.')[0]);
     assert(charm.ease > 0 && charm.ease <= 0.5);
-    assert.equal(charm.ability.uses, 1);
+    // v2: level 2 doubles the uses, so `uses` may be a function of ctx.level.
+    const uses = (level) => typeof charm.ability.uses === 'function' ? charm.ability.uses({ level }) : charm.ability.uses;
+    assert.equal(uses(1), 1);
+    assert.equal(uses(2), 2);
   }
 }
 export async function targeted(h, id, fixture, illegal) {

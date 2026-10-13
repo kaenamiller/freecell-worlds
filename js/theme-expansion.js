@@ -221,6 +221,77 @@ const WORLDS = [
     detail: 'wood', roughness: 0.88, key: '#ffe0b0', fill: '#b7c6d2', ambient: '#e7d3a8', count: 14,
     glow: 0.12, vignette: 0.36,
   },
+  // Final roster: palettes follow tools/gen-locked-themes.mjs.
+  {
+    id: 'signal', name: 'Signal', tagline: 'Cold stars, a radio dish and an amber window.',
+    font: 'Antonio', bg: '#101827', panel: '#1c2838', accent: '#e5b263', secondary: '#a8c7df',
+    paper: ['#f6f3e8', '#e1e5e6'], ink: '#172436', red: '#a6323f', rail: '#303b48', inlay: '#b88741',
+    detail: 'carbon', roughness: 0.88, key: '#f5ead2', fill: '#a6c9ec', ambient: '#cbd8e5', count: 10,
+    exposure: 0.96, vignette: 0.36,
+  },
+  {
+    id: 'rink', name: 'Roller Rink', tagline: 'Maple floors, a mirror ball and the last slow skate.',
+    font: 'Josefin Sans', bg: '#291c2d', panel: '#39283d', accent: '#f1b5d4', secondary: '#86d7d1',
+    paper: ['#fff6e8', '#eadfc9'], ink: '#2c2334', red: '#aa2d60', rail: '#713652', inlay: '#becbd1',
+    detail: 'wood', roughness: 0.58, clearcoat: 0.2, key: '#ffe6c7', fill: '#9cddd7', ambient: '#f2c9df', count: 22,
+    glow: 0.14, exposure: 1.0, vignette: 0.26,
+  },
+  {
+    id: 'darkroom', name: 'The Darkroom', tagline: 'Red safelight, silver trays and a print coming clear.',
+    font: 'Antonio', bg: '#170e10', panel: '#29181b', accent: '#ee8c80', secondary: '#c1c4c7',
+    paper: ['#fcf1de', '#e8dcc5'], ink: '#241a1b', red: '#a32936', rail: '#68232e', inlay: '#a5a8ad',
+    detail: 'paint', roughness: 0.96, key: '#f6ded0', fill: '#b86b72', ambient: '#d69c91', count: 8,
+    glow: 0.08, vignette: 0.42,
+  },
+  {
+    id: 'smokewatch', name: 'Smoke Watch', tagline: 'Pine boards, blue smoke and a stove at dusk.',
+    font: 'Antonio', bg: '#252d2e', panel: '#313b3c', accent: '#e7b177', secondary: '#a4b8d0',
+    paper: ['#fff2db', '#e8dcc4'], ink: '#26332e', red: '#a33e33', rail: '#514d42', inlay: '#b6864c',
+    detail: 'wood', roughness: 0.92, key: '#ffe1b8', fill: '#b7bfdc', ambient: '#c7c3b1', count: 14,
+    exposure: 0.98, vignette: 0.32,
+  },
+  {
+    id: 'bloodmoon', name: 'Bloodmoon', tagline: 'Cold stone, crimson moonlight and one last candle.',
+    font: 'Cinzel', bg: '#1d151c', panel: '#30212a', accent: '#e0b278', secondary: '#c77887',
+    paper: ['#faefda', '#e4d4ba'], ink: '#281d22', red: '#98283d', rail: '#492632', inlay: '#b18d56',
+    detail: 'wood', roughness: 0.9, key: '#ffe0b5', fill: '#a9b6d8', ambient: '#dec0a0', count: 14,
+    glow: 0.1, vignette: 0.42,
+  },
+  {
+    id: 'deepsea', name: 'Deep Sea', tagline: 'Black water, brass glass and a drift of living light.',
+    font: 'Cormorant Garamond', bg: '#0c202b', panel: '#173440', accent: '#8fdee4', secondary: '#e6b4c4',
+    paper: ['#f4f5e9', '#dfe9df'], ink: '#16303c', red: '#a53357', rail: '#495347', inlay: '#bda06b',
+    detail: 'carbon', roughness: 0.76, key: '#e5f3ec', fill: '#7abfd6', ambient: '#b0dbe5', count: 22,
+    particles: 'bubbles', glow: 0.12, vignette: 0.38, caustics: { color: 0x8acdd6, opacity: 0.035 },
+  },
+  {
+    id: 'plaster', name: 'Plaster Studio', tagline: 'Linen sheets, clay dust and cool north light.',
+    font: 'Cormorant Garamond', bg: '#373738', panel: '#484444', accent: '#f0d3bd', secondary: '#becbd4',
+    paper: ['#fffbf1', '#eee7da'], ink: '#353438', red: '#a14349', rail: '#ae8277', inlay: '#be9d86',
+    detail: 'slate', roughness: 0.98, inlayMetal: 0, key: '#fff5e3', fill: '#d0ddea', ambient: '#ded8ce', count: 16,
+    exposure: 0.98, vignette: 0.2, slotInk: '#665c5b', slotAccent: '#80655c',
+  },
+  {
+    id: 'backrooms', name: 'Backrooms', tagline: 'Yellow walls, damp carpet and a hum with no end.',
+    font: 'Antonio', bg: '#373326', panel: '#484231', accent: '#e9d492', secondary: '#cad4ae',
+    paper: ['#fff7dc', '#eee3bd'], ink: '#343226', red: '#963d3e', rail: '#968650', inlay: '#d1be7b',
+    detail: 'cloth', roughness: 0.98, inlayMetal: 0, key: '#f0f1ce', fill: '#c2d0b1', ambient: '#dfdbad', count: 6,
+    exposure: 0.98, vignette: 0.3, slotInk: '#655633', slotAccent: '#756039',
+  },
+  {
+    id: 'vaporwave', name: 'Vaporwave', tagline: 'Pink marble, teal glass and a mall after sunset.',
+    font: 'Josefin Sans', bg: '#36253e', panel: '#49334e', accent: '#f2b3cf', secondary: '#8cddd9',
+    paper: ['#fff8ee', '#efdfdf'], ink: '#2b3349', red: '#ad3069', rail: '#7c526f', inlay: '#73bfc5',
+    detail: 'marble', roughness: 0.65, clearcoat: 0.16, inlayMetal: 0, key: '#ffe2d5', fill: '#a6dedd', ambient: '#e5b9d8', count: 12,
+    glow: 0.12, exposure: 1.0, vignette: 0.23, slotInk: '#70445e', slotAccent: '#36757a',
+  },
+  {
+    id: 'cinema', name: 'Silent Cinema', tagline: 'Silver light, velvet seats and dust in the beam.',
+    font: 'Josefin Sans', bg: '#201c20', panel: '#302730', accent: '#e0c28c', secondary: '#bec8d2',
+    paper: ['#fff4df', '#e8ddc8'], ink: '#262329', red: '#a03147', rail: '#612e3c', inlay: '#b99b60',
+    detail: 'paint', roughness: 0.95, key: '#fff0d7', fill: '#c1cad7', ambient: '#e2d9c7', count: 20,
+    vignette: 0.4,
+  },
 ];
 
 function worldTheme(w) {
@@ -231,7 +302,7 @@ function worldTheme(w) {
       '--bg': w.bg, '--panel': rgba(w.panel, 0.94), '--panel-solid': w.panel,
       '--border': rgba(w.accent, 0.42), '--text': w.paper[0], '--muted': w.paper[1],
       '--accent': w.accent, '--accent-2': w.secondary, '--glow': rgba(w.accent, 0.24),
-      '--radius': ['canyon', 'saloon', 'forge', 'lapis', 'keep', 'deepstorage', 'arctic', 'museum', 'prizelights', 'safetypin', 'broadcast', 'risograph', 'runes'].includes(w.id) ? '5px' : '9px',
+      '--radius': ['canyon', 'saloon', 'forge', 'lapis', 'keep', 'deepstorage', 'arctic', 'museum', 'prizelights', 'safetypin', 'broadcast', 'risograph', 'runes', 'signal', 'darkroom', 'smokewatch', 'bloodmoon', 'backrooms'].includes(w.id) ? '5px' : '9px',
       '--font-ui': `'${w.font}', ${w.font === 'Antonio' ? "'Arial Narrow', sans-serif" : w.font === 'Josefin Sans' || w.font === 'Fredoka' ? "'Trebuchet MS', sans-serif" : 'Georgia, serif'}`,
     },
     card: {
@@ -260,9 +331,10 @@ function worldTheme(w) {
       ...(w.caustics ? { caustics: w.caustics } : {}),
     },
     slots: {
-      col: { fill: 'rgba(0,0,0,0.15)', stroke: rgba(w.paper[0], 0.52), dash: [18, 12], glow: 0 },
-      free: { fill: 'rgba(0,0,0,0.25)', stroke: rgba(w.paper[0], 0.86), dash: [18, 10], glow: 0, mark: rgba(w.paper[0], 0.68) },
-      found: { fill: 'rgba(0,0,0,0.3)', stroke: rgba(w.accent, 1), dash: [], glow: 0, inner: rgba(w.secondary, 0.65) },
+      col: { fill: 'rgba(0,0,0,0.15)', stroke: rgba(w.slotInk || w.paper[0], 0.52), dash: [18, 12], glow: 0 },
+      free: { fill: 'rgba(0,0,0,0.25)', stroke: rgba(w.slotInk || w.paper[0], 0.86), dash: [18, 10], glow: 0, mark: rgba(w.slotInk || w.paper[0], 0.68) },
+      found: { fill: 'rgba(0,0,0,0.3)', stroke: rgba(w.slotAccent || w.accent, 1), dash: [], glow: 0, inner: rgba(w.slotInk || w.secondary, 0.65),
+        ...(w.slotInk ? { lightSurface: true, markOpacity: 0.65 } : {}) },
     },
     particles: w.particles || 'motes', ambientColor: channels(w.ambient), ambientCount: w.count,
     fx: { spark: light, dust: channels(w.paper[1]), flash: rgb(w.accent) },
@@ -272,5 +344,7 @@ function worldTheme(w) {
   };
 }
 
-export const EXPANSION_THEME_ORDER = WORLDS.map((w) => w.id);
+// Retain these definitions for saved settings; hide them from all live rosters.
+const RETIRED_WORLDS = new Set(['nighttrain', 'keep', 'canopy']);
+export const EXPANSION_THEME_ORDER = WORLDS.filter((w) => !RETIRED_WORLDS.has(w.id)).map((w) => w.id);
 export const EXPANSION_THEMES = Object.fromEntries(WORLDS.map((w) => [w.id, worldTheme(w)]));

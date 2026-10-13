@@ -1,7 +1,6 @@
-// library: boons + challenge. Spec: docs/voyage/charms-design.md (theme `library`).
-// Complex charms for this theme (if any) live in ./special/library.*.js.
+// library: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `library`).
+// Complex: library.bookmark in ./special/library.bookmark.js
 import { defineCharm } from '../registry.js';
-import { isRed } from '../../rules.js';
 import { replay } from './kit.js';
 
 defineCharm({
@@ -10,10 +9,13 @@ defineCharm({
   theme: 'library',
   name: 'Lending Desk',
   icon: '📚',
+  family: 'foundation',
   text: 'You may move the top card of a foundation back onto a column or into a free cell.',
+  upgrade: '…and +1 move capacity.',
   ease: 0.35,
-  rules(r) {
+  rules(r, ctx) {
     r.foundationReturn = true;
+    if (ctx.level >= 2) r.moveBonus = (r.moveBonus || 0) + 1;
   },
 });
 
@@ -23,9 +25,14 @@ defineCharm({
   theme: 'library',
   name: 'Quiet Study',
   icon: '🤫',
-  text: '×1.1 on any board where you use no undos.',
-  score(sb) {
-    if (!sb.undosUsed) sb.mult('Quiet Study', 1.1);
+  family: 'coin',
+  text: 'Clear a board without using an undo: +8 coins (+15 on boards 5–7).',
+  upgrade: '+12 / +22.',
+  score(sb, ctx) {
+    if (sb.undosUsed) return;
+    const late = sb.boardIdx >= 4 && sb.boardIdx <= 6;
+    const coins = ctx.level >= 2 ? (late ? 22 : 12) : (late ? 15 : 8);
+    sb.addCoins('quiet', 'Quiet Study', coins);
   },
 });
 
@@ -36,6 +43,7 @@ defineCharm({
   name: 'Overdue',
   icon: '⏰',
   tags: ['SCORE'],
+  pressure: true,
   text: (s) => `Each card that stays in a free cell longer than ${14 - s} moves costs 25 points.`,
   ease: (ctx) => -0.05 * ctx.strength,
   score(sb, ctx) {

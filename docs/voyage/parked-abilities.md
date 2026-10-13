@@ -121,4 +121,40 @@ Safe auto-play can then clear a long high run onto the spur without waiting for 
 
 | Idea | Charm id | Theme |
 | --- | --- | --- |
-| — | — | — |
+| Deal Reset | `pinecone.trailhead` (Trailhead) | Camp Pinecone |
+| Undo Window | `aero.lounge` (Lagoon Lounge) | Ocean Aero |
+| Three-Move Look | `zen.koan` (Koan) | Zen Garden |
+| Suit Spur | `arctic.aurora` (Aurora) | Arctic Station |
+
+
+---
+
+## Parked from the v2 overhaul (2026-10-12)
+
+Ideas from the overhaul brainstorms (`docs/voyage/overhaul/brainstorm/`) that didn't make this pass. Shapes, not specs; the brainstorm files have more detail.
+
+### Too expensive for the current engine
+- **Annex** — a 9th tableau column dealt empty (L2: a 10th). Eight columns are hard-coded in `main.js` hit areas/glows/layout and `table.js` slots; needs a variable column count end to end.
+- **Bunk Cell** — a free cell that holds a legal 2-card run that moves as one. Changes the free-cell state shape (`free[i]` becomes a list) in the solver, hash, rendering and every cell check.
+- **True Joker** — a 53rd card in its own slot that stacks as anything and never goes home. Card ids are 1..52 throughout (masks, textures, bank). Shipped instead as The Fool (`anchorCards`) and Fool stickers.
+- **Lashings** — weld a valid run into one unit for the rest of the board. Needs per-board weld state in the solver.
+- **Colour Committee** — two colour foundations (red, black) instead of four suit piles. New foundation model and auto-play proof.
+- **Looking Glass** — some suits build their foundations down from the King. New foundation direction; safe auto-play must be re-proved.
+- **Bedrock / La Brea** — cards placed after the deal can't move again (except home), or a tar-pit column. Needs "placed since the deal" state in the hash.
+- **Switchback / Contrarian per column** — one column builds up (or both ways). `runLength` and stacking don't know the column index today. (Suit-wide `buildUp` shipped instead.)
+
+### Rejected on the design rules
+- **Heavy Court** (court cards can't travel inside a sequence) — pure inconvenience: a sequence move is shorthand for single moves.
+- **Oil and Water** (adjacent cards can't share a suit) — a no-op under alternating colours unless you hold suit-build boons.
+- **Chequer Rule** (max n cards of one colour per column) — effectively a height cap.
+- **Discord** (adjacent column tops can't share a colour) — hard to read, little play value.
+
+### Good, not this pass
+- **Flotilla** — single cards may move onto any exposed card of their own suit.
+- **Twin Keeps** — two seeded columns must stay within Δ height of each other.
+- **Toll Lanes** — seeded columns charge coins for every move into them (a routing curse).
+- **Convoy Requirement** — 3★ requires a home chain of at least k.
+- **Blowing Sand** — every Nth card home flips a buried card face-down.
+- **Weld/shift variants**: Rank File ±2, Second Wind refund on close, Recast keeping one card.
+- **Run structure**: Ferryman (pay coins to skip a board as a 1★ clear), Chart Seller (buy a node reveal), Auction node, Bottle Mail (cursed stickers for coins), Shipwright refits (run-level hull upgrades), Customs inspection (declare a family), Ghost-light mini board.
+- **Bosses**: The Collector (you choose which boon to surrender; buy it back for coins at 26 home), Metamorph (three phases: cells → columns → foundations), Sargasso (three seals + skewed deal), King-in-the-Hold (low-only empties + Kings banned from cells), The Fool's Trial, Dry-Dock Leviathan, Harbourmaster's Audit (family-reactive, like The Mirror).
