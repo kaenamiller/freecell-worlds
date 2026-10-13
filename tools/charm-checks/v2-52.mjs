@@ -119,6 +119,18 @@ export async function check(h) {
     assert.equal(offers.filter((id)=>CHARMS[id].theme!=='plaster').length,level);
     assert(offers.every((id)=>!shuffle.boons.includes(id)&&!CHARMS[id].hidden&&!CHARMS[id].placeholder));
   }
+  // No Exit marks the bottom card of each affected column, and follows it home and back on undo.
+  {
+    const game=new Rules.Game(1,{rules:{...baseRules(),noExitCols:0b101}}), api=stubAPI(game), memo={};
+    const fx=new BoardEffects([{id:'backrooms.challenge',kind:'challenge',strength:1}],{seed:'N52',boardIndex:0,run:null,memo,api});
+    fx.setup({state:game.initial,initial:game.initial});
+    const bottoms=()=>Object.keys(api.marks).filter((id)=>api.marks[id]==='noexit').map(Number).sort((a,b)=>a-b);
+    assert.deepEqual(bottoms(),[game.tableau[0][0],game.tableau[2][0]].sort((a,b)=>a-b));
+    const root=game.tableau[0][0]; game.state.tableau[0]=[]; fx.emit('move',{move:{t:'F',card:root}});
+    assert.deepEqual(bottoms(),[game.tableau[2][0]]);
+    game.state.tableau[0]=[root]; fx.emit('undo',{});
+    assert.equal(api.marks[root],'noexit');
+  }
   console.log('✓ N52: all 16 charms at both levels, rules, payment/negative cases, picks/X undo, recharges, seeded offers and concede flow');
 }
 

@@ -1,8 +1,8 @@
 // Boss challenges (board 7). Spec: docs/voyage/boss-build.md §1.
-import { cardId } from '../../rules.js';
+import { cardId, cardsHome } from '../../rules.js';
 import { CHARMS, defineCharm } from '../registry.js';
 import { stream } from '../rng.js';
-import { rankMask, suitMask, suitName } from './kit.js';
+import { liveMarks, rankMask, suitMask, suitName } from './kit.js';
 
 const SUIT_PIP = ['♣', '♦', '♥', '♠'];
 const ALL_RANKS = rankMask(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
@@ -33,6 +33,12 @@ const BARREN_RANKS = ALL_RANKS & ~((1 << 7) - 1);
 function mergeBarren(r, suit) {
   const prev = r.barren || { suits: 0, ranks: 0 };
   r.barren = { suits: prev.suits | suitMask(suit), ranks: prev.ranks | BARREN_RANKS };
+}
+
+// Courts wear the crown only while Eclipse's first phase bars them from the cells.
+function eclipseMarks(ctx) {
+  const st = ctx.api.state;
+  liveMarks(ctx, st && cardsHome(st) < 26 ? courtCardIds() : [], 'crown');
 }
 
 function courtCardIds() {
@@ -215,6 +221,8 @@ defineCharm({
     r.noCellRanks = noCellRanks | COURT_RANKS;
     r.phase = { at: 26, rules: { noCellRanks, foundationSpread: r.foundationSpread ? Math.min(r.foundationSpread, 3) : 3 } };
   },
+  setup(_board, ctx) { eclipseMarks(ctx); },
+  on: { move(ctx) { eclipseMarks(ctx); }, undo(ctx) { eclipseMarks(ctx); } },
   boonRelation(_id, diff) {
     if (diff.freeCards != null || diff.wildRanks != null || diff.wildCards != null || diff.moveBonus != null || diff.startHome != null) return '+';
     if (diff.foundationSpread != null && diff.foundationSpread > 3) return '!';

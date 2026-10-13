@@ -174,7 +174,9 @@ async function pump() {
   running = true;
   try {
     while (queue.length) {
-      while (isBusy()) await sleep(250);
+      // Background work yields to card animations. A table the player picked
+      // does not: a paused or long animation must never strand Set course.
+      while (isBusy() && !queue[0]?.priority) await sleep(250);
       const job = queue.shift();
       const t0 = performance.now();
       try {
@@ -185,7 +187,11 @@ async function pump() {
       const spent = performance.now() - t0;
       const d = dutyCycle();
       // A table the player already picked is waiting on this queue: don't rest between its jobs.
-      if (!job.priority && !queue[0]?.priority) await sleep((spent * (1 - d)) / d);
+      // The rest between background jobs ends early if the player picks a table.
+      if (!job.priority) {
+        const until = performance.now() + (spent * (1 - d)) / d;
+        while (performance.now() < until && !queue[0]?.priority) await sleep(Math.min(250, until - performance.now()));
+      }
     }
   } finally {
     running = false;

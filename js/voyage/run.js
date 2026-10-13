@@ -346,6 +346,15 @@ function bossView(run) {
   return view;
 }
 
+// 'upcoming' until its row is cleared, 'available' while docked but not yet
+// entered, 'current' once you have left it (the boat waits there), then 'visited'.
+function marketState(run, row) {
+  const cleared = run.results.length;
+  if (cleared <= row || (cleared === row + 1 && run.status === 'reward')) return 'upcoming';
+  if (cleared === row + 1) return run.status === 'port' ? 'available' : run.status === 'map' ? 'current' : 'visited';
+  return 'visited';
+}
+
 export function runView(run, effects = null) {
   refreshMap(run);
   const cur = run.current;
@@ -378,6 +387,9 @@ export function runView(run, effects = null) {
     boss: run.boss ? bossView(run) : null,
     map: mapView(run.map).map((row) =>
       row.map((n) => {
+        // While docked, the market is the only stop you can sail to. The tables
+        // beyond it stay on the chart, but open only once you leave the market.
+        if (run.status === 'port' && n.state === 'available') n = { ...n, state: 'upcoming' };
         const final = n.row === VOYAGE.boards - 1;
         const stop = marketForBoard(n.row);
         const plan = boardPlan(run, n.theme, { idx: n.row, nodeId: n.id });
@@ -426,6 +438,7 @@ export function runView(run, effects = null) {
       kind: market.kind,
       name: market.name,
       wares: market.wares,
+      state: marketState(run, market.afterBoard - 1),
     })),
     reward: run.reward ? { stars: run.reward.stars, picks: run.reward.picks || 1, offers: run.reward.offers.filter((id) => CHARMS[id] && !CHARMS[id].hidden).map((id) => liveCharm(id)), result: run.results[run.results.length - 1] } : null,
     results: run.results,

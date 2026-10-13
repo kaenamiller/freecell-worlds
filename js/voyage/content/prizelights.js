@@ -1,6 +1,6 @@
 // prizelights: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `prizelights`).
 import { defineCharm } from '../registry.js';
-import { cardsOfRanks, rankMask, rankName } from './kit.js';
+import { cardsOfRanks, liveMarks, rankMask, rankName } from './kit.js';
 import { stream } from '../rng.js';
 
 const maxEmptyAt = (s) => (s <= 2 ? 3 : s <= 4 ? 2 : 1);
@@ -86,4 +86,12 @@ defineCharm({
   rules(r, ctx) {
     r.maxEmpty = maxEmptyAt(ctx.strength);
   },
+  setup(_board, ctx) { fullHouseMarks(ctx); },
+  on: { move(ctx) { fullHouseMarks(ctx); }, undo(ctx) { fullHouseMarks(ctx); } },
 });
+// At the cap, a column's lone card can't leave except home or into another empty column.
+function fullHouseMarks(ctx) {
+  const st = ctx.api.state, cap = ctx.api.rules?.maxEmpty || 0;
+  const full = st && cap && st.tableau.filter((col) => !col.length).length >= cap;
+  liveMarks(ctx, full ? st.tableau.filter((col) => col.length === 1).map((col) => col[0]) : [], 'noexit');
+}

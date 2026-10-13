@@ -86,6 +86,7 @@ export const ui = {
     if (persist && settings.titleMode !== this.titleMode) { settings.titleMode = this.titleMode; saveSettings(); }
     this.updateTitleHero();
     this.fitTitle();
+    if (persist && this.titleMode === 'classic') this.handlers.restoreClassicTheme?.();
   },
 
   // Scale the title block so every control stays on screen. The stage centers

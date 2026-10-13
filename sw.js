@@ -1,6 +1,6 @@
 // Service worker: precache the app shell, runtime-cache art/audio (cache-first),
 // and keep code files network-first so updates arrive. Bump VERSION to invalidate.
-const VERSION = 'freecell-worlds-v20-52-worlds';
+const VERSION = 'freecell-worlds-v22-stickers';
 const SHELL = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/rules.js', './js/card.js', './js/animation.js', './js/textures.js', './js/themes.js', './js/theme-expansion.js',
@@ -95,6 +95,8 @@ const SHELL = [
   // The seed bank is under assets/ (cache-first): bump VERSION whenever it is rebuilt.
   './assets/data/seedbank.json',
   './assets/art/chart/sea.webp', './assets/art/chart/fog.webp', './assets/art/chart/boat.webp', './assets/art/chart/boss-landmark.webp', './assets/art/chart/fog-isle.webp',
+  './assets/art/chart/markets/stickers.webp', './assets/art/chart/markets/boons.webp', './assets/art/chart/markets/upgrades.webp',
+  './assets/art/stickers/wild.webp', './assets/art/stickers/fool.webp', './assets/art/stickers/key.webp', './assets/art/stickers/gold.webp', './assets/art/stickers/lucky.webp',
   // Written out (not mapped) so tools/prepare-pages.mjs can check every shell path.
   './assets/art/chart/islands/roman.webp',
   './assets/art/chart/islands/cyber.webp',
