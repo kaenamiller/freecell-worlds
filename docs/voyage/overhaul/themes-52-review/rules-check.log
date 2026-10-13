@@ -1,0 +1,32 @@
+✓ neutral defaults, numeric dealing and startHome order
+✓ wildRanks and suitBuild match every sequence query
+✓ moveBonus, emptyFactor and emptyMinRank capacity
+✓ noCellRanks, noCellCards (both mask words), colours and one-way cells
+✓ barren parents, foundationSpread and maxHeight
+✓ cellThaw thresholds, frozen legality and foundation undo
+✓ sealed state is persistent, hashed, cloned and reversible
+✓ foundation R moves to columns and cells, including undo
+✓ one-shot overrides survive failed drops and undo; custom X rules/state replay
+✓ auto-play safety for wild ranks, legal spread and foundation-only closure
+✓ seeded composition, complete keys, dealShift and restrict classification
+✓ card build tables: wild, anchors, upward suits, shifted ranks and barren precedence
+✓ freeCards, bounded cells, closing capacity and occupied closing cells
+✓ empty maximum, empty colours, always-counting columns and suit-mask capacity
+✓ gate and phase switch legality/capacity in both directions under undo
+✓ new override flags round-trip without bypassing missing cells or run validity
+✓ dealSkew round-robin layouts, startHome and Game agreement
+✓ stacked cells, pinned sequences, empty-column cap and colour balance
+✓ source-dependent cell exits and open columns never create run links
+✓ levels, stickers, post-composition synergy and boss confiscation
+✓ twin stacking, shallow capacity and suit-limited cells
+✓ Suit Spur plant, split homes, hashes, returns and full reverse replay
+✓ multiple theme challenges compose in order before the boss
+✓ new bosses: phases, tide thresholds, strongest-boon ties and tag exclusion
+[voyage] no verified finale deal under the boss; the boss relents boss.auditor test
+✓ dealer candidate loop rejects unknowns, verifies fallback and never bypasses verification
+✓ dealer verifies each candidate under dealRules
+✓ generator/player agreement and undo over 40 rulesets
+✓ 28 restricted full-deck solutions replay and undo through Game
+✓ dealer and hint solver worker protocols use full rules
+✓ classic baseline: exact verdict/nodes/path on 58 deals (30 solved)
+rules-check passed

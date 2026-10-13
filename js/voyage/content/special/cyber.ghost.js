@@ -51,12 +51,14 @@ registerCustomMove(op, {
 
 defineCharm({
   id: op, kind: 'boon', theme: 'cyber', name: 'Ghost Cell', icon: '👻', ease: .3,
+  family: 'cells',
+  upgrade: 'Twice per board, park a column top in an extra ghost cell that vanishes when the card leaves.',
   text: 'Once per board, park a column top in an extra ghost cell that vanishes when the card leaves.',
   ability: {
-    uses: 1, label: 'Open Ghost Cell',
+    uses: ({ level }) => level === 2 ? 2 : 1, label: 'Open Ghost Cell',
     available: ({ api }) => !openCell(api.history) && api.state.tableau.some((col, i) => canPark(api.state, api.rules, i) && !api.concealed.includes(col.at(-1))),
     async use({ api }) {
-      const col = await api.pick({ kind: 'column', filter: (i, st) => canPark(st, api.rules, i) && !api.concealed.includes(st.tableau[i].at(-1)) });
+      const col = await api.pick({ kind: 'column', prompt: 'Choose a column top to park in a ghost cell', cards: (i, st) => [st.tableau[i].at(-1)], filter: (i, st) => canPark(st, api.rules, i) && !api.concealed.includes(st.tableau[i].at(-1)) });
       if (col == null || !canPark(api.state, api.rules, col)) return false;
       if (!api.charmMove(op, { action: 'open', col })) return false;
       api.notify('Ghost Cell: parked a card in an extra cell');

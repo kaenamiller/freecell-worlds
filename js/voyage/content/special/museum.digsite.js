@@ -15,12 +15,14 @@ registerCustomMove('museum.digsite', {
 
 defineCharm({
   id: 'museum.digsite', kind: 'boon', theme: 'museum', name: 'Dig Site', icon: '⛏️', ease: 0.4,
+  family: 'ability',
+  upgrade: 'Twice per board, lift the face-up deepest card of a column to its top.',
   text: 'Once per board, lift the face-up deepest card of a column to its top.',
   ability: {
-    uses: 1, label: 'Lift a column’s deepest card',
+    uses: ({ level }) => level === 2 ? 2 : 1, label: 'Lift a column’s deepest card',
     available: (ctx) => !!ctx.api.state?.tableau.some((_, i) => eligible(ctx, ctx.api.state, i)),
     async use(ctx) {
-      const col = await ctx.api.pick({ kind: 'column', filter: (i, st) => eligible(ctx, st, i) });
+      const col = await ctx.api.pick({ kind: 'column', prompt: 'Choose a column: its deepest card is lifted to the top', cards: (i, st) => [st.tableau[i][0]], filter: (i, st) => eligible(ctx, st, i) });
       if (col == null || !eligible(ctx, ctx.api.state, col)) return false;
       if (!ctx.api.charmMove('museum.digsite', { col, card: ctx.api.state.tableau[col][0], concealed: ctx.api.concealed })) return false;
       ctx.api.notify('Dig Site lifted the deepest card to the top.');

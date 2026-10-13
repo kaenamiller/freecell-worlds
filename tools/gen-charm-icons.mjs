@@ -1,5 +1,5 @@
 // Generate bespoke charm icons as white-background sheets, then cut them out.
-// usage: node tools/gen-charm-icons.mjs [--force] [--only=sheet-03]
+// usage: node tools/gen-charm-icons.mjs [--force] [--only=sheet-03] [--ids=a,b,c] [--prefix=sheet-subset-] [--no-cut]
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { need, save, pool, retry } from './lib.mjs';
@@ -9,7 +9,17 @@ const MODEL = process.env.ART_MODEL || 'gemini-nano-banana-2.1';
 const key = need('GEMINI_API_KEY');
 const args = process.argv.slice(2);
 const force = args.includes('--force');
+const noCut = args.includes('--no-cut');
 const only = args.find((a) => a.startsWith('--only='))?.slice(7);
+const idsArg = args.find((a) => a.startsWith('--ids='))?.slice(6);
+const want = idsArg ? new Set(idsArg.split(',').map((s) => s.trim()).filter(Boolean)) : null;
+if (want) {
+  const unknown = [...want].filter((id) => !SUBJECTS.some(([x]) => x === id));
+  if (unknown.length) throw new Error('unknown charm ids: ' + unknown.join(', '));
+}
+const LIST = want ? SUBJECTS.filter(([id]) => want.has(id)) : SUBJECTS;
+const prefixArg = args.find((a) => a.startsWith('--prefix='))?.slice(9);
+const SHEET_PREFIX = prefixArg || (want ? 'sheet-subset-' : 'sheet-');
 
 const STYLE = `A sprite sheet of separate object icons in a perfect grid.
 Each icon is centered in its own equal cell with wide even gutters. Icons never touch each other or the canvas edge.
@@ -20,13 +30,13 @@ Background: one perfectly flat pure white (#FFFFFF) filling the entire canvas an
 
 function sheets() {
   const out = [];
-  for (let i = 0; i < SUBJECTS.length; i += 16) {
-    const cells = SUBJECTS.slice(i, i + 16);
-    const rows = Math.ceil(cells.length / 4);
-    const id = `sheet-${String(out.length).padStart(2, '0')}`;
+  for (let i = 0; i < LIST.length; i += 16) {
+    const cells = LIST.slice(i, i + 16);
+    const rows = 4;
+    const id = `${SHEET_PREFIX}${String(out.length).padStart(2, '0')}`;
     const list = cells.map(([, subject], n) => `${n + 1}. ${subject}`).join('\n');
-    const tail = rows < 4
-      ? `\n\nUse exactly ${rows} rows and 4 columns. Leave the rest of the canvas empty pure white.`
+    const tail = cells.length < 16
+      ? `\n\nUse exactly 4 columns and 4 rows. Fill only the first ${cells.length} cells, left to right, top to bottom. Every remaining cell is empty pure white.`
       : '\n\nUse exactly 4 columns and 4 rows.';
     out.push({
       id,
@@ -67,7 +77,7 @@ await pool(jobs, 2, (it) => gen(it).catch((e) => {
   process.exitCode = 1;
 }));
 
-if (!process.exitCode) {
+if (!process.exitCode && !noCut) {
   await new Promise((resolve, reject) => {
     const child = spawn('python3', ['tools/cut-charm-icons.py'], { stdio: 'inherit' });
     child.on('exit', (code) => (code ? reject(new Error(`cut failed ${code}`)) : resolve()));

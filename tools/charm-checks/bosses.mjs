@@ -4,6 +4,7 @@ import { composeBoard } from '../../js/voyage/boardrules.js';
 const BOSS_IDS = [
   'boss.lockdown', 'boss.thaw', 'boss.decree', 'boss.throne',
   'boss.barren', 'boss.lockstep', 'boss.tombs',
+  'boss.house', 'boss.mirror',
 ];
 
 function boonDiff(CHARMS, baseRules, stream, boonId) {
@@ -12,7 +13,11 @@ function boonDiff(CHARMS, baseRules, stream, boonId) {
   if (!b?.rules) return diff;
   const before = baseRules();
   const after = baseRules();
-  b.rules(after, { strength: 2, rng: stream('boss-check', 'rules', 0, boonId), seed: 'boss-check', idx: 0, runMemo: {} });
+  b.rules(after, {
+    strength: 2, level: 1, rng: stream('boss-check', 'rules', 0, boonId),
+    seed: 'boss-check', idx: 0, runMemo: {}, boons: [boonId],
+    family: (name) => b.family === name ? 1 : 0,
+  });
   for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
     if (JSON.stringify(before[key]) !== JSON.stringify(after[key])) diff[key] = after[key];
   }
@@ -52,8 +57,8 @@ export async function check({ assert, CHARMS, baseRules, stream, validateRules, 
         bossStrength: 7,
       });
       validateRules(withArctic.rules);
-      assert.equal(withArctic.rules.cellThaw.frozen, 4, 'thaw merges cellThaw with heat lamp');
-      assert.deepEqual(withArctic.rules.cellThaw.at, [6, 13, 14, 24]);
+      assert.equal(withArctic.rules.cellThaw.frozen, 2, 'reworked heat lamp no longer adds a frozen cell');
+      assert.deepEqual(withArctic.rules.cellThaw.at, [6, 16]);
     }
     if (bossId === 'boss.lockdown') {
       assert.equal(merged.rules.freeCells, 3, 'lockdown merges with +1 cell boon');
@@ -78,7 +83,7 @@ export async function check({ assert, CHARMS, baseRules, stream, validateRules, 
         throw new Error('barren text missing suit name');
       })();
       assert(rules.barren.suits & (1 << suit), 'barren rules suit matches text');
-      assert(rules.barren.ranks & (1 << 13) && rules.barren.ranks & (1 << 1), 'barren all ranks');
+      assert(rules.barren.ranks & (1 << 13) && rules.barren.ranks & (1 << 7) && !(rules.barren.ranks & (1 << 6)), 'barren covers 7 through King');
     }
 
     if (bossId === 'boss.tombs') {

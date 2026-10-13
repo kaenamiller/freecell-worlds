@@ -16,9 +16,8 @@ const paths = [
   'assets',
   'manifest.webmanifest',
   'sw.js',
-  // Imported by js/voyage/boardrules.js. A missing module fails the whole graph
-  // and the title loader never advances past its initial text.
-  'tools/boss-calibration.json',
+  // js/voyage/boardrules.js now imports js/voyage/boss-yields.json (copied with js/),
+  // so the 5.8 MB tools/boss-calibration.json no longer ships.
 ];
 
 await mkdir(out, { recursive: true });

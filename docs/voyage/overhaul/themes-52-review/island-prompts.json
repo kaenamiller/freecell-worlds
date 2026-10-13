@@ -1,0 +1,46 @@
+{
+  "model": "gemini-nano-banana-2.1",
+  "style": "Hand-painted storybook nautical chart art, traditional gouache and transparent watercolor with fine charcoal contours. Dark teal, indigo, weathered parchment, muted mineral pigments, warm lantern gold. Slightly imperfect handmade edges, sophisticated tabletop-game illustration, cohesive scale and three-quarter top-down angle. No typography, letters, numbers, border, frame, watermark, UI, card, or photorealism.",
+  "prompts": [
+    {
+      "id": "signal",
+      "prompt": "One compact island vignette for \"Signal\". Visual idea: Cold stars, a radio dish and an amber window.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    },
+    {
+      "id": "rink",
+      "prompt": "One compact island vignette for \"Roller Rink\". Visual idea: Maple floors, a mirror ball and the last slow skate.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    },
+    {
+      "id": "darkroom",
+      "prompt": "One compact island vignette for \"The Darkroom\". Visual idea: Red safelight, silver trays and a print coming clear.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    },
+    {
+      "id": "smokewatch",
+      "prompt": "One compact island vignette for \"Smoke Watch\". Visual idea: Pine boards, blue smoke and a stove at dusk.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    },
+    {
+      "id": "bloodmoon",
+      "prompt": "One compact island vignette for \"Bloodmoon\". Visual idea: Cold stone, crimson moonlight and one last candle.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    },
+    {
+      "id": "deepsea",
+      "prompt": "One compact island vignette for \"Deep Sea\". Visual idea: Black water, brass glass and a drift of living light.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    },
+    {
+      "id": "plaster",
+      "prompt": "One compact island vignette for \"Plaster Studio\". Visual idea: Linen sheets, clay dust and cool north light.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    },
+    {
+      "id": "backrooms",
+      "prompt": "One compact island vignette for \"Backrooms\". Visual idea: Yellow walls, damp carpet and a hum with no end.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    },
+    {
+      "id": "vaporwave",
+      "prompt": "One compact island vignette for \"Vaporwave\". Visual idea: Pink marble, teal glass and a mall after sunset.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    },
+    {
+      "id": "cinema",
+      "prompt": "One compact island vignette for \"Silent Cinema\". Visual idea: Silver light, velvet seats and dust in the beam.. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge."
+    }
+  ]
+}

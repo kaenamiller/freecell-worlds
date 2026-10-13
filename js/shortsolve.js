@@ -3,7 +3,7 @@
 import {
   applyMove, canFinishWithFoundationOnly, cloneState, generateMoves,
   isSolved, legalFoundationMoves, maxMoveSize, rankOf, safeFoundationMoves,
-  suitOf, colorOf, foundationAccepts, isValidSequence, compileRules, hashState, canBuildOn,
+  suitOf, colorOf, foundationAccepts, isValidSequence, compileRules, hashState, canBuildOn, cardsHome,
 } from './rules.js';
 
 function autoPlay(st, rules) {
@@ -21,7 +21,7 @@ function autoPlay(st, rules) {
 // Free-cell positions and tableau column positions are interchangeable for
 // search purposes. Keep the actual state, and canonicalize only its key.
 function stateKey(st, rules) {
-  if (st.sealed !== undefined || rules.cellThaw || rules.cellColors.some(Boolean)) return String(hashState(st));
+  if (st.spur || st.sealed !== undefined || rules.cellThaw || rules.cellClose || rules.cellStack || rules.cellsNeedEmpty || rules.noExitCols || rules.cellColors.some(Boolean) || rules.cellLimits.some(Boolean) || rules.emptyColors.some(Boolean) || rules.openCols) return String(hashState(st));
   const cols = st.tableau.map((col) => String.fromCharCode(...col)).sort();
   const free = st.free.filter(Boolean).sort((a, b) => a - b);
   // 0xff is outside the card-id range 1..52, so column boundaries cannot
@@ -30,7 +30,7 @@ function stateKey(st, rules) {
 }
 
 function quality(st, variant, rules) {
-  const found = st.found[0] + st.found[1] + st.found[2] + st.found[3];
+  const found = cardsHome(st);
   let breaks = 0, buried = 0, runs = 0, empty = 0, freeUsed = 0;
   for (const col of st.tableau) {
     if (!col.length) { empty++; continue; }
@@ -56,7 +56,7 @@ function quality(st, variant, rules) {
 }
 
 function clean(m) {
-  if (m.t === 'F') return { t: 'F', src: { ...m.src }, card: m.card, ...(m.auto ? { auto: true } : {}) };
+  if (m.t === 'F') return { t: 'F', src: { ...m.src }, card: m.card, ...(m.dest ? { dest: m.dest } : {}), ...(m.auto ? { auto: true } : {}) };
   if (m.t === 'C') return { t: 'C', fi: m.fi, src: { ...m.src }, card: m.card };
   return { t: 'T', src: { ...m.src }, count: m.count, to: m.to, card: m.card };
 }
@@ -99,7 +99,7 @@ function validate(initial, path, rules) {
     } else if (m.t === 'T') {
       const src = m.src.kind === 'col' ? st.tableau[m.src.i] : [st.free[m.src.i]];
       if (src[src.length - m.count] !== m.card || !isValidSequence(src, m.count, rules)
-          || m.count > maxMoveSize(st, st.tableau[m.to].length === 0, rules)) throw new Error('invalid supermove');
+          || m.count > maxMoveSize(st, st.tableau[m.to].length <= rules.shallowCols, rules, src.slice(-m.count))) throw new Error('invalid supermove');
     }
     applyMove(st, { ...m }, rules);
   }
@@ -159,7 +159,7 @@ export function shortSolve(initial, opts = {}) {
         if (expanded >= passLimit || (expanded & 63) === 0 && Date.now() - started >= budgetMs) break;
         expanded++;
         // Cheap endgame test only after substantial progress.
-        if (node.st.found.reduce((a, b) => a + b, 0) >= 32) {
+        if (cardsHome(node.st) >= 32) {
           const tail = finishTail(node.st, rules);
           if (tail) {
             const path = buildPath(node, tail);
@@ -176,7 +176,7 @@ export function shortSolve(initial, opts = {}) {
         let firstEmpty = -1;
         for (let i = 0; i < 8; i++) if (!node.st.tableau[i].length) { firstEmpty = i; break; }
         for (const mv of moves) {
-          if (mv.t === 'T' && !node.st.tableau[mv.to].length && mv.to !== firstEmpty) continue;
+          if (mv.t === 'T' && !rules.emptyColors.some(Boolean) && !rules.openCols && !rules.noExitCols && node.st.sealed === undefined && !node.st.tableau[mv.to].length && mv.to !== firstEmpty) continue;
           // Auto moves are applied in closure, so a safe F is never manual.
           const next = cloneState(node.st), m = clean(mv);
           applyMove(next, m, rules);

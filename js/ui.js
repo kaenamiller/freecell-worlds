@@ -335,15 +335,6 @@ export const ui = {
   setDevUnlocked(on) {
     this.devUnlocked = !!on;
     document.body.classList.toggle('dev-unlocked', this.devUnlocked);
-    this.syncDevVoyageHint();
-  },
-
-  syncDevVoyageHint() {
-    const btn = $('#btn-voyage-hint');
-    const toggle = $('#dev-voyage-hint');
-    if (!btn || !toggle) return;
-    const show = this.devUnlocked && toggle.checked;
-    btn.hidden = !show;
   },
 
   toggleDevMenu() {
@@ -438,8 +429,6 @@ export const ui = {
     on('#dev-hint', () => H().devHint?.());
     on('#dev-check', () => H().devAnalyze?.());
     on('#dev-reset-board', () => H().devResetBoard?.());
-    on('#btn-voyage-hint', () => H().devHint?.());
-    $('#dev-voyage-hint')?.addEventListener('change', () => this.syncDevVoyageHint());
 
     this.els.dealInput.addEventListener('keydown', (e) => {
       e.stopPropagation();

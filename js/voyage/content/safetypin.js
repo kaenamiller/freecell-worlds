@@ -1,64 +1,135 @@
-// safetypin: boons + challenge. Spec: docs/voyage/charms-design.md (theme `safetypin`).
+// safetypin: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `safetypin`).
+import { cardId } from '../../rules.js';
 import { defineCharm } from '../registry.js';
-import { cardsOfRanks, countHome, rankMask, rankOf } from './kit.js';
-
-const pitHi = (s) => 1 + Math.ceil(s / 2);
+import { ALL_RANKS, cardsOfRanks, rankOf, suitOf, suitName } from './kit.js';
+const pinCount = (s) => 1 + Math.floor(s / 2);
+const pinUntil = (s) => 6 + 2 * s;
 
 defineCharm({
-  id: 'safetypin.threechords', kind: 'boon', theme: 'safetypin', name: 'Three Chords', icon: '🎸',
-  text: 'Threes are wild: they ignore colour when stacking.',
+  id: 'safetypin.threechords',
+  kind: 'boon',
+  theme: 'safetypin',
+  name: 'Three Chords',
+  icon: '🎸',
+  family: 'ability',
+  text: 'Each time you use an ability, your next drop ignores colour.',
+  upgrade: 'Each time you use an ability, your next drop ignores colour and rank.',
   ease: 0.2,
-  rules(r) { r.wildRanks = (r.wildRanks || 0) | rankMask(3); },
-  setup(_board, ctx) { ctx.api.mark(cardsOfRanks([3]), 'wild'); },
+  on: {
+    ability(ctx) {
+      ctx.memo.pendingOverride = ctx.level === 2
+        ? { ignoreColour: true, ignoreRank: true }
+        : { ignoreColour: true };
+    },
+    move(ctx, { manual }) {
+      if (!manual || !ctx.memo.pendingOverride) return;
+      ctx.api.override(ctx.memo.pendingOverride);
+      delete ctx.memo.pendingOverride;
+    },
+  },
 });
 
 defineCharm({
-  id: 'safetypin.safetypin', kind: 'boon', theme: 'safetypin', name: 'Safety Pin', icon: '📌',
-  text: 'One buried card is pinned. Sending it home grants +1 undo.',
-  setup(board, ctx) {
-    const buried = [];
-    for (const col of board.state.tableau) for (let i = 0; i < col.length - 1; i++) buried.push(col[i]);
-    if (!buried.length) return;
-    ctx.memo.pin ??= buried[ctx.rng.int(buried.length)];
-    ctx.api.mark([ctx.memo.pin], 'glow');
+  id: 'safetypin.safetypin',
+  kind: 'boon',
+  theme: 'safetypin',
+  name: 'Safety Pin',
+  icon: '📌',
+  family: 'foundation',
+  text: 'Once per board, pin a suit: its next 3 cards home grant +1 undo each.',
+  upgrade: 'Once per board, pin a suit: its next 5 cards home grant +1 undo each.',
+  ease: 0.25,
+  ability: {
+    uses: 1,
+    label: 'Pin a suit',
+    async use(ctx) {
+      const st = ctx.api.state;
+      const suit = await ctx.api.choose({
+        prompt: `Pin a suit: its next ${ctx.level === 2 ? 5 : 3} cards home grant +1 undo each.`,
+        options: [0, 1, 2, 3].map((s) => {
+          const left = 13 - st.found[s] - (st.spur?.suit === s ? st.spur.top - st.spur.base + 1 : 0);
+          return { value: s, label: `${['♣', '♦', '♥', '♠'][s]} ${suitName(s)}`, detail: left ? `${left} still to go home` : 'All home', disabled: !st.tableau.some((col) => col.some((id) => suitOf(id) === s)) };
+        }),
+      });
+      if (suit == null) return false;
+      ctx.memo.pinSuit = suit;
+      ctx.api.badge(suitName(suit));
+      ctx.api.mark(cardsOfRanks(ALL_RANKS, [suit]), 'glow');
+      return true;
+    },
   },
   on: {
     foundation(ctx, { card }) {
-      if (card !== ctx.memo.pin || ctx.memo.paid) return;
-      ctx.memo.paid = true;
+      if (ctx.memo.pinSuit == null || suitOf(card) !== ctx.memo.pinSuit) return;
+      const cap = ctx.level === 2 ? 5 : 3;
+      const grants = ctx.memo.pinGrants || 0;
+      if (grants >= cap) return;
+      ctx.memo.pinGrants = grants + 1;
       ctx.api.addUndos(1);
     },
   },
 });
 
 defineCharm({
-  id: 'safetypin.zine', kind: 'boon', theme: 'safetypin', name: 'Zine', icon: '📰',
-  text: '+30 points for each Jack and Queen sent home.',
-  score(sb) {
-    const n = countHome(sb.history, (id) => rankOf(id) === 11 || rankOf(id) === 12);
-    if (n) sb.add('zine', 'Jacks and Queens', n * 30);
+  id: 'safetypin.zine',
+  kind: 'boon',
+  theme: 'safetypin',
+  name: 'Zine',
+  icon: '📰',
+  family: 'sticker',
+  text: 'Ports offer a copier: copy one of your stickers onto another card for 10 coins.',
+  upgrade: 'Ports offer a copier: copy one of your stickers onto another card, free once per visit.',
+  portServices(ctx) {
+    const free = ctx.level === 2;
+    return [{
+      id: 'safetypin.zine.copy',
+      label: 'Copier',
+      text: free
+        ? 'Copy one of your stickers onto another card (free once per visit).'
+        : 'Copy one of your stickers onto another card.',
+      price: 10,
+      needsCard: true,
+      apply(run, dest) {
+        const memo = (run.charmMemo['safetypin.zine'] ??= {});
+        const key = `port-${run.port?.boardIdx}`;
+        if (free && memo[key]) return false;
+        const entries = Object.entries(run.stickers).filter(([c]) => Number(c) !== dest);
+        if (!entries.length) return false;
+        const [, type] = entries[0];
+        run.stickers[dest] = type;
+        if (free) memo[key] = true;
+        return true;
+      },
+    }];
   },
 });
 
 defineCharm({
-  id: 'safetypin.challenge', kind: 'challenge', theme: 'safetypin', name: 'No Re-entry', icon: '🚪',
-  tags: ['CELLS'],
+  id: 'safetypin.challenge',
+  kind: 'challenge',
+  theme: 'safetypin',
+  name: 'Pinned',
+  icon: '📌',
+  tags: ['MOVE'],
   text: (s) => {
-    const hi = pitHi(s);
-    return hi === 2
-      ? 'A 2 in a free cell can leave only to its foundation.'
-      : `Cards ranked 2–${hi} in a free cell can leave only to their foundation.`;
+    const n = pinCount(s);
+    const until = pinUntil(s);
+    return `${n} buried card${n === 1 ? '' : 's'} stay pinned until ${until} cards are home.`;
   },
-  ease: (ctx) => -0.07 * ctx.strength,
+  ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {
-    const hi = pitHi(ctx.strength);
-    let mask = 0;
-    for (let rank = 2; rank <= hi; rank++) mask |= rankMask(rank);
-    r.oneWayCellRanks = mask;
+    r.pinned = { cards: [], until: pinUntil(ctx.strength) };
+  },
+  dealRules(r, ctx) {
+    const n = pinCount(ctx.strength);
+    const pool = ctx.state.tableau.flatMap((col) => col.slice(0, -1));
+    const picks = [];
+    for (let i = 0; i < n && pool.length; i++) picks.push(pool.splice(ctx.rng.int(pool.length), 1)[0]);
+    if (!picks.length) return;
+    r.pinned = { cards: picks, until: pinUntil(ctx.strength) };
   },
   setup(_board, ctx) {
-    const ranks = [];
-    for (let rank = 2; rank <= pitHi(ctx.strength); rank++) ranks.push(rank);
-    ctx.api.mark(cardsOfRanks(ranks), 'oneway');
+    const cards = ctx.api.rules?.pinned?.cards || [];
+    if (cards.length) ctx.api.mark(cards, 'lock');
   },
 });

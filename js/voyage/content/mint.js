@@ -1,6 +1,9 @@
-// mint: boons + challenge. Spec: docs/voyage/charms-design.md (theme `mint`).
+// mint: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `mint`).
 import { defineCharm } from '../registry.js';
-import { ALL_RANKS, cardsOfRanks, rankMask, suitMask } from './kit.js';
+import { ALL_RANKS, cardsOfRanks, suitMask } from './kit.js';
+import { stream } from '../rng.js';
+
+const gateAfter = (s) => (s <= 2 ? 6 : s <= 4 ? 10 : s <= 6 ? 14 : 18);
 
 defineCharm({
   id: 'mint.sterling',
@@ -8,12 +11,18 @@ defineCharm({
   theme: 'mint',
   name: 'Sterling',
   icon: '🪙',
-  text: 'Diamonds may also be built down in suit.',
+  family: 'suit',
+  text: 'Diamonds may also be built up: a Diamond on a black card one rank lower.',
+  upgrade: 'Diamonds and Hearts.',
   ease: 0.2,
-  rules(r) {
-    r.suitBuild = (r.suitBuild || 0) | suitMask(1);
+  rules(r, ctx) {
+    const mask = ctx.level === 2 ? suitMask(1, 2) : suitMask(1);
+    r.buildUp = (r.buildUp || 0) | mask;
   },
-  setup(_board, ctx) { ctx.api.mark(cardsOfRanks(ALL_RANKS, [1]), 'wild'); },
+  setup(_board, ctx) {
+    const suits = ctx.level === 2 ? [1, 2] : [1];
+    ctx.api.mark(cardsOfRanks(ALL_RANKS, suits), 'wild');
+  },
 });
 
 defineCharm({
@@ -22,10 +31,14 @@ defineCharm({
   theme: 'mint',
   name: 'Compound Interest',
   icon: '📈',
-  text: 'Each board scores +4% per board already cleared.',
-  score(sb, ctx) {
-    const cleared = ctx.run.boardIdx;
-    if (cleared) sb.mult('Compound Interest', 1 + cleared * 0.04);
+  family: 'coin',
+  text: 'At each port, +1 coin for every 5 you hold (up to +10).',
+  upgrade: 'Every 4 (up to +15).',
+  onPort(_run, ctx) {
+    const step = ctx.level === 2 ? 4 : 5;
+    const cap = ctx.level === 2 ? 15 : 10;
+    const bonus = Math.min(cap, Math.floor(ctx.coins / step));
+    if (bonus) ctx.api.addCoins(bonus);
   },
 });
 
@@ -35,10 +48,12 @@ defineCharm({
   theme: 'mint',
   name: 'Treasury',
   icon: '🏦',
+  family: 'undo',
   text: '+2 undos after every board you clear without using an undo.',
+  upgrade: '+3.',
   on: {
     win(ctx, { result }) {
-      if (!result.undosUsed) ctx.api.addUndos(2);
+      if (!result.undosUsed) ctx.api.addUndos(ctx.level === 2 ? 3 : 2);
     },
   },
 });
@@ -47,26 +62,19 @@ defineCharm({
   id: 'mint.challenge',
   kind: 'challenge',
   theme: 'mint',
-  name: 'Small Change',
+  name: 'Withheld Issue',
   icon: '🪙',
-  tags: ['CELLS'],
+  tags: ['FOUND'],
   text: (s) => {
-    const hi = 1 + Math.ceil(s / 2);
-    return hi <= 2
-      ? 'Cards ranked 2 can\'t enter free cells.'
-      : `Cards ranked 2–${hi} can't enter free cells.`;
+    const need = gateAfter(s);
+    return `One suit can't go home until ${need} cards of other suits are home.`;
   },
-  ease: (ctx) => -0.07 * ctx.strength,
+  ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {
-    const hi = 1 + Math.ceil(ctx.strength / 2);
-    let mask = 0;
-    for (let rank = 2; rank <= hi; rank++) mask |= rankMask(rank);
-    r.noCellRanks = mask;
+    r.gate = { suit: stream(ctx.seed, 'rules', ctx.idx, ctx.id).int(4), after: gateAfter(ctx.strength) };
   },
   setup(_board, ctx) {
-    const hi = 1 + Math.ceil(ctx.strength / 2);
-    const ranks = [];
-    for (let rank = 2; rank <= hi; rank++) ranks.push(rank);
-    ctx.api.mark(cardsOfRanks(ranks), 'lock');
+    const suit = stream(ctx.seed, 'rules', ctx.run.boardIdx, ctx.id).int(4);
+    ctx.api.badge(['♣', '♦', '♥', '♠'][suit]);
   },
 });

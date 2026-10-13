@@ -1,7 +1,7 @@
-// carvings: boons + challenge. Spec: docs/voyage/charms-design.md (theme `carvings`).
-// Complex charms for this theme live in ./special/carvings.*.js.
+// carvings: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `carvings`).
+// Complex charms: ./special/carvings.raven.js, ./special/carvings.totem.js
 import { defineCharm } from '../registry.js';
-import { replay } from './kit.js';
+import { countHome } from './kit.js';
 
 defineCharm({
   id: 'carvings.orca',
@@ -9,35 +9,19 @@ defineCharm({
   theme: 'carvings',
   name: 'Orca Pod',
   icon: '🐋',
-  text: 'Emptying a column grants +1 undo (up to 2 per board).',
+  family: 'undo',
+  text: '+1 undo each time you empty a column before 30 cards are home (twice per board).',
+  upgrade: 'Three times per board.',
   on: {
     columnEmpty(ctx) {
+      const cap = ctx.level === 2 ? 3 : 2;
       const grants = ctx.memo.grants || 0;
-      if (grants >= 2) return;
+      if (grants >= cap) return;
+      const home = countHome(ctx.api.history || []);
+      if (home >= 30) return;
       ctx.memo.grants = grants + 1;
       ctx.api.addUndos(1);
     },
-  },
-});
-
-defineCharm({
-  id: 'carvings.totem',
-  kind: 'boon',
-  theme: 'carvings',
-  name: 'Totem Pole',
-  icon: '🪵',
-  text: '+40 for each column you empty (each column once per board).',
-  score(sb) {
-    const emptied = new Set();
-    const lengths = sb.initial.tableau.map((col) => col.length);
-    replay(sb, (move, state) => {
-      for (let c = 0; c < 8; c++) {
-        const len = state.tableau[c].length;
-        if (lengths[c] > 0 && len === 0) emptied.add(c);
-        lengths[c] = len;
-      }
-    });
-    if (emptied.size) sb.add('totem', `Columns cleared (${emptied.size})`, emptied.size * 40);
   },
 });
 

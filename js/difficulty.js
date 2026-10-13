@@ -73,6 +73,7 @@ function autoPlaySafeFoundations(st, out, rules) {
     changed = false;
     const safes = safeFoundationMoves(st, rules);
     for (const { src, card } of safes) {
+      if (!foundationAccepts(st, card, rules) || !isSafeFoundationMove(st, card, rules)) continue;
       const m = { t: 'F', src, card, auto: true };
       applyMove(st, m, rules);
       out.push(m);

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { Game, cloneState, generateMoves, maxMoveSize, canStackOn, sequenceStart, randomDealNumber, safeFoundationMoves, legalFoundationMoves, canFinishWithFoundationOnly } from './rules.js';
-import { buildCardMesh, applyCardStyle, setCardMark, setCardConcealed, CARD } from './card.js';
+import { Game, cloneState, generateMoves, maxMoveSize, canStackOn, sequenceStart, randomDealNumber, safeFoundationMoves, legalFoundationMoves, canFinishWithFoundationOnly, cardsHome } from './rules.js';
+import { buildCardMesh, applyCardStyle, setCardMark, setCardSticker, setCardMods, setCardConcealed, markSigilHit, modHit, cullCardFaces, CARD } from './card.js';
 import { setCardTheme } from './textures.js';
 import { Animator, Easing, CardMotion } from './animation.js';
 import { Post } from './post.js';
@@ -14,11 +14,12 @@ import { stats, recordStart, recordWin, recordLoss, resetStats, dailyDealNumber,
 import { ui } from './ui.js';
 import { voyageUI } from './voyage/ui.js';
 import { createRun, loadRun, saveRun, runView, boardPlan, upcomingPlans, startBoard, spendUndo, winBoard, pickCharm, loseRun, scoringContext } from './voyage/run.js';
-import { BoardEffects } from './voyage/charms.js';
+import { BoardEffects, CHARMS } from './voyage/charms.js';
+import { buyBoon, buySticker, upgradeBoon, buyUndo, sellBoon, rerollPort, leavePort, portService } from './voyage/port.js';
 import { findNode } from './voyage/map.js';
 import { scoreBoard, starsFor, starThresholds } from './voyage/scoring.js';
 import { loadBank, prepare as prepareDeals, dealFor, setBusyProbe } from './voyage/dealer.js';
-import { voyageStats, recordRunStart, recordRunEnd, recordBoardCleared, recordCharmPick, resetVoyageStats } from './voyage/stats.js';
+import { voyageStats, recordRunStart, recordRunEnd, recordBoardCleared, recordCharmPick, recordEconomy, resetVoyageStats } from './voyage/stats.js';
 import { computeBury, shortSolve } from './difficulty.js';
 import { VOYAGE_STUCK_IDLE_MS, VOYAGE_STUCK_PROOF_MS, VOYAGE_STUCK_SETTLE_MS, voyageStuckPlan } from './voyage/stuck.js';
 
@@ -52,7 +53,8 @@ const topSpacing = () => (freeCellCount <= 4 ? COL : Math.min(COL, 9 / (freeCell
 const topX = (j) => (freeCellCount <= 4 ? (j - 3.5) * COL : (j - (freeCellCount + 3) / 2) * topSpacing());
 const freeX = (i) => topX(i);
 const foundX = (i) => topX(Math.max(4, freeCellCount) + i);
-const LAYOUT = { surf: { w: 10.9, h: 6.6, cz: -0.8 }, SURFACE_Y, FREE_Z, TABLEAU_Z, zAt, colX, freeX, foundX, get freeCells() { return freeCellCount; } };
+const SPUR_X = 4.75, SPUR_Z = -1.0;
+const LAYOUT = { surf: { w: 10.9, h: 6.6, cz: -0.8 }, SURFACE_Y, FREE_Z, TABLEAU_Z, SPUR_X, SPUR_Z, zAt, colX, freeX, foundX, get freeCells() { return freeCellCount; } };
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const noop = () => {};
@@ -66,9 +68,12 @@ if (window.matchMedia('(prefers-reduced-motion: reduce)').matches && load('setti
 // Renderer / scene / camera
 // ---------------------------------------------------------------------------
 const canvas = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+// The canvas is unsmoothed. High and Ultra antialias through the post target;
+// a lower tier draws native pixels straight to the screen.
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false; // re-rendered only when a caster moves: see syncShadows()
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -78,19 +83,18 @@ scene.background = new THREE.Color(0x0a0605);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
 
-// Rendering quality tiers + adaptive resolution.
+// Every quality tier renders at the display's native pixel ratio. Lower tiers
+// drop antialiasing, bloom resolution, and shadow cost instead of upscaling.
 const perf = {
   tier: settings.quality === 'auto' ? (isTouch ? 'medium' : 'high') : settings.quality,
-  maxDpr: 2,
   dpr: 1,
   acc: 0,
   frames: 0,
   fps: 60,
   downgraded: false,
 };
-const tierDpr = { ultra: 2, high: 2, medium: 1.5, low: 1 };
-function setDpr(v) {
-  perf.dpr = Math.min(window.devicePixelRatio || 1, v);
+function applyResolution() {
+  perf.dpr = window.devicePixelRatio || 1;
   renderer.setPixelRatio(perf.dpr);
   renderer.setSize(window.innerWidth, window.innerHeight);
   post && post.resize(window.innerWidth, window.innerHeight, perf.dpr);
@@ -266,7 +270,7 @@ scene.add(hemi);
 
 const key = new THREE.DirectionalLight(0xffffff, 2);
 key.castShadow = true;
-key.shadow.mapSize.set(perf.tier === 'low' ? 1024 : 2048, perf.tier === 'low' ? 1024 : 2048);
+key.shadow.mapSize.set(2048, 2048);
 key.shadow.camera.near = 1;
 key.shadow.camera.far = 40;
 key.shadow.camera.left = -7;
@@ -278,6 +282,22 @@ key.shadow.normalBias = 0.01;
 key.shadow.radius = 4;
 key.shadow.blurSamples = 12;
 scene.add(key);
+
+function applyShadowQuality(tier) {
+  const soft = tier === 'ultra' || tier === 'high';
+  const type = soft ? THREE.PCFSoftShadowMap : tier === 'medium' ? THREE.PCFShadowMap : THREE.BasicShadowMap;
+  const size = soft ? 2048 : tier === 'medium' ? 1024 : 512;
+  const radius = soft ? 4 : 1;
+  const changed = renderer.shadowMap.type !== type || key.shadow.mapSize.x !== size || key.shadow.radius !== radius;
+  renderer.shadowMap.type = type;
+  key.shadow.mapSize.set(size, size);
+  key.shadow.radius = radius;
+  if (changed && key.shadow.map) {
+    key.shadow.map.dispose();
+    key.shadow.map = null;
+  }
+  renderer.shadowMap.needsUpdate = true;
+}
 
 const fill = new THREE.DirectionalLight(0xffffff, 0.5);
 scene.add(fill);
@@ -437,6 +457,11 @@ function buildTopRowHits() {
   for (let i = 0; i < 4; i++) addHit(foundX(i), FREE_Z, w, CARD.H * 1.15, 'found', i);
 }
 buildTopRowHits();
+function syncSpurHit() {
+  const existing = slotHitAreas.find((m) => m.userData.pile === 'found' && m.userData.index === 4);
+  if (game?.state.spur && !existing) addHit(SPUR_X, SPUR_Z, CARD.W * 1.1, CARD.H * 1.15, 'found', 4);
+  else if (!game?.state.spur && existing) { scene.remove(existing); existing.geometry.dispose(); slotHitAreas.splice(slotHitAreas.indexOf(existing), 1); }
+}
 
 // Glowing landing preview shown for every legal drop while dragging.
 const glowTex = (() => {
@@ -469,7 +494,7 @@ function makeGlow(kind, index) {
   glows.set(`${kind}${index}`, m); // added to the scene only while highlighted
 }
 for (let i = 0; i < 6; i++) makeGlow('free', i);
-for (let i = 0; i < 4; i++) makeGlow('found', i);
+for (let i = 0; i < 5; i++) makeGlow('found', i);
 for (let c = 0; c < 8; c++) makeGlow('col', c);
 
 function updateGlows(dt) {
@@ -490,16 +515,16 @@ function showValidTargets(from) {
   const targets = [];
   for (let c = 0; c < 8; c++) targets.push({ kind: 'col', index: c });
   for (let f = 0; f < freeCellCount; f++) targets.push({ kind: 'free', index: f });
-  for (let f = 0; f < 4; f++) targets.push({ kind: 'found', index: f });
+  for (let f = 0; f < (game.state.spur ? 5 : 4); f++) targets.push({ kind: 'found', index: f });
   for (const t of targets) {
     const g = glows.get(`${t.kind}${t.index}`);
     let ok = !!tryDrop(from, t);
-    if (ok && t.kind === 'found' && lead != null) ok = ids.length === 1 && (((lead - 1) / 13) | 0) === t.index;
+    if (ok && t.kind === 'found' && lead != null) ok = ids.length === 1 && (((lead - 1) / 13) | 0) === (t.index === 4 ? game.state.spur.suit : t.index);
     if (ok && t.kind === 'col') {
       const len = game.tableau[t.index].length;
       g.position.set(colX(t.index), SURFACE_Y + 0.012 + len * CARD.D, colZ(t.index, len, len + 1));
     } else if (ok) {
-      g.position.set(t.kind === 'free' ? freeX(t.index) : foundX(t.index), SURFACE_Y + 0.012, FREE_Z);
+      g.position.set(t.kind === 'free' ? freeX(t.index) : t.index === 4 ? SPUR_X : foundX(t.index), SURFACE_Y + 0.012, t.kind === 'found' && t.index === 4 ? SPUR_Z : FREE_Z);
     }
     g.userData.want = ok ? 1 : 0;
   }
@@ -535,19 +560,74 @@ let currentArt = null;
 let envTarget = null;
 const pmrem = new THREE.PMREMGenerator(renderer);
 
+// Screen-space backdrop drawn as a full-screen quad instead of scene.background,
+// so it can be thrown out of focus (mip-biased disc blur) for the deal intro.
+const backdropMat = new THREE.ShaderMaterial({
+  uniforms: {
+    map: { value: null },
+    uRepeat: { value: new THREE.Vector2(1, 1) },
+    uOffset: { value: new THREE.Vector2(0, 0) },
+    uTexel: { value: new THREE.Vector2(1, 1) },
+    uBlur: { value: 0 },
+    uIntensity: { value: 0.9 },
+  },
+  vertexShader: /* glsl */ `
+    uniform vec2 uRepeat, uOffset;
+    varying vec2 vUv;
+    void main() { vUv = uv * uRepeat + uOffset; gl_Position = vec4(position.xy, 1.0, 1.0); }`,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D map;
+    uniform vec2 uTexel;
+    uniform float uBlur, uIntensity;
+    varying vec2 vUv;
+    void main() {
+      vec3 col;
+      if (uBlur < 0.001) col = texture2D(map, vUv).rgb;
+      else {
+        float lod = uBlur * 5.0;
+        vec2 r = uTexel * exp2(lod) * 2.5;
+        col = vec3(0.0);
+        for (int i = 0; i < 16; i++) {
+          float fi = float(i) + 0.5;
+          float a = fi * 2.39996;
+          col += texture2D(map, vUv + vec2(cos(a), sin(a)) * sqrt(fi / 16.0) * r, lod).rgb;
+        }
+        col /= 16.0;
+      }
+      gl_FragColor = vec4(col * uIntensity, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+  depthTest: false,
+  depthWrite: false,
+  toneMapped: false, // matches three's own sRGB backgrounds
+});
+const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), backdropMat);
+backdrop.frustumCulled = false;
+backdrop.renderOrder = -1e6;
+backdrop.visible = false;
+backdrop.raycast = noop;
+// The shader ignores the model matrix; parking the mesh far below keeps it out of
+// override-material passes (GTAO normals) that do use it.
+backdrop.position.y = -1e4;
+scene.add(backdrop);
+const setBackdropBlur = (v) => { backdropMat.uniforms.uBlur.value = v; };
+
 function coverBackground() {
-  const t = scene.background;
-  if (!t || !t.isTexture || !t.image) return;
+  const t = backdropMat.uniforms.map.value;
+  if (!t || !t.image) return;
+  const u = backdropMat.uniforms;
   const imgA = t.image.width / t.image.height;
   const viewA = window.innerWidth / window.innerHeight;
-  t.repeat.set(1, 1);
-  t.offset.set(0, 0);
+  u.uRepeat.value.set(1, 1);
+  u.uOffset.value.set(0, 0);
+  u.uTexel.value.set(1 / t.image.width, 1 / t.image.height);
   if (viewA > imgA) {
-    t.repeat.y = imgA / viewA;
-    t.offset.y = (1 - t.repeat.y) / 2;
+    u.uRepeat.value.y = imgA / viewA;
+    u.uOffset.value.y = (1 - u.uRepeat.value.y) / 2;
   } else {
-    t.repeat.x = viewA / imgA;
-    t.offset.x = (1 - t.repeat.x) / 2;
+    u.uRepeat.value.x = viewA / imgA;
+    u.uOffset.value.x = (1 - u.uRepeat.value.x) / 2;
   }
 }
 
@@ -565,7 +645,12 @@ function setFreeCellCount(n) {
   if (n === freeCellCount) return;
   freeCellCount = n;
   buildTopRowHits();
-  if (layer) rebuildTableLayer();
+  if (layer) {
+    rebuildTableLayer();
+    // Voyage boards change the count right before dealing: upload the rebuilt
+    // table now rather than when it sweeps in mid-intro.
+    uploadTextures(layer.group);
+  }
 }
 
 async function applyTheme(id) {
@@ -595,28 +680,109 @@ async function applyTheme(id) {
     scene.environment = envTarget.texture;
     e.dispose();
   }
-  if (scene.background && scene.background.isTexture) scene.background.dispose();
+  backdropMat.uniforms.map.value?.dispose();
+  backdropMat.uniforms.map.value = null;
   if (art.backdrop) {
     const bg = new THREE.Texture(art.backdrop);
     bg.colorSpace = THREE.SRGBColorSpace;
     bg.needsUpdate = true;
-    scene.background = bg;
-    scene.backgroundIntensity = 0.9;
+    backdropMat.uniforms.map.value = bg;
+    backdrop.visible = true;
+    scene.background = null;
     coverBackground();
   } else {
+    backdrop.visible = false;
     scene.background = new THREE.Color(theme.scene.clear);
   }
 
+  ensureCards();
   for (const g of cardGroups.values()) applyCardStyle(g, theme.card);
-  if (highlightRank != null) for (const id of highlightedIds) refreshCardEmissive(id);
+  for (const id of new Set([...highlightedIds, ...targetIds, ...targetFocusIds, ...targetChosenIds])) refreshCardEmissive(id);
   updateScales();
   audio.setTheme(id);
+  renderer.shadowMap.needsUpdate = true;
+  await warmGpu();
+}
+
+// Upload every texture and link every shader the theme needs while the theme
+// fade (or the loader) still covers the screen. Otherwise the 52 card faces and
+// the board art upload, and new shaders compile, in the middle of the deal intro.
+async function warmGpu() {
+  // Compile against the buffer the scene really renders into. Post-processed
+  // tiers draw into a linear half-float target, which selects different shader
+  // variants (no tone mapping, linear output) than drawing straight to the screen.
+  const target = perf.tier === 'low' ? null : post.composer.renderTarget1;
+  const ready = withWholeScene(() => {
+    uploadTextures(scene);
+    return withRenderTarget(target, () => renderer.compileAsync(scene, camera));
+  });
+  await ready;
+  // A linked program still blocks on its first draw, while three.js reads back
+  // its uniforms. Draw once into the offscreen post buffer to take that hit now;
+  // nothing reaches the screen, and the next frame overwrites the buffer.
+  if (target) withWholeScene(() => withRenderTarget(target, () => renderer.render(scene, camera)));
+  renderer.shadowMap.needsUpdate = true;
+}
+
+// Push every texture under root to the GPU now (initTexture skips ones already uploaded).
+function uploadTextures(root) {
+  const seen = new Set();
+  const upload = (v) => {
+    if (v?.isTexture && !v.isRenderTargetTexture && !seen.has(v)) {
+      seen.add(v);
+      renderer.initTexture(v);
+    }
+  };
+  root.traverse((o) => {
+    if (!o.material) return;
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+      for (const v of Object.values(m)) upload(v);
+      if (m.uniforms) for (const u of Object.values(m.uniforms)) upload(u.value);
+    }
+  });
+}
+
+// Run fn with every card face, the table and the pooled effects in the scene
+// and visible, then restore them. Shader variants depend on the scene's light
+// count, which differs per theme, so effects that sit outside the scene until
+// used are included too.
+function withWholeScene(fn) {
+  const shown = [];
+  const show = (o) => { if (!o.visible) { o.visible = true; shown.push(o); } };
+  show(tableGroup);
+  show(particles.points);
+  for (const g of cardGroups.values()) {
+    show(g);
+    show(g.userData.front);
+    show(g.userData.back);
+  }
+  const extras = [...glows.values(), ...pulses.idleMeshes()].filter((m) => !m.parent);
+  for (const m of extras) scene.add(m);
+  try {
+    return fn();
+  } finally {
+    for (const o of shown) o.visible = false;
+    for (const m of extras) scene.remove(m);
+  }
+}
+
+function withRenderTarget(target, fn) {
+  const prev = renderer.getRenderTarget();
+  renderer.setRenderTarget(target);
+  try {
+    return fn();
+  } finally {
+    renderer.setRenderTarget(prev);
+  }
 }
 
 async function switchTheme(id) {
   if (id === currentTheme.id && currentArt) return;
   audio.ui();
-  const onTitle = !ui.els.title.classList.contains('hidden');
+  // A title that is already animating away no longer hides the table, so the
+  // heavy swap (texture uploads, shader warm-up) goes behind the fade instead.
+  const tl = ui.els.title.classList;
+  const onTitle = !tl.contains('hidden') && !tl.contains('leaving');
   if (onTitle) await applyTheme(id);
   else await ui.transition(() => applyTheme(id));
 }
@@ -659,7 +825,7 @@ motion.onLand = (g, impact) => {
   }
 };
 motion.onFlip = (g) => {
-  if (!dealing) audio.flip(panOf(g.position.x));
+  if (!dealing && !cascade) audio.flip(panOf(g.position.x));
 };
 motion.onTrail = (g, speed) => {
   if (g.userData.dest !== 'found' || settings.reducedMotion || speed < 1) return;
@@ -738,6 +904,14 @@ function computeTargets() {
       t.set(s * 13 + r, { x: foundX(s), y: SURFACE_Y + CARD.D / 2 + (r - 1) * CARD.D, z: FREE_Z, kind: 'found' });
     }
   }
+  if (st.spur) for (let r = st.spur.base; r <= st.spur.top; r++)
+    t.set(st.spur.suit * 13 + r, { x: SPUR_X, y: SURFACE_Y + CARD.D / 2 + (r - st.spur.base) * CARD.D, z: SPUR_Z, kind: 'found' });
+  // An ability's earlier pick stays lifted, like a selected card, until it finishes;
+  // the target under the pointer rises a little so the player sees what a click takes.
+  for (const id of new Set([...targetChosenIds, ...targetFocusIds])) {
+    const tg = t.get(id);
+    if (tg && tg.kind !== 'found') t.set(id, { ...tg, y: tg.y + (targetChosenIds.has(id) ? 0.18 : 0.07) });
+  }
   return t;
 }
 
@@ -746,25 +920,17 @@ function targetsEqual(a, b) {
 }
 
 function applyLayout(_animate = true, opts = {}) {
+  syncSpurHit();
   layer?.setRules?.(game);
   const targets = computeTargets();
   if (opts.deal) {
-    const offset = opts.delayOffset || 0;
-    const delays = new Map();
-    let order = 0;
-    for (let i = 0; i < 20; i++) {
-      for (let c = 0; c < 8; c++) {
-        const id = game.state.tableau[c][i];
-        if (id !== undefined) delays.set(id, order++ * 0.016);
-      }
-    }
-    for (const [id, tg] of targets) {
-      const g = cardGroups.get(id);
-      if (!g) continue;
+    const order = dealOrder();
+    for (let o = 0; o < order.length; o++) {
+      const g = cardGroups.get(order[o]);
+      const tg = targets.get(order[o]);
       g.userData.dest = tg.kind;
-      if (!delays.has(id)) delays.set(id, order++ * 0.016);
       moveCard(g, tg, {
-        delay: offset + delays.get(id),
+        delay: o * INTRO.step,
         arc: 1.6,
         spin: (Math.random() - 0.5) * 0.5,
         fromFlip: true,
@@ -790,36 +956,204 @@ function applyLayout(_animate = true, opts = {}) {
   }
 }
 
-// The board flips down into place; cards are dealt once it has largely landed.
-const DEAL_DELAY = 0.58;
-function playBoardIntro() {
-  const reduced = settings.reducedMotion;
-  const start = reduced ? { rx: 0, rz: 0, y: 0, s: 1 } : { rx: -1.25, rz: 0.12, y: -0.6, s: 0.8 };
-  const apply = (p) => {
-    tableGroup.rotation.x = start.rx * (1 - p);
-    tableGroup.rotation.z = start.rz * (1 - p);
-    tableGroup.position.y = start.y * (1 - p);
-    tableGroup.scale.setScalar(start.s + (1 - start.s) * p);
+// Cards in the order they leave the deck: tableau row by row, then anything
+// already home or in a cell (restored games, boards that start with cards home).
+function dealOrder() {
+  const order = [];
+  for (let i = 0; i < 20; i++) {
+    for (let c = 0; c < 8; c++) {
+      const id = game.state.tableau[c][i];
+      if (id !== undefined) order.push(id);
+    }
+  }
+  const seen = new Set(order);
+  for (const id of computeTargets().keys()) if (!seen.has(id)) order.push(id);
+  return order;
+}
+
+// ---------------------------------------------------------------------------
+// Deal intro: the backdrop opens out of focus, the board sweeps in, the deck
+// drops and fans out its backs, then the cards are dealt from the fan while the
+// backdrop pulls into focus. A click or Space/Enter/Esc skips to the dealt board.
+// ---------------------------------------------------------------------------
+const INTRO = {
+  boardAt: 0.3, // board sweep (seconds from the start)
+  boardDur: 1.2,
+  deckAt: 1.25, // deck drops onto the table
+  deckDur: 0.5,
+  fanAt: 1.8, // deck fans out face down
+  fanDur: 0.75,
+  fanHold: 0.4,
+  step: 0.034, // gap between dealt cards
+  settle: 0.65, // after the last card leaves
+  focusLead: 0.2, // backdrop starts focusing this long after dealing starts
+  focusDur: 1.9,
+};
+INTRO.dealAt = INTRO.fanAt + INTRO.fanDur + INTRO.fanHold;
+const FAN = { pivotZ: 1.75, radius: 3.15, spread: 1.05, y: SURFACE_Y + 0.35, lift: 0.008 };
+const DECK = { z: -0.7, y: SURFACE_Y + 0.35, gap: 0.016 };
+const intro = { active: false, tweens: [] };
+const skipHint = document.getElementById('intro-skip');
+
+function introTween(o) {
+  const tw = animator.add(o);
+  intro.tweens.push(tw);
+  return tw;
+}
+
+function resetBoardTransform() {
+  tableGroup.visible = true;
+  tableGroup.position.set(0, 0, 0);
+  tableGroup.rotation.set(0, 0, 0);
+  tableGroup.scale.setScalar(1);
+}
+
+function playDealIntro() {
+  intro.tweens = [];
+  intro.active = true;
+  dealing = true;
+  if (settings.reducedMotion) return finishIntro();
+  skipHint?.classList.add('on');
+
+  // 1. Out-of-focus backdrop, empty table.
+  setBackdropBlur(1);
+  tableGroup.visible = false;
+
+  // 2. The board sweeps in from the left, yawing round and tipping flat.
+  const from = { x: -17, y: -1.2, z: 1.5, rx: -0.55, ry: 0.75, rz: 0.22, s: 0.78 };
+  introTween({
+    delay: INTRO.boardAt,
+    duration: INTRO.boardDur,
+    ease: Easing.linear,
+    onUpdate: (_, t) => {
+      const slide = Easing.quartOut(t);
+      const turn = Easing.backOut(Math.min(1, t * 1.1));
+      tableGroup.visible = true;
+      tableGroup.position.set(from.x * (1 - slide), from.y * (1 - slide), from.z * (1 - slide));
+      tableGroup.rotation.set(from.rx * (1 - turn), from.ry * (1 - turn), from.rz * (1 - turn));
+      tableGroup.scale.setScalar(from.s + (1 - from.s) * Easing.cubicOut(t));
+    },
+    onComplete: resetBoardTransform,
+  });
+
+  // 3. The deck drops in, then fans out so its backs show. The first card dealt
+  // sits on top of the deck and at the right-hand end of the fan.
+  const order = dealOrder();
+  const n = order.length;
+  const deckPos = (o) => ({ x: (o % 5) * 0.01 - 0.02, y: DECK.y + (n - 1 - o) * DECK.gap, z: DECK.z });
+  const fanPos = (o) => {
+    const i = n - 1 - o;
+    const a = -FAN.spread + (2 * FAN.spread * i) / Math.max(1, n - 1);
+    return { x: FAN.radius * Math.sin(a), y: FAN.y + i * FAN.lift, z: FAN.pivotZ - FAN.radius * Math.cos(a), ry: a };
   };
-  apply(0);
-  animator.add({
-    duration: reduced ? 0.01 : 0.72,
-    ease: Easing.backOut,
-    onUpdate: (e) => apply(e),
-    onComplete: () => {
-      tableGroup.rotation.set(0, 0, 0);
-      tableGroup.position.y = 0;
-      tableGroup.scale.setScalar(1);
+  order.forEach((id, o) => {
+    const g = cardGroups.get(id);
+    const d = deckPos(o);
+    g.position.set(d.x, d.y + 6, d.z);
+    g.rotation.set(Math.PI, 0, 0);
+  });
+  introTween({
+    delay: INTRO.deckAt,
+    duration: INTRO.deckDur,
+    ease: Easing.linear,
+    onUpdate: (_, t) => {
+      order.forEach((id, o) => {
+        const g = cardGroups.get(id);
+        const d = deckPos(o);
+        // Lower cards lead slightly so the deck lands as a stack, not a slab.
+        const p = Easing.backOut(Math.min(1, Math.max(0, (t - (o / n) * 0.18) / 0.82)));
+        g.visible = true;
+        g.position.set(d.x, d.y + 6 * (1 - p), d.z);
+        g.rotation.z = 0.35 * (1 - p);
+      });
+    },
+    onComplete: () => audio.place(0, 3),
+  });
+  introTween({
+    delay: INTRO.fanAt,
+    duration: INTRO.fanDur,
+    ease: Easing.linear,
+    onUpdate: (_, t) => {
+      order.forEach((id, o) => {
+        const g = cardGroups.get(id);
+        const d = deckPos(o);
+        const f = fanPos(o);
+        // Cards peel off the deck one after another, bottom of the fan first.
+        const lag = ((n - 1 - o) / n) * 0.3;
+        const p = Easing.cubicOut(Math.min(1, Math.max(0, (t - lag) / 0.7)));
+        g.position.set(d.x + (f.x - d.x) * p, d.y + (f.y - d.y) * p + Math.sin(Math.PI * p) * 0.25, d.z + (f.z - d.z) * p);
+        g.rotation.set(Math.PI, f.ry * p, 0);
+      });
     },
   });
-  animator.add({
-    duration: 0.02,
-    delay: reduced ? 0 : DEAL_DELAY,
-    onUpdate: () => {
-      for (const g of cardGroups.values()) g.visible = true;
+  introTween({ delay: INTRO.fanAt, duration: 0, onComplete: () => audio.shuffle() });
+
+  // 4. Deal from the fan while the backdrop comes into focus.
+  introTween({ delay: INTRO.dealAt, duration: 0, onComplete: () => applyLayout(true, { deal: true }) });
+  const targets = computeTargets();
+  for (let o = 0; o < n; o += 2) {
+    const pan = panOf(targets.get(order[o]).x);
+    introTween({ delay: INTRO.dealAt + o * INTRO.step, duration: 0, onComplete: () => audio.deal(pan) });
+  }
+  introTween({
+    delay: INTRO.dealAt + INTRO.focusLead,
+    duration: INTRO.focusDur,
+    ease: Easing.quadInOut,
+    onUpdate: (e) => setBackdropBlur(1 - e),
+  });
+  introTween({
+    delay: INTRO.dealAt + (n - 1) * INTRO.step + INTRO.settle,
+    duration: 0,
+    onComplete: () => {
+      intro.tweens = [];
+      endIntro();
     },
   });
 }
+
+function endIntro() {
+  intro.active = false;
+  dealing = false;
+  skipHint?.classList.remove('on');
+  scheduleAuto(300);
+}
+
+// Jump straight to the dealt board: board in place, backdrop sharp, every card
+// at rest on its pile.
+function finishIntro() {
+  for (const tw of intro.tweens) animator.remove(tw);
+  intro.tweens = [];
+  resetBoardTransform();
+  setBackdropBlur(0);
+  for (const [id, tg] of computeTargets()) {
+    const g = cardGroups.get(id);
+    if (!g) continue;
+    motion.release(g);
+    g.visible = true;
+    g.position.set(tg.x, tg.y, tg.z);
+    g.rotation.set(0, 0, 0);
+    g.userData.rxState = 0;
+    g.userData.dest = tg.kind;
+    g.userData.target = { x: tg.x, y: tg.y, z: tg.z, rx: 0, ry: 0 };
+  }
+  endIntro();
+}
+
+function skipIntro() {
+  if (!intro.active) return false;
+  audio.unlock();
+  audio.place(0, 3);
+  finishIntro();
+  return true;
+}
+
+// Registered ahead of the game's own pointer handler so the skipping click
+// never also picks up a card.
+window.addEventListener('pointerdown', (e) => {
+  if (e.target !== canvas || e.button === 2 || !intro.active) return;
+  skipIntro();
+  e.stopImmediatePropagation();
+}, true);
 
 // ---------------------------------------------------------------------------
 // Game state
@@ -835,6 +1169,7 @@ function locateCard(id) {
   const suit = ((id - 1) / 13) | 0;
   const rank = ((id - 1) % 13) + 1;
   if (rank <= st.found[suit]) return { kind: 'found', index: suit, cardIndex: rank - 1 };
+  if (st.spur?.suit === suit && rank >= st.spur.base && rank <= st.spur.top) return { kind: 'found', index: 4, cardIndex: rank - 1 };
   for (let c = 0; c < 8; c++) {
     const idx = st.tableau[c].indexOf(id);
     if (idx >= 0) return { kind: 'col', index: c, cardIndex: idx };
@@ -850,8 +1185,10 @@ function movableCards(loc) {
     return col.slice(loc.cardIndex);
   }
   if (loc.kind === 'free') return [game.free[loc.index]];
-  if (loc.kind === 'found' && game.rules.foundationReturn && loc.cardIndex === game.found[loc.index] - 1)
-    return [loc.index * 13 + game.found[loc.index]];
+  if (loc.kind === 'found' && game.rules.foundationReturn) {
+    if (loc.index === 4) return game.state.spur.top > game.state.spur.base && loc.cardIndex === game.state.spur.top - 1 ? [game.state.spur.suit * 13 + game.state.spur.top] : null;
+    if (loc.cardIndex === game.found[loc.index] - 1) return [loc.index * 13 + game.found[loc.index]];
+  }
   return null;
 }
 
@@ -885,9 +1222,10 @@ function selectCard(loc) {
 function tryDrop(from, target) {
   if (!target) return null;
   if (from.kind === 'found') {
-    if (from.cardIndex !== game.found[from.index] - 1) return null;
+    const spur = from.index === 4, top = spur ? game.state.spur?.top : game.found[from.index], suit = spur ? game.state.spur?.suit : from.index;
+    if (from.cardIndex !== top - 1) return null;
     const to = { kind: target.kind, i: target.index };
-    return game.canReturnFoundation(from.index, to) ? () => game.moveFoundationReturn(from.index, to) : null;
+    return game.canReturnFoundation(suit, to, spur ? 'spur' : 'original') ? () => game.moveFoundationReturn(suit, to, spur ? 'spur' : 'original') : null;
   }
   if (target.kind === 'col') {
     if (from.kind === 'col') {
@@ -895,7 +1233,7 @@ function tryDrop(from, target) {
       if (from.index === target.index || !game.canMoveSequenceStart(from.index, from.cardIndex)) return null;
       const count = col.length - from.cardIndex;
       const card = col[from.cardIndex];
-      if (!game.canDropTableau(target.index, card, count)) return null;
+      if (!game.canDropTableau(target.index, card, count, col.slice(from.cardIndex))) return null;
       return () => game.moveSequenceToTableau(from.index, from.cardIndex, target.index);
     }
     if (from.kind === 'free') {
@@ -926,8 +1264,9 @@ function tryDrop(from, target) {
     } else {
       return null;
     }
-    if (!card || !game.canDropFoundation(card)) return null;
-    return () => game.moveToFoundation(src);
+    const dest = target.index === 4 ? 'spur' : 'original';
+    if (!card || (game.state.spur && (((card - 1) / 13) | 0) !== (target.index === 4 ? game.state.spur.suit : target.index)) || !game.canDropFoundation(card, dest)) return null;
+    return () => game.moveToFoundation(src, dest);
   }
   return null;
 }
@@ -950,7 +1289,7 @@ function devMenuOpen() {
 function devSnapshotRows() {
   if (!game) return [['Table', 'No active deal']];
   const st = game.state;
-  const home = st.found[0] + st.found[1] + st.found[2] + st.found[3];
+  const home = cardsHome(st);
   const legal = generateMoves(st, { fullOnly: true, rules: game.rules }).length;
   const rows = [
     ['Mode', mode],
@@ -1244,15 +1583,20 @@ function setPointer(e) {
   pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
 }
 
-function pickCard(e) {
+// skip(id): pass through cards that should not catch the pointer (a lifted ability pick).
+function pickCardHit(e, skip = null) {
   setPointer(e);
   raycaster.setFromCamera(pointer, camera);
   const hits = raycaster.intersectObjects(pickables, false);
   for (const h of hits) {
     const g = cardGroups.get(h.object.userData.cardId);
-    if (g && g.visible) return h.object.userData.cardId;
+    if (g && g.visible && !skip?.(h.object.userData.cardId)) return h;
   }
   return null;
+}
+
+function pickCard(e) {
+  return pickCardHit(e)?.object.userData.cardId ?? null;
 }
 
 function pickTarget(e) {
@@ -1268,15 +1612,21 @@ function pickTarget(e) {
 // --- rank highlight (hold a key to light up every card of that rank) --------
 let highlightRank = null;
 const highlightedIds = new Set();
+// Ability targeting (below) shares this highlight: legal targets, the aimed one, earlier picks.
+const targetIds = new Set();
+const targetFocusIds = new Set();
+const targetChosenIds = new Set();
 
-// Single writer for a card's emissive state: rank highlight beats hover beats
-// the theme baseline, so the two effects never stomp on each other.
+// Single writer for a card's emissive state: the shared blue highlight (a held rank
+// key, or an ability's targets) beats hover, which beats the theme baseline, so the
+// effects never stomp on each other. Aimed and chosen targets rise instead of
+// glowing harder, which would bleach the face the player needs to read.
 function refreshCardEmissive(cid) {
   const g = cardGroups.get(cid);
   if (!g) return;
   const m = g.userData.frontMat;
   const base = currentTheme.card.emissive;
-  if (highlightedIds.has(cid)) {
+  if (highlightedIds.has(cid) || targetIds.has(cid) || targetFocusIds.has(cid) || targetChosenIds.has(cid)) {
     if (base > 0) m.emissiveIntensity = base + 0.9;
     else { m.emissive.setHex(0x66d9ff); m.emissiveIntensity = 0.5; }
   } else if (cid === hoverId) {
@@ -1366,6 +1716,194 @@ function clearHeldRankHighlight() {
   setRankHighlight(null);
 }
 
+// --- ability targeting -------------------------------------------------------
+// A charm ability that needs a target lights every legal card the way a held rank
+// key does, and every legal empty cell or column end pulses like a drop target.
+// Click (or Tab/arrows + Enter) to pick; Esc, right-click, the Cancel button, the
+// charm tray or any other control cancels. Nothing is spent until the pick lands.
+let targeting = null;
+let targetClick = { at: 0, x: 0, y: 0 }; // where and when the last pick was clicked
+const SUITS = ['♣', '♦', '♥', '♠'];
+const cardLabel = (id) => `${({ 1: 'A', 11: 'J', 12: 'Q', 13: 'K' })[((id - 1) % 13) + 1] || ((id - 1) % 13) + 1}${SUITS[((id - 1) / 13) | 0]}`;
+
+function targetLabel(kind, value) {
+  if (kind === 'card') return cardLabel(value);
+  if (kind === 'freecell') return game.free[value] ? `Free cell ${value + 1} · ${cardLabel(game.free[value])}` : `Free cell ${value + 1}`;
+  const top = game.tableau[value].at(-1);
+  return top ? `Column ${value + 1} · ${faceDown(top) ? 'face-down card' : cardLabel(top)} on top` : `Column ${value + 1} · empty`;
+}
+
+function setTargetGlows() {
+  const t = targeting;
+  for (const g of glows.values()) g.userData.want = 0;
+  if (!t) return;
+  for (const value of t.values) {
+    if (t.lit.get(value).length) continue;
+    const g = glows.get(`${t.kind === 'freecell' ? 'free' : 'col'}${value}`);
+    if (t.kind === 'freecell') g.position.set(freeX(value), SURFACE_Y + 0.012, FREE_Z);
+    else {
+      const len = game.tableau[value].length;
+      g.position.set(colX(value), SURFACE_Y + 0.012 + len * CARD.D, colZ(value, len, len + 1));
+    }
+    g.userData.want = value === t.focus ? 1 : 0.7;
+  }
+}
+
+// Raise or lower target cards in place: a flat slide like peek, never the hop of a real move.
+function settleTargets(ids) {
+  if (!game) return;
+  const targets = computeTargets();
+  for (const id of ids) {
+    const g = cardGroups.get(id), tg = targets.get(id);
+    if (g && tg && !g.userData.dragging && !targetsEqual(g.userData.target, tg)) moveCard(g, tg, { arc: 0, damping: 1, stiffness: 260, flat: true, onLand: noop });
+  }
+}
+
+function setTargetFocus(value) {
+  const t = targeting;
+  if (!t || value === t.focus) return;
+  t.focus = value;
+  const stale = [...targetFocusIds];
+  targetFocusIds.clear();
+  if (value != null) for (const id of t.group.get(value)) targetFocusIds.add(id);
+  const changed = new Set([...stale, ...targetFocusIds]);
+  for (const id of changed) refreshCardEmissive(id);
+  setTargetGlows();
+  settleTargets(changed);
+  voyageUI.updateTargetPrompt?.(value == null ? '' : targetLabel(t.kind, value));
+}
+
+// The legal target under the pointer: for column and cell picks, any card in that
+// pile or its empty slot counts, so the whole column is one big hit area.
+function targetValueAt(e) {
+  const t = targeting;
+  if (!t || e.target !== canvas) return null;
+  // An earlier pick is lifted over the card resting on it; aim through it at that card.
+  const id = pickCardHit(e, (cid) => targetChosenIds.has(cid) && !t.values.includes(cid))?.object.userData.cardId ?? null;
+  const loc = id != null ? locateCard(id) : null, slot = loc ? null : pickTarget(e);
+  let value = null;
+  if (t.kind === 'card') value = id;
+  else if (t.kind === 'freecell') value = loc ? (loc.kind === 'free' ? loc.index : null) : slot?.kind === 'free' ? slot.index : null;
+  else value = loc ? (loc.kind === 'col' ? loc.index : null) : slot?.kind === 'col' ? slot.index : null;
+  return t.values.includes(value) ? value : null;
+}
+
+function endTargeting(value = null) {
+  const t = targeting;
+  if (!t) return;
+  targeting = null;
+  const lit = [...targetIds, ...targetFocusIds];
+  targetIds.clear(); targetFocusIds.clear();
+  if (value != null && vy.ability) {
+    // Keep this pick lifted and lit while the same ability asks for its next target.
+    for (const id of t.kind === 'column' ? t.lit.get(value) : t.group.get(value)) targetChosenIds.add(id);
+    lastTap = { id: null, time: 0 };
+    audio.pickup(0);
+  }
+  const changed = new Set([...lit, ...targetChosenIds]);
+  for (const id of changed) refreshCardEmissive(id);
+  setTargetGlows();
+  canvas.style.cursor = 'default';
+  voyageUI.clearTargetPrompt?.();
+  settleTargets(changed);
+  t.resolve(value);
+}
+
+// settle = false when a real move is about to lay the board out (and animate) anyway.
+function clearTargetChosen(settle = true) {
+  if (!targetChosenIds.size) return;
+  const ids = [...targetChosenIds];
+  targetChosenIds.clear();
+  for (const id of ids) refreshCardEmissive(id);
+  if (settle) settleTargets(ids);
+}
+
+function onTargetingPointer(e) {
+  if (e.target !== canvas) {
+    // Undo, Menu, Map… abandon the pick first. The prompt and the charm tray cancel themselves.
+    if (!e.target.closest?.('.voyage-target-prompt, [data-ability]')) endTargeting(null);
+    return;
+  }
+  e.stopPropagation();
+  if (e.button === 2) { endTargeting(null); return; }
+  const value = targetValueAt(e);
+  if (value == null) { audio.invalid(); voyageUI.nudgeTargetPrompt?.(); return; }
+  targetClick = { at: performance.now(), x: e.clientX, y: e.clientY };
+  endTargeting(value);
+}
+
+function onTargetingKey(e) {
+  const t = targeting;
+  if (!t || e.metaKey || e.ctrlKey || e.altKey) return;
+  // The board is paused on this choice: game hotkeys (undo, rank keys…) wait.
+  e.stopImmediatePropagation();
+  const k = e.key;
+  if (k === 'Escape') { e.preventDefault(); endTargeting(null); return; }
+  if (k === 'Enter' || k === ' ') {
+    e.preventDefault();
+    if (t.focus != null) endTargeting(t.focus);
+    else setTargetFocus(t.values[0]);
+    return;
+  }
+  const step = k === 'Tab' ? (e.shiftKey ? -1 : 1) : (k === 'ArrowRight' || k === 'ArrowDown') ? 1 : (k === 'ArrowLeft' || k === 'ArrowUp') ? -1 : 0;
+  if (!step) return;
+  e.preventDefault();
+  const i = t.values.indexOf(t.focus);
+  setTargetFocus(t.values[i < 0 ? (step > 0 ? 0 : t.values.length - 1) : (i + step + t.values.length) % t.values.length]);
+}
+window.addEventListener('keydown', onTargetingKey, true);
+canvas.addEventListener('contextmenu', (e) => { if (targeting) e.preventDefault(); });
+
+// Reading order for keyboard focus: free cells, then columns left to right, top to bottom.
+function targetOrder(kind, value) {
+  if (kind !== 'card') return value;
+  const loc = locateCard(value);
+  return loc.kind === 'free' ? loc.index : 100 + loc.index * 100 + loc.cardIndex;
+}
+
+function startTargeting({ kind, values, prompt, cards, group }) {
+  clearHeldRankHighlight();
+  setHover(null);
+  const st = game.state;
+  const lit = new Map(), focus = new Map();
+  for (const value of values) {
+    let ids;
+    if (kind === 'card') ids = [value];
+    else if (kind === 'freecell') ids = st.free[value] ? [st.free[value]] : [];
+    else ids = cards ? cards(value, st) || [] : [];
+    lit.set(value, ids.filter((id) => cardGroups.has(id)));
+    // Like the rank keys, a card pick never lights a face-down card it did not name:
+    // that would tell which hidden cards match. A column pick lights its whole pile.
+    const hover = (group ? group(value, st) || [] : kind === 'column' ? st.tableau[value] : ids).filter((id) => kind === 'column' || ids.includes(id) || !faceDown(id));
+    focus.set(value, [...new Set([...hover, ...ids])].filter((id) => cardGroups.has(id)));
+  }
+  values = values.slice().sort((a, b) => targetOrder(kind, a) - targetOrder(kind, b));
+  return new Promise((resolve) => {
+    targeting = { kind, values, lit, group: focus, focus: null, resolve };
+    for (const ids of lit.values()) for (const id of ids) targetIds.add(id);
+    for (const id of targetIds) refreshCardEmissive(id);
+    setTargetGlows();
+    const charm = vy.ability && CHARMS[vy.ability.id];
+    voyageUI.showTargetPrompt?.({
+      ability: vy.ability?.id || null, icon: charm?.icon || '✦', name: charm?.name || 'Charm',
+      text: prompt || `Choose a ${kind === 'freecell' ? 'free cell' : kind}`,
+      avoidTop: topRowScreenY(),
+    }, () => endTargeting(null));
+  });
+}
+
+// Screen y of the top edge of the free-cell / foundation row: the banner must stay above it.
+function topRowScreenY() {
+  const v = new THREE.Vector3(freeX(0), SURFACE_Y, FREE_Z - CARD.H / 2).project(camera);
+  return (-v.y * 0.5 + 0.5) * window.innerHeight;
+}
+
+function cancelTargeting() {
+  endTargeting(null);
+  voyageUI.cancelChoice?.();
+  clearTargetChosen();
+}
+
 function setHover(id) {
   if (id === hoverId) return;
   const prev = hoverId;
@@ -1374,10 +1912,40 @@ function setHover(id) {
   if (id != null) refreshCardEmissive(id);
 }
 
+let markTipAt = null;
+
+function syncMarkTip(clientX, clientY, hit) {
+  const group = hit && cardGroups.get(hit.object.userData.cardId);
+  const style = group?.userData.mark;
+  const tip = !group || group.userData.concealed ? null
+    : group.userData.mods?.length && modHit(hit.uv, !!style) ? vy.effects?.modTip(group.userData.cardId)
+    : style && !String(style).startsWith('sticker-') && markSigilHit(hit.uv) ? vy.effects?.markTip(group.userData.cardId, style)
+    : null;
+  if (!tip) voyageUI.hideMarkTip();
+  else voyageUI.showMarkTip(clientX, clientY, tip.name, tip.text);
+}
+
 function updateHover(e) {
-  if (drag || e.pointerType === 'touch' || !game) return;
-  if (e.target !== canvas) { if (peek && e.pointerType === 'mouse') setPeek(null); return; }
-  const id = pickCard(e);
+  if (targeting) {
+    if (e.pointerType === 'touch') return;
+    const value = targetValueAt(e);
+    if (value != null || e.target === canvas) setTargetFocus(value);
+    if (e.target === canvas) canvas.style.cursor = value != null ? 'pointer' : 'not-allowed';
+    return;
+  }
+  if (drag || e.pointerType === 'touch' || !game) {
+    markTipAt = null;
+    voyageUI.hideMarkTip();
+    return;
+  }
+  if (e.target !== canvas) {
+    markTipAt = null;
+    voyageUI.hideMarkTip();
+    if (peek && e.pointerType === 'mouse') setPeek(null);
+    return;
+  }
+  const hit = pickCardHit(e);
+  const id = hit?.object.userData.cardId ?? null;
   if (e.pointerType !== 'touch') peekFromCard(id);
   let movable = null;
   if (id != null) {
@@ -1386,10 +1954,20 @@ function updateHover(e) {
   }
   setHover(movable);
   canvas.style.cursor = movable != null ? 'grab' : 'default';
+  if (mode === 'voyage' && vy.boardLive) {
+    markTipAt = { x: e.clientX, y: e.clientY };
+    syncMarkTip(e.clientX, e.clientY, hit);
+  } else {
+    markTipAt = null;
+    voyageUI.hideMarkTip();
+  }
 }
 
 function onPointerDown(e) {
   audio.unlock();
+  markTipAt = null;
+  voyageUI.hideMarkTip();
+  if (targeting) { onTargetingPointer(e); return; }
   if (fogInput.peek?.source !== 'toggle' || e.target !== canvas) endFogPeek();
   cancelFogPointer();
   if (e.target !== canvas || e.button === 2 || !game || won) return;
@@ -1489,6 +2067,7 @@ function updateDrag(dt) {
 }
 
 function onPointerUp(e) {
+  if (targeting) return;
   if (finishFogPointer(e)) return;
   if (!drag) {
     if (e.target !== canvas || !game || won) return;
@@ -1565,6 +2144,8 @@ window.addEventListener('blur', () => { cancelFogPointer(); endFogPeek(); fogInp
 document.getElementById('set-tap-peek').addEventListener('change', () => { cancelFogPointer(); endFogPeek(); });
 canvas.addEventListener('dblclick', (e) => {
   if (!game || won) return;
+  // A double-click whose first click picked an ability target (same spot, just now) is not an auto-move.
+  if (targeting || vy.ability || (performance.now() - targetClick.at < 600 && Math.hypot(e.clientX - targetClick.x, e.clientY - targetClick.y) < 10)) return;
   if (fogContext() && (settings.tapToPeek || performance.now() < fogInput.suppressClickUntil)) { e.preventDefault(); return; }
   const id = pickCard(e);
   if (id == null) return;
@@ -1625,7 +2206,7 @@ let introDismissed = true;
 function updateHUD() {
   if (!game) return;
   const st = game.state;
-  const total = st.found[0] + st.found[1] + st.found[2] + st.found[3];
+  const total = cardsHome(st);
   const moves = manualMoves();
   ui.updateHUD({ moves, found: total, deal: game.dealNumber });
   if (moves > 0 && !introDismissed) {
@@ -1701,14 +2282,16 @@ async function doCheck() {
   }
 }
 
-async function doHint({ dev = false } = {}) {
-  if (busy || !game || won) return;
-  if (mode === 'voyage' && !dev && !ui.devUnlocked) return;
+async function doHint({ dev = false, charm = false } = {}) {
+  if (busy || !game || won) return false;
+  if (mode === 'voyage' && !dev && !charm) return false;
+  const board = game, history = game.history.slice();
   busy = true;
   ui.setSolverBusy(true);
   setStatus('Looking for a good move…', 'warn');
   try {
     const r = await requestSolve({ timeLimitMs: 3000 });
+    if (game !== board || won || history.length !== game.history.length || history.some((m, i) => m !== game.history[i])) return false;
     let move = null;
     if (r.solution && r.solution.length) move = r.solution[0];
     else {
@@ -1721,11 +2304,13 @@ async function doHint({ dev = false } = {}) {
     } else {
       if (mode !== 'voyage') run.hints++;
       audio.hint();
-      game.applyDescriptor(move);
+      const played = game.applyDescriptor(move);
+      if (charm && vy.ability) played.voyageAbility = { ...vy.ability };
       clearSelection();
-      afterMove();
+      afterMove({ noAuto: mode === 'voyage' });
       setStatus('Hint played.', 'ok');
       refreshDevPanel();
+      return true;
     }
   } catch (err) {
     setStatus('Solver error: ' + err.message, 'bad');
@@ -1733,6 +2318,7 @@ async function doHint({ dev = false } = {}) {
     busy = false;
     ui.setSolverBusy(false);
   }
+  return false;
 }
 
 let autoplay = { running: false };
@@ -1788,12 +2374,36 @@ function stopSolve() {
 // ---------------------------------------------------------------------------
 // New game / win
 // ---------------------------------------------------------------------------
-function disposeCard(g) {
-  scene.remove(g);
-  g.userData.frontMat && g.userData.frontMat.dispose();
-  g.userData.backMat && g.userData.backMat.dispose();
-  g.userData.body?.material.dispose();
-  g.userData.markMesh?.material.dispose();
+// The 52 cards are built once and reused for every deal. Rebuilding them freed
+// the card materials, which made three.js recompile the card shaders mid-intro.
+function ensureCards() {
+  for (let i = 1; i <= 52; i++) {
+    if (cardGroups.has(i)) continue;
+    const g = buildCardMesh(i, currentTheme.card);
+    g.visible = false;
+    scene.add(g);
+    cardGroups.set(i, g);
+    pickables.push(g.userData.front);
+  }
+}
+
+// Clear everything a deal leaves on a card: board state, motion, Voyage marks.
+function resetCard(g) {
+  const u = g.userData;
+  motion.release(g);
+  delete u.dest;
+  delete u.dragging;
+  delete u.rxState;
+  u.target = null;
+  setCardMark(g, null);
+  setCardSticker(g, null);
+  setCardMods(g, []);
+  if (u.concealed) setCardConcealed(g, false);
+  g.scale.setScalar(1);
+  // Back to the theme baseline, exactly as a freshly built card would be.
+  const base = currentTheme.card.emissive;
+  u.frontMat.emissive.setHex(base > 0 ? 0xffffff : 0x000000);
+  u.frontMat.emissiveIntensity = base > 0 ? base : 0;
 }
 
 let startingGame = false;
@@ -1829,9 +2439,6 @@ function dealGame(dealNumber, opts = {}) {
   hideValidTargets();
   setHover(null);
   setRankHighlight(null);
-  for (const g of cardGroups.values()) disposeCard(g);
-  cardGroups.clear();
-  pickables.length = 0;
   ui.hideWin();
   selection = null;
   won = false;
@@ -1854,33 +2461,17 @@ function dealGame(dealNumber, opts = {}) {
   tickTimer();
   save('game', null);
 
-  let k = 0;
-  for (let i = 1; i <= 52; i++) {
-    const g = buildCardMesh(i, currentTheme.card);
+  ensureCards();
+  for (const [i, g] of cardGroups) {
+    resetCard(g);
+    const k = i - 1;
     g.position.set((k % 5) * 0.02 - 0.04, 0.5 + k * 0.016, -0.2);
-    g.rotation.x = Math.PI;
-    g.userData.target = null;
+    g.rotation.set(Math.PI, 0, 0);
     g.visible = false;
-    scene.add(g);
-    cardGroups.set(i, g);
-    pickables.push(g.userData.front);
-    k++;
   }
 
-  // Deal sequence with sound.
-  dealing = true;
-  const reduced = settings.reducedMotion;
-  audio.shuffle();
-  playBoardIntro();
-  applyLayout(true, { deal: true, delayOffset: reduced ? 0 : DEAL_DELAY });
-  if (!reduced) {
-    for (let i = 0; i < 52; i += 2) audio.deal(((i % 8) - 3.5) / 5, DEAL_DELAY + i * 0.016 * 1.0);
-  }
-  setTimeout(() => {
-    dealing = false;
-  }, (reduced ? 600 : 1900));
+  playDealIntro();
   updateHUD();
-  scheduleAuto(reduced ? 800 : 2400);
   setStatus(
     opts.voyage
       ? opts.voyage
@@ -1917,119 +2508,146 @@ function handleWin() {
   audio.duck(8);
   post.pulse(1.2);
   startCascade();
-  spawnConfetti();
   setStatus('Victory!', 'ok');
   ui.refreshDaily();
   setTimeout(() => {
     if (!won) return;
     ui.showWin({ time: run.elapsed, moves: manualMoves(), bests: result, daily: isDaily, assisted: run.solved });
     result.unlocked.forEach((a, i) => setTimeout(() => ui.toast(a.icon, 'Achievement unlocked', `${a.name} — ${a.desc}`), 900 + i * 900));
-  }, settings.reducedMotion ? 300 : 2600);
+  }, settings.reducedMotion ? 300 : REVEAL.panelAt * 1000);
 }
 
 // ---------------------------------------------------------------------------
-// Win cascade: foundations launch cards that bounce across the table, trailing sparks.
+// Win reveal: the finished deck deals itself face down into a 4 x 13 grid (one
+// suit per row, Ace to King), a diagonal wave flips it face up with a shimmer,
+// and the four Kings glow last.
 // ---------------------------------------------------------------------------
+const REVEAL = {
+  gatherAt: 0.25, // cards leave the foundations
+  gatherStep: 0.026, // between launches
+  hold: 0.2, // after the last card lands
+  waveStep: 0.045, // per grid diagonal
+  flipDur: 0.46,
+  kingsAfter: 0.12, // after the wave finishes
+  colGap: 0.74, // overlapping columns, like a spread
+  rowGap: CARD.H * 1.1,
+};
+// When the results panel comes up, measured from the win.
+REVEAL.panelAt = REVEAL.gatherAt + 51 * REVEAL.gatherStep + 0.55 + REVEAL.hold + (12 + 3 * 1.5) * REVEAL.waveStep + REVEAL.flipDur + REVEAL.kingsAfter + 0.35;
+
 let cascade = null;
+const gridPos = (suit, rank) => ({
+  x: (rank - 7) * REVEAL.colGap,
+  y: SURFACE_Y + CARD.D / 2 + rank * 0.004, // later ranks sit on the overlap
+  z: FIELD.centerZ + (suit - 1.5) * REVEAL.rowGap,
+});
+
 function startCascade() {
   if (settings.reducedMotion) return;
-  const order = [];
-  for (let r = 13; r >= 1; r--) for (let s = 0; s < 4; s++) order.push(s * 13 + r);
-  cascade = { order, i: 0, t: 0, live: [] };
-}
-function cancelCascade() {
-  cascade = null;
-  for (const m of confetti) {
-    scene.remove(m);
-    m.material.dispose();
-  }
-  confetti.length = 0;
-}
-function updateCascade(dt) {
-  if (!cascade) return;
-  cascade.t += dt;
-  while (cascade.i < cascade.order.length && cascade.t > 0.5 + cascade.i * 0.2) {
-    const id = cascade.order[cascade.i++];
+  cascade = { tweens: [], emissive: new Map() };
+  const tween = (o) => cascade.tweens.push(animator.add(o));
+  const ids = [];
+  for (let r = 1; r <= 13; r++) for (let s = 0; s < 4; s++) ids.push(s * 13 + r);
+
+  // 1. Gather: each card lifts off its foundation and turns face down on the way
+  // to its slot, Aces first.
+  const softLand = (g) => audio.place(panOf(g.position.x), 0.6);
+  ids.forEach((id, i) => {
+    const g = cardGroups.get(id);
+    if (!g) return;
+    const suit = ((id - 1) / 13) | 0;
+    const rank = ((id - 1) % 13) + 1;
+    g.visible = true;
+    g.userData.dest = 'grid';
+    motion.move(g, { ...gridPos(suit, rank), rx: Math.PI }, {
+      delay: REVEAL.gatherAt + i * REVEAL.gatherStep,
+      arc: 1.1,
+      stiffness: 150,
+      damping: 0.78,
+      onLand: i % 3 === 0 ? softLand : noop,
+    });
+  });
+
+  // 2. Wave: flip face up along the diagonals, top-left to bottom-right.
+  const waveAt = REVEAL.gatherAt + 51 * REVEAL.gatherStep + 0.55 + REVEAL.hold;
+  for (const id of ids) {
     const g = cardGroups.get(id);
     if (!g) continue;
-    motion.release(g);
-    g.userData.cascade = {
-      vx: (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random() * 3.6),
-      vy: 3.5 + Math.random() * 3.5,
-      vz: (Math.random() - 0.3) * 2.2,
-      sy: (Math.random() - 0.5) * 3,
-      sz: (Math.random() - 0.5) * 2,
-    };
-    audio.flip(panOf(g.position.x));
-  }
-  for (let i = 0; i < cascade.i; i++) {
-    const g = cardGroups.get(cascade.order[i]);
-    const c = g && g.userData.cascade;
-    if (!c || c.done) continue;
-    c.vy -= 15 * dt;
-    g.position.x += c.vx * dt;
-    g.position.y += c.vy * dt;
-    g.position.z += c.vz * dt;
-    g.rotation.y += c.sy * dt;
-    g.rotation.z += c.sz * dt * 0.4;
-    if (g.position.y < 0.05) {
-      g.position.y = 0.05;
-      if (Math.abs(c.vy) > 2.2) audio.place(panOf(g.position.x), 3);
-      c.vy = -c.vy * 0.78;
-    }
-    particles.emit({
-      x: g.position.x,
-      y: g.position.y,
-      z: g.position.z,
-      color: currentTheme.fx.spark,
-      count: 2,
-      speed: 0.3,
-      size: 0.09,
-      life: 0.7,
-      drag: 2,
-      jitter: 0.5,
+    const suit = ((id - 1) / 13) | 0;
+    const rank = ((id - 1) % 13) + 1;
+    const home = gridPos(suit, rank);
+    let started = false;
+    let sparked = false;
+    tween({
+      delay: waveAt + (rank - 1 + suit * 1.5) * REVEAL.waveStep,
+      duration: REVEAL.flipDur,
+      ease: Easing.cubicInOut,
+      onUpdate: (e) => {
+        if (!started) { started = true; motion.release(g); }
+        g.position.set(home.x, home.y + Math.sin(Math.PI * e) * 0.45, home.z);
+        g.rotation.set(Math.PI * (1 - e), 0, 0);
+        g.userData.rxState = g.rotation.x;
+        if (!sparked && e > 0.55) {
+          sparked = true;
+          if (rank % 3 === 1) audio.flip(panOf(home.x));
+          particles.emit({ x: home.x, y: home.y + 0.1, z: home.z, color: currentTheme.fx.spark, count: 5, speed: 0.6, spread: 0.5, up: 0.5, size: 0.06, life: 0.5, drag: 2.5, jitter: 0.4 });
+        }
+      },
+      onComplete: () => {
+        g.position.set(home.x, home.y, home.z);
+        g.rotation.set(0, 0, 0);
+        g.userData.rxState = 0;
+        g.userData.target = { x: home.x, y: home.y, z: home.z, rx: 0, ry: 0 };
+      },
     });
-    if (Math.abs(g.position.x) > 10 || g.position.z > 8) {
-      c.done = true;
-      g.visible = false;
-    }
   }
-}
 
-// Confetti (win burst).
-const confetti = [];
-const confettiGeo = new THREE.PlaneGeometry(0.12, 0.12);
-let confettiActive = 0;
-function spawnConfetti() {
-  if (settings.reducedMotion) return;
-  const colors = currentTheme.confetti;
-  for (let i = 0; i < 160; i++) {
-    const mat = new THREE.MeshBasicMaterial({ color: colors[(Math.random() * colors.length) | 0], side: THREE.DoubleSide });
-    const m = new THREE.Mesh(confettiGeo, mat);
-    m.position.set((Math.random() - 0.5) * 8, 6 + Math.random() * 4, (Math.random() - 0.5) * 5);
-    m.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
-    m.userData.v = new THREE.Vector3((Math.random() - 0.5) * 1.5, -1.5 - Math.random() * 2, (Math.random() - 0.5) * 1.5);
-    m.userData.spin = new THREE.Vector3(Math.random() * 6 - 3, Math.random() * 6 - 3, Math.random() * 6 - 3);
-    scene.add(m);
-    confetti.push(m);
+  // 3. The Kings rise a touch and glow.
+  const kingsAt = waveAt + (12 + 3 * 1.5) * REVEAL.waveStep + REVEAL.flipDur + REVEAL.kingsAfter;
+  const glow = new THREE.Color(currentTheme.fx.flash);
+  for (let s = 0; s < 4; s++) {
+    const id = s * 13 + 13;
+    const g = cardGroups.get(id);
+    if (!g) continue;
+    const home = gridPos(s, 13);
+    const m = g.userData.frontMat;
+    const baseEmissive = m.emissive.clone();
+    const baseIntensity = m.emissiveIntensity;
+    cascade.emissive.set(m, baseEmissive);
+    let started = false;
+    tween({
+      delay: kingsAt + s * 0.08,
+      duration: 1.3,
+      ease: Easing.linear,
+      onUpdate: (_, t) => {
+        if (!started) {
+          started = true;
+          pulses.ring(home.x, home.z, currentTheme.fx.flash, 1);
+          pulses.flash(home.x, 1.2, home.z, currentTheme.fx.flash, 12);
+          if (s === 0) post.pulse(0.6);
+          audio.foundation(panOf(home.x));
+        }
+        const rise = Easing.backOut(Math.min(1, t * 2.5));
+        const hl = Math.sin(Math.PI * Math.min(1, t * 1.2));
+        g.position.y = home.y + 0.12 * rise;
+        m.emissive.copy(baseEmissive).lerp(glow, hl);
+        m.emissiveIntensity = baseIntensity + (0.55 - baseIntensity) * hl;
+      },
+      onComplete: () => {
+        g.userData.target = { x: home.x, y: g.position.y, z: home.z, rx: 0, ry: 0 };
+        m.emissive.copy(baseEmissive);
+        refreshCardEmissive(id);
+      },
+    });
   }
-  confettiActive = 8;
 }
-function updateConfetti(dt) {
-  if (!confetti.length) return;
-  if (confettiActive > 0) confettiActive -= dt;
-  for (let i = confetti.length - 1; i >= 0; i--) {
-    const m = confetti[i];
-    m.userData.v.y -= 4 * dt;
-    m.position.addScaledVector(m.userData.v, dt);
-    m.rotation.x += m.userData.spin.x * dt;
-    m.rotation.y += m.userData.spin.y * dt;
-    if (m.position.y < 0.2 || confettiActive <= 0) {
-      scene.remove(m);
-      m.material.dispose();
-      confetti.splice(i, 1);
-    }
+function cancelCascade() {
+  if (cascade) {
+    for (const tw of cascade.tweens) animator.remove(tw);
+    for (const [m, color] of cascade.emissive) m.emissive.copy(color);
+    for (let s = 0; s < 4; s++) refreshCardEmissive(s * 13 + 13);
   }
+  cascade = null;
 }
 
 // ---------------------------------------------------------------------------
@@ -2043,27 +2661,19 @@ function startGameFromTitle(num, opts) {
 
 function doUndo() {
   if (!game) return;
+  if (won) return audio.invalid(); // a finished board is final
+  if (mode === 'voyage' && (busy || vy.effects?.using)) return;
+  if (mode === 'voyage') voyageClearPreview();
   if (autoplay.running) stopSolve();
   if (manualMoves() === 0) return audio.invalid();
   if (mode === 'voyage') {
-    if (won || !vy.run || vy.run.status !== 'board') return audio.invalid();
-    if (vy.run.undos <= 0) {
+    if (!vy.run || vy.run.status !== 'board') return audio.invalid();
+    if (vy.run.undos <= 0 && !vy.run.current?.memo?._undoWindow) {
       setStatus('No undos left on this voyage.', 'bad');
       return audio.invalid();
     }
   }
   autoTok++; // cancel a pending auto-play chain
-  if (won) {
-    // Reverting a win: restore the table.
-    won = false;
-    cancelCascade();
-    for (const g of cardGroups.values()) {
-      g.visible = true;
-      g.userData.cascade = null;
-      g.userData.target = null;
-      g.rotation.set(0, 0, 0);
-    }
-  }
   // Take back the auto-plays first, then the player's move that triggered them.
   let undone = false;
   while (game.history.length && game.history[game.history.length - 1].auto) {
@@ -2072,8 +2682,9 @@ function doUndo() {
   }
   if (game.undo()) undone = true;
   if (undone) {
-    run.undos++;
-    if (mode === 'voyage') voyageUndone();
+    const free = mode === 'voyage' && !!vy.run.current?.memo?._undoWindow;
+    if (!free) run.undos++;
+    if (mode === 'voyage') voyageUndone({ free });
     audio.undo();
     clearSelection();
     ui.hideWin();
@@ -2126,7 +2737,7 @@ function leaveVoyageMode() {
   voyagePersist();
   mode = 'classic';
   vy.effects = null;
-  voyageUI.cancelPick?.();
+  cancelTargeting();
   voyageUI.hideAll();
   voyageUI.setMode('classic');
 }
@@ -2153,6 +2764,7 @@ function voyagePersist() {
     r.current.override = game.override || null;
     r.current.liveRules = JSON.parse(JSON.stringify(game.rules));
   }
+  recordEconomy(r);
   saveRun(r);
 }
 
@@ -2162,7 +2774,7 @@ function voyagePrepareAhead() {
   const r = vy.run;
   if (!r) return;
   const plans = upcomingPlans(r);
-  const idx = r.status === 'map' ? r.results.length : r.results.length + (r.status === 'board' ? 1 : 0);
+  const idx = r.status === 'map' || r.status === 'port' ? r.results.length : r.results.length + (r.status === 'board' ? 1 : 0);
   const exclude = vyUsedDeals().concat(r.current ? [r.current.deal] : []);
   prepareDeals(plans.map((p) => ({ ...p, idx: p.idx ?? idx })), { seed: r.seed, exclude }).catch((e) => console.warn('[voyage] prepare', e));
   for (const t of new Set(plans.map((p) => p.theme))) {
@@ -2171,15 +2783,22 @@ function voyagePrepareAhead() {
   }
 }
 
-function voyageShowMap() {
-  voyageUI.showMap(vyView());
+async function voyageShowMap() {
+  const view = vyView();
+  for (const n of view.map.flat()) n.strength = boardPlan(vy.run, n.theme, { idx: n.row, nodeId: n.id }).strength;
+  if (vy.run?.status === 'port') {
+    await voyageUI.showDocking?.(view);
+    if (vy.run?.status === 'port') voyagePortShow();
+    return;
+  }
+  voyageUI.showMap(view);
   voyageUI.tutorial('map');
   voyagePrepareAhead();
 }
 
 async function voyageStart({ daily = false } = {}) {
   audio.unlock();
-  const saved = vy.run && ['map', 'board', 'reward'].includes(vy.run.status) ? vy.run : loadRun();
+  const saved = vy.run && ['map', 'board', 'reward', 'port'].includes(vy.run.status) ? vy.run : loadRun();
   if (saved) {
     if (daily && saved.daily === todayKey()) return voyageContinue();
     const ok = await voyageUI.confirm({
@@ -2203,12 +2822,18 @@ async function voyageStart({ daily = false } = {}) {
 
 async function voyageContinue() {
   audio.unlock();
-  const r = vy.run && ['map', 'board', 'reward'].includes(vy.run.status) ? vy.run : loadRun();
+  const r = vy.run && ['map', 'board', 'reward', 'port'].includes(vy.run.status) ? vy.run : loadRun();
   if (!r) return voyageStart({});
   vy.run = r;
   enterVoyageMode();
   await loadBank();
   if (r.status === 'map') return voyageShowMap();
+  if (r.status === 'port') {
+    ui.hideTitle();
+    vy.effects = null;
+    vy.boardLive = false;
+    return voyagePortShow();
+  }
   if (r.status === 'reward') {
     ui.hideTitle();
     return voyageUI.showResult(vyView());
@@ -2226,16 +2851,28 @@ async function voyageContinue() {
 
 async function voyagePickNode(nodeId) {
   const r = vy.run;
-  if (!r || r.status !== 'map') return;
+  if (!r || r.status !== 'map' || voyageUI.preparing) return;
   const node = findNode(r.map, nodeId);
-  if (!node) return;
+  if (!node || !runView(r).map.flat().some(n => n.id === nodeId && n.state === 'available')) return;
   voyageUI.setPreparing(true);
+  const sailing = voyageUI.sailTo?.(nodeId) || Promise.resolve();
   let pick;
   try {
-    pick = await dealFor({ ...boardPlan(r, node.theme) }, { seed: r.seed, exclude: vyUsedDeals() });
+    [pick] = await Promise.all([
+      dealFor({ ...boardPlan(r, node.theme, { nodeId }) }, { seed: r.seed, exclude: vyUsedDeals() }).then(ready => {
+        voyageUI.finishSailingSoon?.(180);
+        return ready;
+      }),
+      sailing,
+    ]);
+  } catch (error) {
+    voyageUI.chart?.cancel();
+    ui.toast('⚓', 'Course unavailable', error.message);
+    return;
   } finally {
     voyageUI.setPreparing(false);
   }
+  if (vy.run !== r || r.status !== 'map') return;
   startBoard(r, nodeId, pick);
   saveRun(r);
   voyageUI.hideMap();
@@ -2262,18 +2899,143 @@ async function voyagePickNode(nodeId) {
 }
 
 // Charm effects are scoped by BoardEffects; these primitives act on the live table.
+import { VOYAGE } from './voyage/config.js';
+
+// Preview visuals have their own lifetime and never alter selection, marks or history.
+let voyagePreviewUI = null;
+let voyagePreviewToken = 0;
+function voyageClearPreview() {
+  voyagePreviewToken++;
+  if (!voyagePreviewUI) return;
+  cancelAnimationFrame(voyagePreviewUI.frame);
+  for (const glow of voyagePreviewUI.glows) {
+    scene.remove(glow); glow.geometry.dispose(); glow.material.dispose();
+  }
+  voyagePreviewUI.element.remove();
+  voyagePreviewUI = null;
+}
+
+function voyageShowPreview(moves) {
+  const element = document.createElement('div');
+  element.id = 'voyage-preview'; element.setAttribute('role', 'status');
+  element.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:30;color:white';
+  const names = moves.map((m, i) => {
+    const rank = ((m.card - 1) % 13) + 1;
+    const card = `${({1:'A',11:'J',12:'Q',13:'K'})[rank] || rank}${['♣','♦','♥','♠'][Math.floor((m.card - 1) / 13)]}`;
+    const to = m.t === 'F' ? 'home' : m.t === 'C' ? `cell ${m.fi + 1}` : m.t === 'R' ? `${m.to.kind === 'col' ? 'column' : 'cell'} ${m.to.i + 1}` : `column ${m.to + 1}`;
+    return `${i + 1}. ${card}${m.count > 1 ? ` + ${m.count - 1}` : ''} → ${to}`;
+  });
+  element.setAttribute('aria-label', names.join('; '));
+  const line = document.createElement('div');
+  line.textContent = names.join(' · ');
+  line.style.cssText = 'position:absolute;bottom:110px;left:50%;transform:translateX(-50%);max-width:90vw;width:max-content;padding:8px 12px;border-radius:8px;background:#152331ee;font:600 14px/1.5 system-ui;border:1px solid #ffffff70';
+  element.append(line);
+  const badges = moves.slice(1, 3).map((m, i) => {
+    const badge = document.createElement('span');
+    badge.dataset.previewCard = m.card; badge.textContent = String(i + 2);
+    badge.style.cssText = 'position:absolute;transform:translate(-50%,-50%);width:24px;height:24px;text-align:center;border-radius:50%;background:#152331;color:white;border:2px solid white;font:700 16px/24px system-ui;box-shadow:0 0 10px #ffffff90';
+    element.append(badge); return { card: m.card, badge, offset: i * 26 };
+  });
+  const glows = [0, 1].map(() => {
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(CARD.W * 1.08, CARD.H * 1.08), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: .9, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
+    glow.rotation.x = -Math.PI / 2; glow.renderOrder = 3;
+    scene.add(glow); return glow;
+  });
+  document.body.append(element);
+  const preview = voyagePreviewUI = { element, glows, frame: 0 };
+  const first = moves[0];
+  const dest = first.t === 'F' ? { kind: 'found', i: Math.floor((first.card - 1) / 13) }
+    : first.t === 'C' ? { kind: 'free', i: first.fi }
+    : first.t === 'R' ? first.to : { kind: 'col', i: first.to };
+  const update = () => {
+    if (preview !== voyagePreviewUI) return;
+    if (mode !== 'voyage' || !vy.boardLive || vy.run?.status !== 'board') { voyageClearPreview(); return; }
+    const source = cardGroups.get(first.card);
+    if (source) { glows[0].position.copy(source.position); glows[0].position.y += CARD.D + .018; }
+    if (dest.kind === 'col') {
+      const top = cardGroups.get(game.tableau[dest.i].at(-1));
+      if (top) { glows[1].position.copy(top.position); glows[1].position.y += CARD.D + .018; }
+      else glows[1].position.set(colX(dest.i), SURFACE_Y + .018, TABLEAU_Z);
+    } else glows[1].position.set(dest.kind === 'free' ? freeX(dest.i) : foundX(dest.i), SURFACE_Y + .018, FREE_Z);
+    for (const {card, badge, offset} of badges) {
+      const point = window.FreeCell.projectCard(card, true);
+      if (point) { badge.style.left = `${point.x + offset}px`; badge.style.top = `${point.y}px`; }
+    }
+    preview.frame = requestAnimationFrame(update);
+  };
+  update();
+  setStatus(names.join(' · '), 'ok');
+}
+
+async function voyagePreview(n = 3) {
+  if (busy || !game || won || !vy.boardLive || vy.run?.status !== 'board') return null;
+  n = Number.isFinite(Number(n)) ? Math.max(1, Math.floor(Number(n))) : 3;
+  voyageClearPreview(); clearSelection(); autoTok++;
+  const token = voyagePreviewToken, board = game;
+  const history = game.history.slice();
+  busy = true; ui.setSolverBusy(true);
+  setStatus('Looking ahead…', 'warn');
+  try {
+    const result = await requestSolve({ timeLimitMs: 5000 });
+    if (token !== voyagePreviewToken || game !== board || mode !== 'voyage' || !vy.boardLive || won || history.length !== game.history.length || history.some((m, i) => m !== game.history[i])) return null;
+    if (!result.solution?.length) { setStatus('No preview found within the search limit.', 'warn'); return null; }
+    const moves = result.solution.slice(0, n).map((m) => JSON.parse(JSON.stringify(m)));
+    voyageShowPreview(moves);
+    return moves;
+  } catch (error) {
+    setStatus('Solver error: ' + error.message, 'bad'); return null;
+  } finally { busy = false; ui.setSolverBusy(false); }
+}
+
+async function voyageSolvable() {
+  if (!game || mode !== 'voyage' || !vy.boardLive || busy) return null;
+  if (game.isWon()) return true;
+  const board = game, history = game.history.slice();
+  busy = true;
+  try {
+    const result = await requestSolve({ timeLimitMs: 5000 });
+    if (game !== board || mode !== 'voyage' || !vy.boardLive || history.length !== game.history.length || history.some((m, i) => m !== game.history[i])) return null;
+    return typeof result.solvable === 'boolean' ? result.solvable : null;
+  } catch { return null; }
+  finally { busy = false; }
+}
+
 function voyageRuntimeAPI() {
   return {
     get state() { return game?.state; },
     get rules() { return game?.rules || vy.run?.current?.rules; },
     get history() { return game?.history || []; },
-    beginAbility: (id, uses) => { vy.ability = { id, uses }; },
-    endAbility: () => { vy.ability = null; },
+    get stickers() { return { ...(vy.run?.stickers || {}) }; },
+    addSticker: (cardId, type) => {
+      if (!vy.run || !Number.isInteger(cardId) || cardId < 1 || cardId > 52 || !['wild', 'fool', 'key', 'gold', 'lucky'].includes(type)) return false;
+      (vy.run.stickers ??= {})[cardId] = type;
+      saveRun(vy.run); return true;
+    },
+    get undoGrants() { return vy.run?.current?.memo?._undoGrants || 0; },
+    get undoCap() { return VOYAGE.charmUndoCap; },
+    get undoWindowUsed() { return !!vy.run?.current?.memo?._undoWindowUsed; },
+    abilityUses: () => vy.effects?.abilityUses() || Object.freeze({}),
+    beginAbility: (id, uses) => {
+      voyageClearPreview();
+      vy.ability = { id, uses, grants: vy.run.current.memo[id]._runtime.abilityGrants || 0 };
+    },
+    endAbility: () => { vy.ability = null; clearTargetChosen(); },
     addUndos: (n) => { vy.run.undos += Math.max(0, Math.floor(Number(n) || 0)); voyageRefresh(); },
+    addCoins: (n) => { vy.run.coins = (vy.run.coins || 0) + Math.max(0, Math.floor(Number(n) || 0)); voyageRefresh(); },
+    concedeBoard: () => {
+      if (!game || won || !vy.boardLive || vy.run?.status !== 'board' || vy.run.current.idx >= VOYAGE.boards - 1) return false;
+      return voyageWin({ conceded: true });
+    },
+    spendCoins: (n) => {
+      if (!game || won || !vy.boardLive || vy.run?.status !== 'board' || !Number.isInteger(n) || n < 0 || n > vy.run.coins) return false;
+      vy.run.coins -= n; (vy.run.economy ??= {}).coinsSpent = (vy.run.economy.coinsSpent || 0) + n;
+      voyageRefresh(); return true;
+    },
+    grantUse: (id = '*', n = 1) => vy.effects?.grantUse(id, n) || 0,
     spendUndos: (n) => { const spent = Math.min(vy.run.undos, Math.max(0, Math.floor(Number(n) || 0))); vy.run.undos -= spent; voyageRefresh(); return spent; },
     notify: (text) => ui.toast('✦', 'Charm', text, 2600),
     mark: (ids, style) => { for (const id of ids) { const g = cardGroups.get(id); if (g) setCardMark(g, style); } },
-    clearMarks: () => { for (const g of cardGroups.values()) setCardMark(g, null); },
+    clearMarks: () => { for (const g of cardGroups.values()) { setCardMark(g, null); setCardSticker(g, null); setCardMods(g, []); } },
     conceal: (ids) => {
       for (const id of ids) { const g = cardGroups.get(id); if (g) setCardConcealed(g, true); }
       syncRankHighlight();
@@ -2289,7 +3051,25 @@ function voyageRuntimeAPI() {
       }
       syncRankHighlight();
     },
-    hint: async () => { const n = game.history.length; await doHint(); return game.history.length > n; },
+    hint: () => doHint({ charm: true }),
+    preview: voyagePreview,
+    solvable: voyageSolvable,
+    resetBoard: () => {
+      if (!game || won || !vy.boardLive || vy.run?.status !== 'board' || !manualMoves()) return false;
+      voyageClearPreview(); clearSelection(); autoTok++;
+      const keepUse = vy.effects?.using;
+      while (game.history.length) game.undo();
+      game.override = null;
+      voyageUndone({ reset: true, keepUse });
+      audio.undo(); afterMove({ noAuto: true }); return true;
+    },
+    openUndoWindow: () => {
+      if (!game || won || !vy.boardLive || vy.run?.status !== 'board' || !manualMoves()) return false;
+      const memo = (vy.run.current.memo ??= {});
+      if (memo._undoWindowUsed) return false;
+      memo._undoWindow = true; memo._undoWindowUsed = true;
+      voyageRefresh(); return true;
+    },
     autoHome: () => {
       if (!game || won) return false;
       autoTok++;
@@ -2297,6 +3077,7 @@ function voyageRuntimeAPI() {
       while ((next = legalFoundationMoves(game.state, game.rules)[0])) {
         const m = game.moveToFoundation(next.src);
         if (!m) break;
+        if (vy.ability) m.voyageAbility = { ...vy.ability };
         count++; // consecutive player foundation moves form one scoring chain
       }
       if (count) { selection = null; afterMove({ noAuto: true }); }
@@ -2316,6 +3097,7 @@ function voyageRuntimeAPI() {
       finally { vy.applyingCharm = false; }
       if (!m) return false;
       selection = null;
+      clearTargetChosen(false);
       voyageRelayout();
       audio.place(0, 1);
       afterMove({ noAuto: true });
@@ -2333,9 +3115,12 @@ function voyageRuntimeAPI() {
     },
     refresh: voyageRefresh,
     pick: voyagePickTarget,
+    choose: voyageChoose,
     rewind: (n) => {
+      if (!game || won || !vy.boardLive || vy.run?.status !== 'board') return false;
       n = Math.min(game.history.length, Math.max(0, Math.floor(n)));
       if (!n || vy.run.undos <= 0) return false;
+      voyageClearPreview(); clearSelection();
       autoTok++;
       while (n--) game.undo();
       voyageUndone();
@@ -2354,6 +3139,17 @@ function voyageRelayout() {
 function voyageRefresh() {
   if (vy.settingUp || !vy.run || !vy.boardLive) return;
   voyageRelayout(); voyageHud(); voyagePersist();
+  voyageUndoWindowHUD();
+}
+
+function voyageUndoWindowHUD() {
+  if (vy.run.current?.memo?._undoWindow) {
+    const undo = document.getElementById('btn-undo');
+    const label = undo?.querySelector('span');
+    if (label) label.textContent = 'Undo · free';
+    undo?.setAttribute('aria-label', 'Undo move for free. The next move closes the window. Press U.');
+    undo?.setAttribute('data-tip-text', 'Free undo window: step back without spending a run undo. The next move closes it.');
+  }
 }
 
 function voyageRevealExposed(moves = []) {
@@ -2370,26 +3166,34 @@ function voyageRevealExposed(moves = []) {
   vy.effects?.reveal(exposed);
 }
 
-async function voyagePickTarget({ kind, filter = () => true }) {
-  if (!game || !vy.boardLive) return null;
-  const values = kind === 'column' ? game.tableau.map((_, i) => i) : kind === 'freecell' ? game.free.map((_, i) => i) : [...cardGroups.keys()].filter((id) => locateCard(id)?.kind !== 'found' && !cardGroups.get(id).userData.concealed);
-  const targets = values.filter((value) => filter(value, game.state)).map((value) => {
-    const point = kind === 'card' ? window.FreeCell.projectCard(value, true) : window.FreeCell.projectSlot(kind === 'column' ? 'col' : 'free', value);
-    return { value, ...point, label: `${kind} ${value + (kind === 'card' ? 0 : 1)}` };
-  });
-  if (!targets.length) return null;
-  clearSelection();
-  return voyageUI.pickTargets(kind, targets);
+async function voyagePickTarget({ kind, filter = () => true, prompt = null, cards = null, group = null }) {
+  if (!game || !vy.boardLive || won) return null;
+  endTargeting(null);
+  const pool = kind === 'column' ? game.tableau.map((_, i) => i) : kind === 'freecell' ? game.free.map((_, i) => i)
+    : [...cardGroups.keys()].filter((id) => { const loc = locateCard(id); return loc && loc.kind !== 'found' && !faceDown(id); });
+  const values = pool.filter((value) => filter(value, game.state));
+  if (!values.length) { ui.toast('✦', 'Charm', 'Nothing on the table can be chosen right now.', 2200); return null; }
+  clearSelection(); setPeek(null);
+  return startTargeting({ kind, values, prompt, cards, group });
+}
+
+// A small menu for choices that are not places on the table (a direction, a sticker, a suit).
+async function voyageChoose({ prompt = '', options = [], card = null } = {}) {
+  if (!game || !vy.boardLive || won || !options.some((o) => !o.disabled)) return null;
+  const point = card != null ? window.FreeCell.projectCard(card, true) : null;
+  const charm = vy.ability && CHARMS[vy.ability.id];
+  return voyageUI.choose({ icon: charm?.icon || '✦', name: charm?.name || 'Charm', text: prompt, options, at: point });
 }
 
 // Deal run.current onto the table with its charms active.
 function voyageDealBoard({ restore = null } = {}) {
   const cur = vy.run.current;
+  voyageClearPreview();
   voyageDisarmStuck();
   voyageClearStuckWarning();
   vy.settingUp = true;
   vy.positions = null;
-  voyageUI.cancelPick?.();
+  cancelTargeting();
   voyageUI.setHud(vyView());
   frameBoard();
   vy.effects = new BoardEffects(cur.active, {
@@ -2397,6 +3201,10 @@ function voyageDealBoard({ restore = null } = {}) {
   });
   const label = `Board ${cur.idx + 1} of 7 — ${THEMES[cur.theme].name}`;
   dealGame(cur.deal, { rules: JSON.parse(JSON.stringify(cur.rules)), freeCells: cur.rules.freeCells, restore, voyage: restore ? `Welcome back — ${label}.` : `${label}. Par ${cur.par} moves.` });
+  // Preserve refund markers that Game.cleanMove omits from normal descriptors.
+  if (restore) game.history.forEach((move, i) => {
+    if (restore.moves?.[i]?.voyageAbility) move.voyageAbility = { ...restore.moves[i].voyageAbility };
+  });
   cur.initial ??= cloneState(new Game(cur.deal, { rules: cur.rules, freeCells: cur.rules.freeCells }).state);
   if (restore && cur.liveRules) game.rules = JSON.parse(JSON.stringify(cur.liveRules));
   if (cur.override) game.override = { ...cur.override };
@@ -2440,8 +3248,10 @@ function voyageAfterMove() {
   if (!fx || !vy.boardLive || !vy.run || vy.run.status !== 'board') return;
   const h = game.history;
   const newMoves = h.slice(vy.seen);
+  if (newMoves.length) voyageClearPreview();
   vy.seen = h.length; // advance before hooks, which may themselves apply a charm move
   for (const m of newMoves) {
+    if (!m.auto) vy.run.current.memo._undoWindow = false;
     fx.emit('move', { move: m, manual: !m.auto });
     if (m.t === 'F') fx.emit('foundation', { card: m.card, move: m, src: m.src, auto: !!m.auto });
     if (m.t === 'C' || (m.t === 'R' && m.to?.kind === 'free')) fx.emit('freecell', { card: m.card, move: m });
@@ -2454,25 +3264,28 @@ function voyageAfterMove() {
   for (const i of empty) if (!vy.emptyCols.has(i)) fx.emit('columnEmpty', { col: i });
   vy.emptyCols = empty;
   voyageHud();
+  voyageUndoWindowHUD();
   voyageCheckStuck();
 }
 
-function voyageUndone() {
-  spendUndo(vy.run);
+function voyageUndone({ free = false, reset = false, keepUse = null } = {}) {
+  voyageClearPreview();
+  if (!free && !reset) spendUndo(vy.run);
   vy.seen = game.history.length;
   vy.emptyCols = new Set(game.tableau.map((c, i) => (c.length ? -1 : i)).filter((i) => i >= 0));
   const moves = vy.lastHistory.slice(game.history.length).reverse();
   for (const move of moves) {
     const meta = move.voyageAbility || move.override?.voyageAbility;
-    if (meta) vy.effects?.refundAbility(meta);
+    if (meta && meta.id !== keepUse) vy.effects?.refundAbility(meta);
     if (move.override) game.override = null;
   }
   vy.lastHistory = game.history.slice();
-  vy.effects?.emit('undo', { move: moves.find((m) => !m.auto) || moves[0], moves });
+  vy.effects?.emit('undo', { move: moves.find((m) => !m.auto) || moves[0], moves, free, reset });
   voyageRelayout();
   voyageRevealExposed();
   voyagePersist();
   voyageHud();
+  voyageUndoWindowHUD();
 }
 
 // A dead end with undos left is a warning: undo can still reach a live position. With none left,
@@ -2493,7 +3306,8 @@ function voyageClearStuckWarning() {
 
 function voyageStuckBlocked() {
   return mode !== 'voyage' || won || !vy.boardLive || vy.settingUp || !vy.run || vy.run.status !== 'board'
-    || !game || game.isWon() || vy.effects?.using || vy.effects?.hasAvailableAbility() || game.override;
+    || !game || game.isWon() || busy || vy.effects?.using || vy.effects?.hasAvailableAbility() || game.override
+    || (vy.run.current?.memo?._undoWindow && manualMoves() > 0);
 }
 
 function voyageWarnStuck(text) {
@@ -2523,6 +3337,7 @@ async function voyageProveStuck(tok, { settle = true } = {}) {
     return;
   }
   const cancelled = vy.effects?.emit('stuck');
+  if (vy.run?.status !== 'board') return; // Cliffhanger already entered the result flow.
   voyageRefresh();
   if (cancelled || tok !== vy.stuckTok || vy.run.undos > 0 || vy.effects?.hasAvailableAbility() || voyageStuckBlocked()) return;
   voyageLose('stuck');
@@ -2540,6 +3355,7 @@ async function voyageCheckStuck() {
   }
   if (plan === 'lose') {
     const cancelled = vy.effects?.emit('stuck');
+    if (vy.run?.status !== 'board') return; // Cliffhanger already entered the result flow.
     voyageRefresh();
     if (cancelled || tok !== vy.stuckTok || vy.run.undos > 0 || vy.effects?.hasAvailableAbility() || voyageStuckBlocked()) return;
     voyageLose('stuck');
@@ -2582,35 +3398,75 @@ async function voyageAbandon() {
   if (ok) voyageLose('abandoned');
 }
 
-function voyageWin() {
+function voyageWin({ conceded = false } = {}) {
   const r = vy.run;
+  if (!r || r.status !== 'board' || (conceded && r.current.idx >= VOYAGE.boards - 1)) return false;
   voyageDisarmStuck();
   voyageClearStuckWarning();
-  const result = winBoard(r, game.history, vy.effects, { elapsed: run.elapsed, rules: game.rules });
+  const result = winBoard(r, game.history, vy.effects, { elapsed: run.elapsed, rules: game.rules, conceded });
   vy.effects?.emit('win', { result });
   recordBoardCleared(result);
+  recordEconomy(r);
   if (r.status === 'won') recordRunEnd(r);
   saveRun(r);
   vy.boardLive = false;
   audio.win();
   audio.duck(8);
   post.pulse(1.2);
-  startCascade();
-  spawnConfetti();
-  setStatus(r.status === 'won' ? 'The voyage is complete!' : `Board ${result.idx + 1} cleared — ${'★'.repeat(result.stars)}`, 'ok');
+  if (!conceded) startCascade();
+  setStatus(conceded ? 'Stepped out — to be continued' : r.status === 'won' ? 'The voyage is complete!' : `Board ${result.idx + 1} cleared — ${'★'.repeat(result.stars)}`, 'ok');
   voyageUI.setHud(vyView());
   setTimeout(() => {
     voyageUI.showResult(vyView());
     if (r.status === 'reward') voyageUI.tutorial('reward');
-  }, settings.reducedMotion ? 300 : 2400);
+  }, conceded || settings.reducedMotion ? 300 : REVEAL.panelAt * 1000);
   voyagePrepareAhead();
+  return true;
 }
 
 function voyagePickCharm(id) {
+  if (vy.run?.status !== 'reward') return false;
   pickCharm(vy.run, id, { api: voyageRuntimeAPI() });
   recordCharmPick(id);
+  recordEconomy(vy.run);
   saveRun(vy.run);
+  vy.effects = null;
+  if (vy.run.status === 'reward') {
+    voyageUI.showResult(vyView());
+    voyagePrepareAhead();
+    return true;
+  }
   voyageShowMap();
+  return true;
+}
+
+function voyagePortShow() {
+  if (vy.run?.status !== 'port') return;
+  if (voyageUI.showPort) {
+    voyageUI.showPort?.(vyView());
+    voyagePrepareAhead();
+  } else {
+    // K2b may still be landing the port screen on the shared checkout.
+    leavePort(vy.run);
+    voyagePersist();
+    voyageShowMap();
+  }
+}
+
+function voyagePortAction(action, ...args) {
+  if (vy.run?.status !== 'port') return false;
+  const changed = action(vy.run, ...args);
+  recordEconomy(vy.run);
+  saveRun(vy.run);
+  voyagePortShow();
+  return changed;
+}
+
+function voyagePortLeave() {
+  if (!vy.run || !leavePort(vy.run)) return false;
+  voyagePersist();
+  voyageShowMap();
+  return true;
 }
 
 setBusyProbe(() => dealing || !!drag || motion.busy || animator.busy);
@@ -2626,13 +3482,25 @@ const voyageHandlers = {
   continueVoyage: () => voyageContinue(),
   pickNode: (id) => voyagePickNode(id),
   pickCharm: (id) => voyagePickCharm(id),
+  portBuyBoon: (id) => voyagePortAction(buyBoon, id, voyageRuntimeAPI()),
+  portBuySticker: (offerIdx, cardId) => voyagePortAction(buySticker, offerIdx, cardId),
+  portUpgrade: (id) => voyagePortAction(upgradeBoon, id),
+  portBuyUndo: () => voyagePortAction(buyUndo),
+  portSell: (id) => voyagePortAction(sellBoon, id),
+  portReroll: () => voyagePortAction(rerollPort),
+  portService: (serviceId, arg) => voyagePortAction(portService, serviceId, arg),
+  portLeave: () => voyagePortLeave(),
   continueToMap: () => voyageShowMap(),
   showRunEnd: () => {
     voyageUI.showRunEnd(vyView());
     voyageRefreshTitle();
   },
   abandonBoard: () => voyageAbandon(),
-  openMap: () => voyageUI.showMap(vyView()),
+  openMap: () => {
+    const view = vyView();
+    for (const n of view.map.flat()) n.strength = boardPlan(vy.run, n.theme, { idx: n.row, nodeId: n.id }).strength;
+    voyageUI.showMap(view);
+  },
   toMenu: () => voyageToMenu(),
 };
 
@@ -2705,9 +3573,7 @@ ui.handlers = {
     if (k === 'autoRandomTheme') ui.syncThemeSelection();
     if (k === 'quality') {
       perf.downgraded = false;
-      perf.tier = settings.quality === 'auto' ? (isTouch ? 'medium' : 'high') : settings.quality;
-      post.setQuality(perf.tier);
-      setDpr(tierDpr[perf.tier]);
+      applyTier(settings.quality === 'auto' ? (isTouch ? 'medium' : 'high') : settings.quality);
     }
     if (k === 'autoFoundation') {
       if (settings.autoFoundation) scheduleAuto(200);
@@ -2728,6 +3594,11 @@ window.addEventListener('keydown', (e) => {
   }
   if (!game || ui.modalOpen || !ui.els.title.classList.contains('hidden')) return;
   const k = e.key.toLowerCase();
+  if (intro.active && (k === ' ' || k === 'enter' || k === 'escape')) {
+    e.preventDefault();
+    skipIntro();
+    return;
+  }
   if (fogContext() && !e.metaKey && !e.ctrlKey && !e.altKey) {
     if (k === 'escape') { cancelFogPointer(); endFogPeek(); fogInput.armed = false; return; }
     if (k === 'p') {
@@ -2784,11 +3655,9 @@ window.addEventListener('pointerdown', () => audio.unlock(), { once: true });
 function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  post.resize(window.innerWidth, window.innerHeight, perf.dpr);
+  applyResolution();
   frameBoard();
   coverBackground();
-  updateScales();
 }
 window.addEventListener('resize', onResize);
 
@@ -2807,20 +3676,45 @@ function adapt(raw) {
   perf.frames = 0;
   ui.setPerfReadout(`${perf.tier} · ${perf.dpr.toFixed(2)}× · ${perf.fps} fps`);
   if (settings.quality !== 'auto' || avg < 0.026) return;
-  // Too slow: lower resolution first, then drop post-processing tiers.
+  const next = { ultra: 'high', high: 'medium', medium: 'low' }[perf.tier];
+  if (!next) return;
+  // Too slow: drop effects. Resolution stays at the display's native pixel ratio.
   perf.downgraded = true;
-  if (perf.dpr > 1.1) {
-    setDpr(Math.max(1, perf.dpr - 0.4));
-  } else if (perf.tier === 'ultra') {
-    perf.tier = 'high';
-    post.setQuality('high');
-  } else if (perf.tier === 'high') {
-    perf.tier = 'medium';
-    post.setQuality('medium');
-  } else if (perf.tier === 'medium') {
-    perf.tier = 'low';
-    post.setQuality('low');
-  }
+  applyTier(next);
+}
+
+function applyTier(tier) {
+  perf.tier = tier;
+  post.setQuality(tier);
+  applyShadowQuality(tier);
+}
+
+// The shadow map only changes when a caster moves: a card, the table (it sweeps
+// in during the intro) or the key light. Static frames reuse the last map, which
+// skips a full depth pass over every card.
+let shadowState = new Float64Array(0);
+let shadowSpare = new Float64Array(0);
+let shadowLayer = null;
+function syncShadows() {
+  const n = 9 * (cardGroups.size + 1) + 3;
+  const prev = shadowState.length === n ? shadowState : null;
+  const next = shadowSpare.length === n ? shadowSpare : new Float64Array(n);
+  let i = 0;
+  const put = (o) => {
+    next[i++] = o.visible ? 1 : 0;
+    next[i++] = o.position.x; next[i++] = o.position.y; next[i++] = o.position.z;
+    next[i++] = o.quaternion.x; next[i++] = o.quaternion.y; next[i++] = o.quaternion.z; next[i++] = o.quaternion.w;
+    next[i++] = o.scale.x;
+  };
+  put(tableGroup);
+  for (const g of cardGroups.values()) put(g);
+  next[i++] = key.position.x; next[i++] = key.position.y; next[i++] = key.position.z;
+  let changed = !prev || layer !== shadowLayer;
+  for (let j = 0; !changed && j < n; j++) changed = prev[j] !== next[j];
+  shadowSpare = shadowState;
+  shadowState = next;
+  shadowLayer = layer;
+  if (changed) renderer.shadowMap.needsUpdate = true;
 }
 
 function loop() {
@@ -2832,9 +3726,8 @@ function loop() {
   t += dt;
   animator.update(dt);
   motion.update(dt);
+  if (markTipAt && voyageUI.markTipVisible() && !drag) syncMarkTip(markTipAt.x, markTipAt.y, pickCardHit({ clientX: markTipAt.x, clientY: markTipAt.y }));
   updateDrag(dt);
-  updateCascade(dt);
-  updateConfetti(dt);
   updateGlows(dt);
   particles.update(dt);
   pulses.update(dt);
@@ -2842,6 +3735,8 @@ function loop() {
   updateCursorLight(dt);
   tickTimer();
   adapt(raw);
+  for (const g of cardGroups.values()) if (g.visible) cullCardFaces(g, camera.position);
+  syncShadows();
   if (perf.tier === 'low') renderer.render(scene, camera);
   else post.render(dt);
 }
@@ -2868,7 +3763,7 @@ window.FreeCell = {
     return game.dealNumber;
   },
   undo() {
-    return game.undo();
+    return !won && game.undo();
   },
   isWon() {
     return game.isWon();
@@ -2927,6 +3822,13 @@ window.FreeCell = {
     },
     run: () => vy.run,
     view: () => (vy.run ? runView(vy.run) : null),
+    // The open ability target pick, if any: its kind, legal values and lit card ids.
+    targeting: () => targeting && { kind: targeting.kind, values: targeting.values.slice(), lit: Object.fromEntries(targeting.lit), chosen: [...targetChosenIds] },
+    pickTarget(value) {
+      if (!targeting?.values.includes(value)) return false;
+      endTargeting(value);
+      return true;
+    },
     // Use the dealer's complete variant search in Voyage tests; classic pruning
     // can miss the partial runs a restricted board needs.
     async advance(n) {
@@ -2955,8 +3857,8 @@ async function boot() {
   voyageUI.init(voyageHandlers);
   voyageUI.renderStats(voyageStats);
   motion.reduced = settings.reducedMotion;
-  setDpr(Math.min(tierDpr[perf.tier], window.devicePixelRatio || 1));
-  post.setQuality(perf.tier);
+  applyResolution();
+  applyTier(perf.tier);
 
   ui.setLoading(0.04, 'Loading the table…');
   audio.theme = currentTheme.id;
@@ -2966,10 +3868,14 @@ async function boot() {
     audio.preload(SHARED_SOUNDS, (p) => ui.setLoading(0.55 + p * 0.4)),
   ]);
   ui.setLoading(0.97, 'Shuffling…');
-  // Warm up shaders so the first deal doesn't hitch.
-  renderer.compile(scene, camera);
 
   onResize();
+  // Draw one frame behind the loader. The loop skips rendering while the title
+  // is up, so otherwise the post-processing passes and the shadow pass would
+  // compile on the first frame of the first deal.
+  syncShadows();
+  if (perf.tier === 'low') renderer.render(scene, camera);
+  else post.render(0);
   ui.showTitle();
   voyageRefreshTitle();
   loop();

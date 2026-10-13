@@ -20,14 +20,16 @@ registerCustomMove('lowtide.tidepool', {
 
 defineCharm({
   id: 'lowtide.tidepool', kind: 'boon', theme: 'lowtide', name: 'Tide Pool', icon: '🦀', ease: 0.3,
+  family: 'ability',
+  upgrade: 'Twice per board, wash a free-cell card under the bottom of any column.',
   text: 'Once per board, wash a free-cell card under the bottom of any column.',
   ability: {
-    uses: 1, label: 'Wash a card under a column',
+    uses: ({ level }) => level === 2 ? 2 : 1, label: 'Wash a card under a column',
     available: (ctx) => !!ctx.api.state?.free.some(Boolean),
     async use(ctx) {
-      const fi = await ctx.api.pick({ kind: 'freecell', filter: (i, st) => occupied(st, i) });
+      const fi = await ctx.api.pick({ kind: 'freecell', prompt: 'Choose a free-cell card to wash away', filter: (i, st) => occupied(st, i) });
       if (fi == null) return false;
-      const col = await ctx.api.pick({ kind: 'column', filter: (i, st) => column(st, i) });
+      const col = await ctx.api.pick({ kind: 'column', prompt: 'Choose the column it washes under', cards: (i, st) => st.tableau[i].slice(0, 1), filter: (i, st) => column(st, i) });
       if (col == null || !occupied(ctx.api.state, fi)) return false;
       if (!ctx.api.charmMove('lowtide.tidepool', { fi, col, card: ctx.api.state.free[fi] })) return false;
       ctx.api.notify('Tide Pool washed a free-cell card beneath a column.');

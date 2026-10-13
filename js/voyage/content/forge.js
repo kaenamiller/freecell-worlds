@@ -1,6 +1,6 @@
 // forge: boons + challenge. Spec: docs/voyage/charms-design.md (theme `forge`).
 import { defineCharm } from '../registry.js';
-import { ALL_RANKS, cardsOfRanks, countHome, rankOf, replay, suitMask } from './kit.js';
+import { ALL_RANKS, cardsOfRanks, rankOf, replay, suitMask, suitOf } from './kit.js';
 
 function moveCards(m) {
   if (m.t === 'F' || m.t === 'C' || m.t === 'R') return [m.card];
@@ -9,45 +9,77 @@ function moveCards(m) {
 }
 
 defineCharm({
-  id: 'forge.anvil', kind: 'boon', theme: 'forge', name: 'Anvil', icon: '⚒️',
+  id: 'forge.anvil',
+  kind: 'boon',
+  theme: 'forge',
+  name: 'Anvil',
+  icon: '⚒️',
+  family: 'suit',
   text: 'Spades may also be built down in suit.',
+  upgrade: 'Spades may also be built down in suit, and runs of Spades move as one piece.',
   ease: 0.15,
-  rules(r) {
+  rules(r, ctx) {
     r.suitBuild = (r.suitBuild || 0) | suitMask(3);
+    if (ctx.level >= 2) r.suitRunFree = (r.suitRunFree || 0) | suitMask(3);
   },
   setup(_board, ctx) { ctx.api.mark(cardsOfRanks(ALL_RANKS, [3]), 'wild'); },
 });
 
 defineCharm({
-  id: 'forge.temper', kind: 'boon', theme: 'forge', name: 'Temper', icon: '🔥',
-  text: 'Free-cell points ×2.',
-  score(sb) {
-    sb.scale('freecells', 2);
+  id: 'forge.bellows',
+  kind: 'boon',
+  theme: 'forge',
+  name: 'Bellows',
+  icon: '🔥',
+  family: 'cells',
+  text: 'Frozen cells thaw 10 cards sooner, and closing cells close 10 cards later.',
+  upgrade: 'Frozen cells thaw 20 cards sooner, and closing cells close 20 cards later.',
+  ease: 0.15,
+  rulesAfter(r, ctx) {
+    const delta = ctx.level >= 2 ? 20 : 10;
+    if (r.cellThaw?.at?.length) {
+      r.cellThaw.at = r.cellThaw.at.map((n) => Math.max(0, n - delta));
+    }
+    if (r.cellClose?.at?.length) {
+      r.cellClose.at = r.cellClose.at.map((n) => n + delta);
+    }
   },
 });
 
 defineCharm({
-  id: 'forge.ingot', kind: 'boon', theme: 'forge', name: 'Ingot', icon: '🧱',
-  text: '+25 per King sent home, and +1 undo when the 4th King goes home.',
-  score(sb) {
-    const kings = countHome(sb.history, (id) => rankOf(id) === 13);
-    if (kings) sb.add('ingot', 'Kings forged', kings * 25);
-  },
-  on: {
-    foundation(ctx, { card }) {
-      if (rankOf(card) !== 13) return;
-      ctx.memo.kings = (ctx.memo.kings || 0) + 1;
-      if (ctx.memo.kings === 4 && !ctx.memo.ingotUndo) {
-        ctx.memo.ingotUndo = true;
-        ctx.api.addUndos(1);
+  id: 'forge.ingot',
+  kind: 'boon',
+  theme: 'forge',
+  name: 'Ingot',
+  icon: '🧱',
+  family: 'coin',
+  text: 'Each King sent home while another suit is still below 7 pays 2 coins.',
+  upgrade: 'Each such King pays 3 coins.',
+  score(sb, ctx) {
+    const pay = ctx.level >= 2 ? 3 : 2;
+    let kings = 0;
+    replay(sb, (m, state) => {
+      if (m.t !== 'F' || rankOf(m.card) !== 13) return;
+      const suit = suitOf(m.card);
+      for (let s = 0; s < 4; s++) {
+        if (s !== suit && state.found[s] < 7) {
+          kings++;
+          break;
+        }
       }
-    },
+    });
+    if (kings) sb.addCoins('ingot', 'Kings forged', kings * pay);
   },
 });
 
 defineCharm({
-  id: 'forge.challenge', kind: 'challenge', theme: 'forge', name: 'Hot Iron', icon: '🌡️',
+  id: 'forge.challenge',
+  kind: 'challenge',
+  theme: 'forge',
+  name: 'Hot Iron',
+  icon: '🌡️',
   tags: ['SCORE'],
+  pressure: true,
   text: (s) => `${1 + s} hot cards; once moved, each must reach its foundation within 10 moves or cost 40 points.`,
   setup(board, ctx) {
     const pool = board.state.tableau.flat();

@@ -1,57 +1,103 @@
-// risograph: boons + challenge. Spec: docs/voyage/charms-design.md (theme `risograph`).
-import { cardId } from '../../rules.js';
+// risograph: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `risograph`).
 import { defineCharm } from '../registry.js';
-import { countHome, rankMask, rankName, suitMask, suitOf } from './kit.js';
-import { stream } from '../rng.js';
+import { cardName, cardsOfRanks, confirmStickerSwap, rankMask, ranksIn } from './kit.js';
 
-function offRanks(s, rng) {
-  const n = s <= 3 ? 1 : 2;
-  const start = 2 + rng.int(13 - n);
-  return Array.from({ length: n }, (_, i) => start + i);
+const STICKER_TYPES = ['wild', 'gold', 'lucky', 'key', 'fool'];
+
+function evenBarrenRanks(s) {
+  if (s <= 3) return rankMask(2, 3, 4, 5, 6);
+  const ranks = [];
+  for (let rank = 2; rank <= 12; rank += 2) ranks.push(rank);
+  return rankMask(...ranks);
 }
 
 defineCharm({
-  id: 'risograph.misprint', kind: 'boon', theme: 'risograph', name: 'Misprint', icon: '🖨️',
-  text: 'Twos are wild: they ignore colour when stacking.',
-  ease: 0.15,
-  rules(r) { r.wildRanks = (r.wildRanks || 0) | rankMask(2); },
-  setup(_board, ctx) { ctx.api.mark([cardId(0, 2), cardId(1, 2), cardId(2, 2), cardId(3, 2)], 'wild'); },
-});
-
-defineCharm({
-  id: 'risograph.ultramarine', kind: 'boon', theme: 'risograph', name: 'Ultramarine', icon: '🔵',
-  text: '+12 points for every spade sent home.',
-  score(sb) {
-    const n = countHome(sb.history, (id) => suitOf(id) === 3);
-    if (n) sb.add('ultramarine', 'Spades home', n * 12);
+  id: 'risograph.misprint',
+  kind: 'boon',
+  theme: 'risograph',
+  name: 'Misprint',
+  icon: '🖨️',
+  family: 'sticker',
+  text: 'Once per board, misprint a face-up card: it gets a random sticker for the rest of the run (from the next board).',
+  upgrade: 'Once per board, misprint a face-up card: you choose the sticker.',
+  ease: 0.25,
+  ability: {
+    uses: 1,
+    label: 'Misprint a card',
+    async use(ctx) {
+      const card = await ctx.api.pick({
+        kind: 'card', prompt: 'Choose a column top to misprint (its sticker starts working next board)',
+        filter: (id, st) => st.tableau.some((col) => col.at(-1) === id),
+      });
+      if (card == null) return false;
+      let type;
+      if (ctx.level === 2) {
+        const { STICKERS } = await import('../stickers.js');
+        type = await ctx.api.choose({
+          card, prompt: 'Choose the sticker to misprint onto this card.',
+          options: STICKER_TYPES.map((t) => ({ value: t, label: STICKERS[t]?.name || t, detail: STICKERS[t]?.text })),
+        });
+        if (type == null || !(await confirmStickerSwap(ctx, card, type))) return false;
+      } else {
+        if (!(await confirmStickerSwap(ctx, card, '?'))) return false;
+        type = STICKER_TYPES[ctx.rng.int(STICKER_TYPES.length)];
+      }
+      if (!ctx.api.addSticker(card, type)) return false;
+      ctx.api.notify(`Misprint: the ${cardName(card)} gets a ${type[0].toUpperCase() + type.slice(1)} sticker from the next board.`);
+      return true;
+    },
   },
 });
 
 defineCharm({
-  id: 'risograph.edition', kind: 'boon', theme: 'risograph', name: 'Second Edition', icon: '🗞️',
-  text: 'Each board scores +4% per board already cleared, up to +20%.',
-  score(sb, ctx) {
-    const bonus = Math.min(20, ctx.run.boardIdx * 4) / 100;
-    if (bonus) sb.mult('Second Edition', 1 + bonus);
+  id: 'risograph.ultramarine',
+  kind: 'boon',
+  theme: 'risograph',
+  name: 'Ultramarine',
+  icon: '🔵',
+  family: 'coin',
+  text: 'At each port, +1 coin for every sticker you own.',
+  upgrade: 'At each port, +2 coins for every sticker you own.',
+  onPort(run, ctx) {
+    const n = Object.keys(run.stickers).length;
+    if (!n) return;
+    const each = ctx.level === 2 ? 2 : 1;
+    ctx.api.addCoins(n * each);
   },
 });
 
 defineCharm({
-  id: 'risograph.challenge', kind: 'challenge', theme: 'risograph', name: 'Off Register', icon: '🟥',
+  id: 'risograph.edition',
+  kind: 'boon',
+  theme: 'risograph',
+  name: 'Second Edition',
+  icon: '🗞️',
+  family: 'coin',
+  text: 'Every board\'s coin payout is +10% for each coin-family boon you hold (this one included).',
+  upgrade: 'Every board\'s coin payout is +15% for each coin-family boon you hold (this one included).',
+  coins(n, ctx) {
+    const pct = ctx.level === 2 ? 0.15 : 0.10;
+    const coinBoons = ctx.family('coin');
+    return Math.round(n * (1 + pct * coinBoons));
+  },
+});
+
+defineCharm({
+  id: 'risograph.challenge',
+  kind: 'challenge',
+  theme: 'risograph',
+  name: 'Misregistration',
+  icon: '🟥',
   tags: ['STACK'],
   text: (s) => (s <= 3
-    ? "Nothing can be placed on one suit's chosen rank, never an Ace."
-    : "Nothing can be placed on one suit's two consecutive ranks, never Aces."),
-  ease: (ctx) => -0.07 * ctx.strength,
+    ? 'Nothing can be placed onto even cards ranked 2 through 6.'
+    : 'Nothing can be placed onto any even-ranked card.'),
+  ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {
-    r.barren = { suits: suitMask(ctx.rng.int(4)), ranks: rankMask(...offRanks(ctx.strength, ctx.rng)) };
+    r.barren = { suits: 15, ranks: evenBarrenRanks(ctx.strength) };
   },
   setup(_board, ctx) {
-    const rng = stream(ctx.seed, 'rules', ctx.run.boardIdx, ctx.id);
-    const suit = rng.int(4);
-    const ranks = offRanks(ctx.strength, rng);
-    ctx.api.mark(ranks.map((rank) => cardId(suit, rank)), 'bar');
-    const pip = ['♣', '♦', '♥', '♠'][suit];
-    ctx.api.badge(ranks.map((rank) => `${pip} ${rankName(rank)}`).join(' '));
+    const ranks = ranksIn(evenBarrenRanks(ctx.strength));
+    if (ranks.length) ctx.api.mark(cardsOfRanks(ranks), 'bar');
   },
 });

@@ -1,39 +1,81 @@
-// canyon: boons + challenge. Spec: docs/voyage/charms-design.md (theme `canyon`).
+// canyon: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `canyon`).
 import { defineCharm } from '../registry.js';
-import { cardsOfRanks, rankMask } from './kit.js';
+import { cardsOfRanks, paidUndo } from './kit.js';
+
+function stickerRank(run, memo, rng) {
+  const used = new Set(Object.values(memo.ranks || []));
+  const pool = [];
+  for (let rank = 4; rank <= 9; rank++) if (!used.has(rank)) pool.push(rank);
+  if (!pool.length) return null;
+  return pool[Math.floor(rng() * pool.length)];
+}
+
+function applyTurquoiseStickers(run, ctx, rank) {
+  if (!rank) return;
+  const cards = cardsOfRanks([rank]);
+  for (const card of cards) ctx.api.addSticker(card, 'wild');
+  (ctx.runMemo.ranks ??= []).push(rank);
+}
 
 defineCharm({
-  id: 'canyon.turquoise', kind: 'boon', theme: 'canyon', name: 'Turquoise Inlay', icon: '💠',
-  text: 'Sixes are wild: they ignore colour when stacking.',
-  ease: 0.2,
-  rules(r) {
-    r.wildRanks = (r.wildRanks || 0) | rankMask(6);
+  id: 'canyon.turquoise',
+  kind: 'boon',
+  theme: 'canyon',
+  name: 'Turquoise Inlay',
+  icon: '💠',
+  family: 'sticker',
+  text: 'When you take this, all four cards of a random rank from 4 to 9 get Wild stickers.',
+  upgrade: 'When upgraded, another rank gets them too.',
+  onPick(run, ctx) {
+    const rank = stickerRank(run, ctx.runMemo, ctx.rng);
+    applyTurquoiseStickers(run, ctx, rank);
   },
-  setup(_board, ctx) { ctx.api.mark(cardsOfRanks([6]), 'wild'); },
+  onUpgrade(run, ctx) {
+    const rank = stickerRank(run, ctx.runMemo, ctx.rng);
+    applyTurquoiseStickers(run, ctx, rank);
+  },
 });
 
 defineCharm({
-  id: 'canyon.bloom', kind: 'boon', theme: 'canyon', name: 'Desert Bloom', icon: '🌵',
-  text: '+2 undos when you clear a board at or under par without using an undo.',
+  id: 'canyon.bloom',
+  kind: 'boon',
+  theme: 'canyon',
+  name: 'Desert Bloom',
+  icon: '🌵',
+  family: 'undo',
+  text: '+2 undos when you clear a board at or under par.',
+  upgrade: '+3.',
   on: {
     win(ctx, { result }) {
-      if (result.moves <= result.par && result.undosUsed === 0) ctx.api.addUndos(2);
+      if (result.moves <= result.par) ctx.api.addUndos(ctx.level >= 2 ? 3 : 2);
     },
   },
 });
 
 defineCharm({
-  id: 'canyon.echo', kind: 'boon', theme: 'canyon', name: 'Echo Canyon', icon: '🔊',
+  id: 'canyon.echo',
+  kind: 'boon',
+  theme: 'canyon',
+  name: 'Echo Canyon',
+  icon: '🔊',
+  family: 'undo',
   text: 'Undoing a free-cell placement refunds the undo.',
+  upgrade: '…undoing a move out of a free cell is refunded too.',
   on: {
-    undo(ctx, { move }) {
-      if (move?.t === 'C') ctx.api.addUndos(1);
+    undo(ctx, ev) {
+      if (!paidUndo(ev)) return;
+      const fromCell = ev.move?.t === 'C' || (ctx.level >= 2 && ev.move?.t === 'R' && ev.move?.src?.kind === 'free');
+      if (fromCell) ctx.api.addUndos(1);
     },
   },
 });
 
 defineCharm({
-  id: 'canyon.challenge', kind: 'challenge', theme: 'canyon', name: 'Two-Tone Strata', icon: '🏜️',
+  id: 'canyon.challenge',
+  kind: 'challenge',
+  theme: 'canyon',
+  name: 'Two-Tone Strata',
+  icon: '🏜️',
   tags: ['CELLS'],
   text: (s) => (s <= 2
     ? 'One free cell accepts only red cards.'

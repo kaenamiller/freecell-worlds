@@ -1,6 +1,8 @@
-// zen: boons + challenge. Spec: docs/voyage/charms-design.md (theme `zen`).
+// zen: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `zen`).
 import { defineCharm } from '../registry.js';
-import { SCORE } from '../config.js';
+import { ALL_RANKS, boardWon, cardsOfRanks } from './kit.js';
+
+const ALL_CARDS = cardsOfRanks(ALL_RANKS);
 
 defineCharm({
   id: 'zen.stillness',
@@ -8,12 +10,12 @@ defineCharm({
   theme: 'zen',
   name: 'Stillness',
   icon: '🪷',
-  text: 'Free-cell placements cost half the usual points (10 per card).',
-  score(sb) {
-    const line = sb.lines.find((l) => l.key === 'freecells');
-    if (!line) return;
-    const halfCost = SCORE.freeCellCost / 2;
-    line.pts = Math.max(0, SCORE.freeCellBudget - sb.stat.freeCellPlacements * halfCost);
+  family: 'cells',
+  text: 'Any card may enter any open free cell, whatever the challenge or boss says.',
+  upgrade: '…and one extra free cell.',
+  rules(r, ctx) {
+    r.freeCards = [...new Set([...(r.freeCards || []), ...ALL_CARDS])];
+    if (ctx.level >= 2) r.freeCells += 1;
   },
 });
 
@@ -23,19 +25,29 @@ defineCharm({
   theme: 'zen',
   name: 'Calm Waters',
   icon: '🎐',
+  family: 'fortune',
   text: 'Every board is dealt half a tier gentler.',
-  dealShift: -0.5,
+  upgrade: 'A full tier gentler.',
+  dealShift: (ctx) => (ctx.level >= 2 ? -1 : -0.5),
 });
 
 defineCharm({
-  id: 'zen.mindful',
+  id: 'zen.koan',
   kind: 'boon',
   theme: 'zen',
-  name: 'Mindful Pace',
+  name: 'Koan',
   icon: '🍵',
-  text: '×1.15 score when you finish at or under par.',
-  score(sb) {
-    if (sb.stat.moves <= sb.par) sb.mult('Mindful Pace', 1.15);
+  family: 'vision',
+  text: 'Once per board, see the solver\'s next three moves; you play them yourself.',
+  upgrade: 'Twice per board, five moves each.',
+  ability: {
+    uses: (ctx) => ctx.level,
+    label: 'Preview line',
+    available: ({ api }) => !boardWon(api.state),
+    async use(ctx) {
+      const n = ctx.level >= 2 ? 5 : 3;
+      return !!(await ctx.api.preview(n));
+    },
   },
 });
 
@@ -46,6 +58,7 @@ defineCharm({
   name: 'Raked Sand',
   icon: '〰️',
   tags: ['SCORE'],
+  pressure: true,
   text: (s) => `Every move over par costs ${4 + 2 * s} points.`,
   score(sb, ctx) {
     const over = sb.stat.moves - sb.par;

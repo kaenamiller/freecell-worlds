@@ -1,0 +1,139 @@
+{
+  "results": [
+    {
+      "id": "plaster",
+      "rendered": "plaster",
+      "slots": {
+        "col": {
+          "fill": "rgba(0,0,0,0.15)",
+          "stroke": "rgba(102,92,91,0.52)",
+          "dash": [
+            18,
+            12
+          ],
+          "glow": 0
+        },
+        "free": {
+          "fill": "rgba(0,0,0,0.25)",
+          "stroke": "rgba(102,92,91,0.86)",
+          "dash": [
+            18,
+            10
+          ],
+          "glow": 0,
+          "mark": "rgba(102,92,91,0.68)"
+        },
+        "found": {
+          "fill": "rgba(0,0,0,0.3)",
+          "stroke": "rgba(128,101,92,1)",
+          "dash": [],
+          "glow": 0,
+          "inner": "rgba(102,92,91,0.65)",
+          "lightSurface": true,
+          "markOpacity": 0.65
+        }
+      }
+    },
+    {
+      "id": "backrooms",
+      "rendered": "backrooms",
+      "slots": {
+        "col": {
+          "fill": "rgba(0,0,0,0.15)",
+          "stroke": "rgba(101,86,51,0.52)",
+          "dash": [
+            18,
+            12
+          ],
+          "glow": 0
+        },
+        "free": {
+          "fill": "rgba(0,0,0,0.25)",
+          "stroke": "rgba(101,86,51,0.86)",
+          "dash": [
+            18,
+            10
+          ],
+          "glow": 0,
+          "mark": "rgba(101,86,51,0.68)"
+        },
+        "found": {
+          "fill": "rgba(0,0,0,0.3)",
+          "stroke": "rgba(117,96,57,1)",
+          "dash": [],
+          "glow": 0,
+          "inner": "rgba(101,86,51,0.65)",
+          "lightSurface": true,
+          "markOpacity": 0.65
+        }
+      }
+    },
+    {
+      "id": "vaporwave",
+      "rendered": "vaporwave",
+      "slots": {
+        "col": {
+          "fill": "rgba(0,0,0,0.15)",
+          "stroke": "rgba(112,68,94,0.52)",
+          "dash": [
+            18,
+            12
+          ],
+          "glow": 0
+        },
+        "free": {
+          "fill": "rgba(0,0,0,0.25)",
+          "stroke": "rgba(112,68,94,0.86)",
+          "dash": [
+            18,
+            10
+          ],
+          "glow": 0,
+          "mark": "rgba(112,68,94,0.68)"
+        },
+        "found": {
+          "fill": "rgba(0,0,0,0.3)",
+          "stroke": "rgba(54,117,122,1)",
+          "dash": [],
+          "glow": 0,
+          "inner": "rgba(112,68,94,0.65)",
+          "lightSurface": true,
+          "markOpacity": 0.65
+        }
+      }
+    },
+    {
+      "id": "cinema",
+      "rendered": "cinema",
+      "slots": {
+        "col": {
+          "fill": "rgba(0,0,0,0.15)",
+          "stroke": "rgba(255,244,223,0.52)",
+          "dash": [
+            18,
+            12
+          ],
+          "glow": 0
+        },
+        "free": {
+          "fill": "rgba(0,0,0,0.25)",
+          "stroke": "rgba(255,244,223,0.86)",
+          "dash": [
+            18,
+            10
+          ],
+          "glow": 0,
+          "mark": "rgba(255,244,223,0.68)"
+        },
+        "found": {
+          "fill": "rgba(0,0,0,0.3)",
+          "stroke": "rgba(224,194,140,1)",
+          "dash": [],
+          "glow": 0,
+          "inner": "rgba(190,200,210,0.65)"
+        }
+      }
+    }
+  ],
+  "errors": []
+}

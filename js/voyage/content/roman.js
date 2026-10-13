@@ -1,6 +1,7 @@
-// roman: boons + challenge. Spec: docs/voyage/charms-design.md (theme `roman`).
+// roman: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `roman`).
+import { cardsHome } from '../../rules.js';
 import { defineCharm } from '../registry.js';
-import { cardsOfRanks, countHome, rankMask, rankOf, ranksIn } from './kit.js';
+import { cardsOfRanks, rankMask, rankOf, ranksIn, replay, suitOf } from './kit.js';
 
 function senateNoCellRanks(strength) {
   if (strength <= 2) return rankMask(13);
@@ -15,12 +16,17 @@ defineCharm({
   theme: 'roman',
   name: 'Legion',
   icon: '🛡️',
-  text: 'Tens are wild: they stack on either colour, and either colour stacks on them.',
+  family: 'wild',
+  text: 'Tens are wild: they ignore colour when stacking.',
+  upgrade: 'Tens and Nines are wild.',
   ease: 0.25,
-  rules(r) {
-    r.wildRanks = (r.wildRanks || 0) | rankMask(10);
+  rules(r, ctx) {
+    const ranks = ctx.level >= 2 ? [9, 10] : [10];
+    r.wildRanks = (r.wildRanks || 0) | rankMask(...ranks);
   },
-  setup(_board, ctx) { ctx.api.mark(cardsOfRanks([10]), 'wild'); },
+  setup(_board, ctx) {
+    ctx.api.mark(cardsOfRanks(ctx.level >= 2 ? [9, 10] : [10]), 'wild');
+  },
 });
 
 defineCharm({
@@ -29,10 +35,12 @@ defineCharm({
   theme: 'roman',
   name: 'Colonnade',
   icon: '🏛️',
+  family: 'columns',
   text: 'Empty columns triple, rather than double, how many cards you can move at once.',
+  upgrade: 'Empty columns quadruple it.',
   ease: 0.4,
-  rules(r) {
-    r.emptyFactor = Math.max(r.emptyFactor || 2, 3);
+  rules(r, ctx) {
+    r.emptyFactor = Math.max(r.emptyFactor || 2, ctx.level >= 2 ? 4 : 3);
   },
 });
 
@@ -42,10 +50,20 @@ defineCharm({
   theme: 'roman',
   name: 'Laurel Crown',
   icon: '🌿',
-  text: '+60 points for each suit you complete on a board.',
-  score(sb) {
-    const kings = countHome(sb.history, (id) => rankOf(id) === 13);
-    if (kings) sb.add('laurel', 'Laurel Crown', kings * 60);
+  family: 'coin',
+  text: 'The first suit you complete each board pays 1 coin for every 2 cards still in play at that moment.',
+  upgrade: '1 coin for every card still in play.',
+  score(sb, ctx) {
+    let paid = false;
+    replay(sb, (move, state) => {
+      if (paid || move.t !== 'F' || rankOf(move.card) !== 13) return;
+      const suit = suitOf(move.card);
+      if (state.found[suit] !== 13) return;
+      paid = true;
+      const inPlay = 52 - cardsHome(state);
+      const coins = ctx.level >= 2 ? inPlay : Math.floor(inPlay / 2);
+      if (coins) sb.addCoins('laurel', 'Laurel Crown', coins);
+    });
   },
 });
 

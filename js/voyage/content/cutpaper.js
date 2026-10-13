@@ -1,52 +1,84 @@
-// cutpaper: boons + challenge. Spec: docs/voyage/charms-design.md (theme `cutpaper`).
+// cutpaper: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `cutpaper`).
+// cutpaper.octavo: js/voyage/content/special/cutpaper.octavo.js
+import { cardId } from '../../rules.js';
 import { defineCharm } from '../registry.js';
-import { cardsOfRanks, countHome, rankName, rankOf } from './kit.js';
+import { replay } from './kit.js';
 
-const creaseRank = (s) => (s <= 2 ? 11 : s <= 4 ? 12 : 13);
-
-defineCharm({
-  id: 'cutpaper.octavo', kind: 'boon', theme: 'cutpaper', name: 'Octavo', icon: '📄',
-  text: 'Eights are wild: they ignore colour when stacking.',
-  ease: 0.2,
-  rules(r) { r.wildRanks = (r.wildRanks || 0) | (1 << 8); },
-  setup(_board, ctx) { ctx.api.mark(cardsOfRanks([8]), 'wild'); },
-});
+const dealSkewFor = (s) => {
+  if (s <= 2) return [8, 8, 7, 7, 6, 6, 5, 5];
+  if (s <= 4) return [9, 9, 7, 7, 6, 6, 4, 4];
+  if (s <= 6) return [10, 10, 7, 7, 6, 6, 3, 3];
+  return [11, 10, 8, 6, 6, 5, 3, 3];
+};
 
 defineCharm({
-  id: 'cutpaper.musicbox', kind: 'boon', theme: 'cutpaper', name: 'Music Box', icon: '🎶',
-  text: 'Your first chain of 8 or more cards home grants +1 undo.',
-  on: {
-    foundation(ctx) {
-      ctx.memo.chain = (ctx.memo.chain || 0) + 1;
-      if (!ctx.memo.paid && ctx.memo.chain >= 8) {
-        ctx.memo.paid = true;
-        ctx.api.addUndos(1);
+  id: 'cutpaper.musicbox',
+  kind: 'boon',
+  theme: 'cutpaper',
+  name: 'Music Box',
+  icon: '🎶',
+  family: 'coin',
+  text: 'Before your first move, you may stake 5 coins: win 15 if you send 6 cards home in a row while 20 or more are still in play.',
+  upgrade: 'Before your first move, you may stake 5 coins: win 25 if you send 6 cards home in a row while 20 or more are still in play.',
+  ability: {
+    uses: 1,
+    when: 'start',
+    label: 'Stake 5 coins',
+    available: (ctx) => (ctx.run.coins || 0) >= 5 && !ctx.memo.wager,
+    async use(ctx) {
+      ctx.memo.wager = true;
+      ctx.api.notify('Music Box: staked 5 coins on a six-card home run.');
+      return true;
+    },
+  },
+  score(sb, ctx) {
+    if (!ctx.memo.wager) return;
+    sb.addCoins('musicbox-stake', 'Music Box stake', -5);
+    let best = 0;
+    let run = 0;
+    replay(sb, (move, state) => {
+      if (move.t === 'F') {
+        run++;
+        const inPlay = 52 - state.found.reduce((n, r) => n + r, 0);
+        if (run >= 6 && inPlay >= 20) best = 1;
+      } else {
+        run = 0;
       }
-    },
-    move(ctx, { move }) {
-      if (move.t !== 'F') ctx.memo.chain = 0;
-    },
+    });
+    if (best) sb.addCoins('musicbox-win', 'Music Box', ctx.level === 2 ? 25 : 15);
   },
 });
 
 defineCharm({
-  id: 'cutpaper.crown', kind: 'boon', theme: 'cutpaper', name: 'Paper Crown', icon: '👑',
-  text: '+22 points for every King sent home.',
-  score(sb) {
-    const n = countHome(sb.history, (id) => rankOf(id) === 13);
-    if (n) sb.add('crown', 'Kings home', n * 22);
+  id: 'cutpaper.crown',
+  kind: 'boon',
+  theme: 'cutpaper',
+  name: 'Paper Crown',
+  icon: '👑',
+  family: 'sticker',
+  text: 'When you take this, the four Kings get Fool stickers: anything may be placed on them.',
+  upgrade: 'When upgraded, the Queens get Fool stickers too.',
+  onPick(_run, ctx) {
+    for (let suit = 0; suit < 4; suit++) ctx.api.addSticker(cardId(suit, 13), 'fool');
+  },
+  onUpgrade(_run, ctx) {
+    for (let suit = 0; suit < 4; suit++) ctx.api.addSticker(cardId(suit, 12), 'fool');
   },
 });
 
 defineCharm({
-  id: 'cutpaper.challenge', kind: 'challenge', theme: 'cutpaper', name: 'Crease', icon: '✂️',
+  id: 'cutpaper.challenge',
+  kind: 'challenge',
+  theme: 'cutpaper',
+  name: 'Fold Lines',
+  icon: '✂️',
   tags: ['COLUMN'],
   text: (s) => {
-    const rank = creaseRank(s);
-    return rank === 13
-      ? 'Empty columns only accept Kings.'
-      : `Empty columns only accept ${rankName(rank)}s and above.`;
+    const cols = dealSkewFor(s);
+    return `The deal is uneven: columns of ${cols.join('-')}.`;
   },
   ease: (ctx) => -0.08 * ctx.strength,
-  rules(r, ctx) { r.emptyMinRank = creaseRank(ctx.strength); },
+  rules(r, ctx) {
+    r.dealSkew = dealSkewFor(ctx.strength);
+  },
 });

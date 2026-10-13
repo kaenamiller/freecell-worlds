@@ -1,4 +1,4 @@
-import { overrideTargets } from '../../js/voyage/content/special/concrete.spraytag.js';
+import { overrideDrop, overrideTargets } from '../../js/voyage/content/special/concrete.spraytag.js';
 
 // Shared round-trip coverage for the one-shot drop family, on numbered deals.
 export async function checkOverrideCharm(h, id, flags, freeOnly, sequencesOnly, deals) {
@@ -106,10 +106,58 @@ export async function checkOverrideCharm(h, id, flags, freeOnly, sequencesOnly, 
 }
 
 export async function check(h) {
-  await checkOverrideCharm(h, 'concrete.spraytag', { ignoreColour: true }, false, false, [1, 2, 3]);
-  // Spray Tag must not relax rank or sequence validity.
-  const game = new h.Rules.Game(1);
-  const target = { t: 'X', op: 'concrete.spraytag', src: { kind: 'col', i: 1 }, count: 1, to: 0 };
-  h.assert.throws(() => game.applyCharmMove(target), /illegal drop/);
-  h.assert.throws(() => game.applyCharmMove({ ...target, count: 7, to: 7 }), /illegal drop/);
+  const { assert, Rules, BoardEffects, clone, stubAPI } = h;
+  const flags = { ignoreColour: true, ignoreCap: true };
+  for (const deal of [1, 2, 3]) {
+    const game = new Rules.Game(deal, { rules: { moveBonus: -4 } });
+    const before = clone(game.state), originalRules = clone(game.rules);
+    const candidates = overrideTargets({ api: { state: game.state, rules: game.rules, concealed: [] } }, flags);
+    const target = candidates.find((m) => !Rules.canPlaceTableau(game.state, m.to, m.card, m.count, game.rules));
+    assert(target, `concrete.spraytag: deal ${deal} needs an override-only target`);
+    let meta = null;
+    const api = stubAPI(game);
+    const arm = api.override;
+    api.beginAbility = (id, uses) => { meta = { id, uses }; };
+    api.endAbility = () => { meta = null; };
+    api.override = (o) => game.override ? false : arm({ ...o, voyageAbility: clone(meta) });
+    const run = { seed: `spray-${deal}`, current: { idx: 0 }, boons: ['concrete.spraytag'], undos: 5, results: [], charmMemo: {} };
+    const memo = {};
+    const effects = new BoardEffects([{ id: 'concrete.spraytag', kind: 'boon', strength: 1 }], { seed: run.seed, boardIndex: 0, api, memo, run });
+    effects.setup({ state: game.initial, initial: game.initial, deal, restored: false });
+    assert.equal(await effects.useAbility('concrete.spraytag'), true);
+    assert.equal(game.history.length, 0, 'Spray Tag arms the next player drop');
+    assert.deepEqual(game.override, { ...flags, voyageAbility: { id: 'concrete.spraytag', uses: 1 } });
+    assert.equal(await effects.useAbility('concrete.spraytag'), false, 'an armed override cannot be replaced');
+    const move = target.src.kind === 'free'
+      ? game.moveFreeToTableau(target.src.i, target.to)
+      : game.moveSequenceToTableau(target.src.i, game.tableau[target.src.i].length - target.count, target.to);
+    assert(move);
+    assert.equal(move.t, 'T');
+    assert.deepEqual(move.override, { ...flags, voyageAbility: { id: 'concrete.spraytag', uses: 1 } });
+    assert.equal(game.override, null);
+    const after = clone(game.state);
+    const resumedGame = new Rules.Game(deal, { rules: originalRules });
+    resumedGame.applyDescriptor(clone(move));
+    assert.deepEqual(resumedGame.state, after);
+    const resumed = new BoardEffects([{ id: 'concrete.spraytag', kind: 'boon', strength: 1 }], {
+      seed: run.seed, boardIndex: 0, api: stubAPI(resumedGame), memo: clone(memo), run: clone(run),
+    });
+    resumed.setup({ state: resumedGame.initial, initial: resumedGame.initial, deal, restored: true });
+    assert.equal(resumed.abilityState('concrete.spraytag').uses, 0);
+    const undone = resumedGame.undo();
+    resumed.refundAbility(undone.override?.voyageAbility);
+    resumedGame.override = null;
+    assert.deepEqual(resumedGame.state, before);
+    assert.deepEqual(resumedGame.rules, originalRules);
+    assert.equal(resumed.abilityState('concrete.spraytag').uses, 1);
+  }
+  // Colour and capacity relax; rank and a legal moving sequence still apply.
+  const rank = new Rules.Game(1, { rules: { moveBonus: -52 } });
+  const src = { kind: 'col', i: 0 };
+  rank.state.tableau = [[8, 20, 6], [23], [1], [2], [3], [4], [5], [7]];
+  assert.equal(overrideDrop(rank.state, rank.rules, flags, false, src, 3, 1), null, 'rank still applies');
+  rank.state.tableau = [[8, 21, 6], [22], [1], [2], [3], [4], [5], [7]];
+  assert.equal(overrideDrop(rank.state, rank.rules, flags, false, src, 3, 1), null, 'broken runs still apply');
+  rank.state.tableau = [[8, 20, 6], [22], [1], [2], [3], [4], [5], [7]];
+  assert(overrideDrop(rank.state, rank.rules, flags, false, src, 3, 1));
 }

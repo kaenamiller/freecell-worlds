@@ -1,6 +1,11 @@
-// deco: boons + challenge. Spec: docs/voyage/charms-design.md (theme `deco`).
-import { defineCharm } from '../registry.js';
-import { countHome, isCourt } from './kit.js';
+// deco: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `deco`).
+import { cardsHome } from '../../rules.js';
+import { CHARM_FAMILIES, defineCharm } from '../registry.js';
+import { cardsOfRanks, replay } from './kit.js';
+
+const goldCards = (stickers = {}) => Object.entries(stickers)
+  .filter(([, type]) => type === 'gold')
+  .map(([card]) => Number(card));
 
 defineCharm({
   id: 'deco.champagne',
@@ -8,24 +13,32 @@ defineCharm({
   theme: 'deco',
   name: 'Champagne Tower',
   icon: '🥂',
-  text: 'Chain points ×1.6.',
-  score(sb) {
-    sb.scale('chains', 1.6);
+  family: 'coin',
+  text: 'While your boons span 4 or more families, every board\'s coin payout is +25%.',
+  upgrade: '3 families, +40%.',
+  coins(n, ctx) {
+    const families = CHARM_FAMILIES.filter((name) => ctx.family(name) > 0).length;
+    const need = ctx.level >= 2 ? 3 : 4;
+    const bonus = ctx.level >= 2 ? 0.4 : 0.25;
+    return families >= need ? Math.round(n * (1 + bonus)) : n;
   },
 });
 
 defineCharm({
-  id: 'deco.highroller',
+  id: 'deco.velvet',
   kind: 'boon',
   theme: 'deco',
-  name: 'High Roller',
-  icon: '🎰',
-  text: 'Lose 2 undos now; every board scores ×1.2.',
-  onPick(run) {
-    run.undos = Math.max(0, run.undos - 2);
-  },
-  score(sb) {
-    sb.mult('High Roller', 1.2);
+  name: 'Velvet Rope',
+  icon: '🪩',
+  family: 'cells',
+  text: 'One extra free cell that only takes Jacks, Queens and Kings.',
+  upgrade: '…takes cards ranked 8 and up.',
+  rules(r, ctx) {
+    const slot = r.freeCells;
+    r.freeCells += 1;
+    r.cellLimits = [...(r.cellLimits || [])];
+    while (r.cellLimits.length < r.freeCells) r.cellLimits.push(null);
+    r.cellLimits[slot] = { minRank: ctx.level >= 2 ? 8 : 11 };
   },
 });
 
@@ -35,10 +48,34 @@ defineCharm({
   theme: 'deco',
   name: 'Gilded Age',
   icon: '🎺',
-  text: '+15 for every Jack, Queen and King sent home.',
-  score(sb) {
-    const courts = countHome(sb.history, isCourt);
-    if (courts) sb.add('gilded', 'Gilded Age', courts * 15);
+  family: 'sticker',
+  text: 'When you take this, a random Jack, Queen or King gets a Gold sticker; your Gold-stickered cards are also wild.',
+  upgrade: '…and Gold stickers pay double.',
+  rules(r, ctx) {
+    const gold = goldCards(ctx.stickers);
+    if (gold.length) r.wildCards = [...new Set([...(r.wildCards || []), ...gold])];
+  },
+  setup(_board, ctx) {
+    const gold = goldCards(ctx.stickers);
+    if (gold.length) ctx.api.mark(gold, 'gold');
+  },
+  onPick(run, ctx) {
+    const pool = cardsOfRanks([11, 12, 13]);
+    const card = pool[Math.floor(ctx.rng() * pool.length)];
+    ctx.api.addSticker(card, 'gold');
+  },
+  score(sb, ctx) {
+    if (ctx.level < 2) return;
+    const gold = new Set(goldCards(ctx.stickers));
+    if (!gold.size || !sb.initial) return;
+    const paid = new Set();
+    replay(sb, (move, state) => {
+      if (move.t !== 'F' || !gold.has(move.card) || paid.has(move.card)) return;
+      if (52 - cardsHome(state) >= 13) {
+        paid.add(move.card);
+        sb.addCoins(`gilded.${move.card}`, 'Gilded Age · gold', 5);
+      }
+    });
   },
 });
 

@@ -1,5 +1,5 @@
 import { defineCharm } from '../../registry.js';
-import { registerCustomMove, canPlaceTableau, sequenceStart, rankOf, applyMove, undoMove } from '../../../rules.js';
+import { registerCustomMove, canPlaceTableau, canLeaveCell, sequenceStart, rankOf, rulesForState, applyMove, undoMove } from '../../../rules.js';
 
 // Shared by the three one-shot drops. Only the landing rule is relaxed: runs,
 // sealed columns, height limits and one-way cells retain their normal legality.
@@ -9,7 +9,9 @@ export function overrideDrop(st, rules, flags, freeOnly, src, count, to) {
   let card;
   if (src.kind === 'free') {
     card = st.free[src.i];
-    if (count !== 1 || !card || (rules.oneWayCellRanks & (1 << rankOf(card)))) return null;
+    const r = rulesForState(st, rules);
+    if (count !== 1 || !canLeaveCell(st, src.i, rules) ||
+        ((r.oneWayCellRanks & (1 << rankOf(card))) && !r.freeCards.includes(card))) return null;
   } else if (src.kind === 'col' && !freeOnly) {
     const col = st.tableau[src.i];
     if (!col || src.i === to || count > col.length || col.length - count < sequenceStart(col, rules)) return null;
@@ -51,15 +53,24 @@ export function overrideTargets(ctx, flags, freeOnly = false, sequencesOnly = fa
     overrideDrop(st, rules, flags, freeOnly, source.src, source.count, to) ? [{ ...source, to }] : []));
 }
 
+const PROMPTS = {
+  'theater.understudy': ['Choose a free-cell card to cast', 'Choose the column it joins: rank and colour are ignored'],
+  'deepsea.current': ['Choose the deepest card of a run for the current to carry', 'Choose where the current carries it'],
+  'toybox.jackinbox': ['Choose a card or run to pop', 'Choose where it lands: rank is ignored, colour still counts'],
+};
+
 export async function useOverrideDrop(ctx, op, flags, freeOnly = false, sequencesOnly = false, label = null) {
   const candidates = () => overrideTargets(ctx, flags, freeOnly, sequencesOnly);
+  const [first, second] = PROMPTS[op] || ['Choose a card to move', 'Choose where it lands'];
   const choice = await ctx.api.pick({
-    kind: freeOnly ? 'freecell' : 'card',
+    kind: freeOnly ? 'freecell' : 'card', prompt: first,
     filter: (value) => candidates().some((m) => (freeOnly ? m.src.i : m.card) === value),
+    // Aiming at a buried card shows the whole run that would move with it.
+    group: freeOnly ? null : (card, st) => { const col = st.tableau.find((cards) => cards.includes(card)); return col ? col.slice(col.indexOf(card)) : [card]; },
   });
   if (choice == null) return false;
   const to = await ctx.api.pick({
-    kind: 'column',
+    kind: 'column', prompt: second,
     filter: (value) => candidates().some((m) => (freeOnly ? m.src.i : m.card) === choice && m.to === value),
   });
   if (to == null) return false;
@@ -68,19 +79,24 @@ export async function useOverrideDrop(ctx, op, flags, freeOnly = false, sequence
   if (!move || !ctx.api.override(flags)) return false;
   const applied = ctx.api.charmMove(op, { src: move.src, count: move.count, to, tableauDrop: true });
   if (!applied) return false;
-  const names = { 'concrete.spraytag': 'Spray Tag', 'theater.understudy': 'Understudy', 'canopy.zipline': 'Zip Line', 'toybox.jackinbox': 'Jack-in-the-Box' };
+  const names = { 'concrete.spraytag': 'Spray Tag', 'theater.understudy': 'Understudy', 'deepsea.current': 'Current', 'toybox.jackinbox': 'Jack-in-the-Box' };
   ctx.api.notify(`${label || names[ctx.id] || 'Charm'} used`);
   return true;
 }
 
-const flags = { ignoreColour: true };
-registerOverrideDrop('concrete.spraytag', flags);
+const flags = { ignoreColour: true, ignoreCap: true };
 defineCharm({
   id: 'concrete.spraytag', kind: 'boon', theme: 'concrete', name: 'Spray Tag', icon: '🎨', ease: 0.2,
-  text: 'Once per board, your next drop on a column ignores colour.',
+  family: 'ability',
+  text: 'Once per board, your next drop ignores colour and how many cards you can move.',
+  upgrade: 'Twice per board, your next drop ignores colour and how many cards you can move.',
   ability: {
-    uses: 1, label: 'Spray a column drop',
+    uses: (ctx) => ctx.level >= 2 ? 2 : 1, label: 'Spray a column drop',
     available: (ctx) => overrideTargets(ctx, flags).length > 0,
-    use: (ctx) => useOverrideDrop(ctx, 'concrete.spraytag', flags),
+    use(ctx) {
+      if (!ctx.api.override(flags)) return false;
+      ctx.api.notify('Spray Tag armed: your next drop ignores colour and move capacity.');
+      return true;
+    },
   },
 });

@@ -89,3 +89,113 @@ Theme art and names: `THEMES[id]` from `js/themes.js` (`name`, `tagline`, `art.t
 - The visual language must follow the active theme. The existing CSS uses theme custom properties (`--bg`, `--panel`, `--accent`, `--text`, etc.; see `css/style.css` and the `css` block of each theme in `js/themes.js`) and the `panel` / `btn` / `chip` classes. Reuse them. The map should look good under all 14 themes.
 - Respect `settings.reducedMotion` (from `js/store.js`) in animations.
 - Content is placeholder (`placeholder: true`). Don't hard-code charm names or ids.
+
+## v2 — economy, ports, stickers and levels (K2a)
+
+Run saves are version 3. `status` adds `'port'`; after picking a reward from a harbour table,
+the flow is `reward → port → map`. A harbour with no available rewards also docks. The finale
+never docks. `voyageUI.showPort(view)` renders a saved or newly opened port.
+
+`RunView` adds `coins: number`, `stickers: [{ card: number, type: 'wild'|'gold'|'lucky'|'key'|'fool' }]`,
+`port: PortView|null` (only non-null in port status), and `confiscated: Charm|null`.
+Every `Charm` adds `level: 1|2`, `family: string|null`, `upgradeText: string|null`,
+`pressure: boolean`, `hidden: boolean`. Its `text` already uses the held level.
+Hidden charms are omitted from all boon lists/offers/trays. Every map node adds
+`port: boolean` and `confiscated: Charm|null` (final-row confiscation preview).
+`current` adds `undoGrants: number` (from `current.memo._undoGrants`),
+`undoCap: number` (from config), and `confiscated: Charm|null`.
+Each result adds `coins: number`, `coinLines: [{ key, label, coins: number }]`;
+the lines sum to the earned coins, including boon adjustments and a zero-floor correction.
+`result.score` also exposes its pre-formula `coinLines`/`coinTotal` for score hooks.
+
+```js
+PortView = {
+  coins,
+  kind: 'stickers' | 'boons' | 'upgrades' | null,
+  name: string,
+  boons: [{ charm: Charm, price, sold: boolean }],
+  stickers: [{ type, name, text, price, sold: boolean }],
+  upgrades: [{ charm: Charm, price }],
+  provisions: { price, left },
+  sell: [{ charm: Charm, price }],
+  reroll: { price, used: boolean },
+  services: [{ id, label, text, price, needsCard: boolean, needsBoon: boolean }],
+}
+```
+
+Handlers: `portBuyBoon(id)`, `portBuySticker(offerIdx, cardId)`, `portUpgrade(id)`,
+`portBuyUndo()`, `portSell(id)`, `portReroll()`, `portService(serviceId, arg)`, `portLeave()`.
+The sticker offer index is zero-based; card ids are integers 1–52. Sticker selection/cancellation
+belongs to the UI; only a completed purchase calls its handler. Purchases return success/failure,
+save the run and re-render `showPort(vyView())`; Leave saves and renders the map.
+Failed/insufficient-funds actions leave state untouched. Provisions allow three purchases total.
+Reroll is once per visit and refreshes only that market's specialty: sticker offers, or charm
+offers. The upgrade market keeps the control closed, because its list is the charms already held.
+Sold offers stay sold until a reroll replaces that specialty's stock.
+Menu/Continue resumes the same stock and limits. Until `showPort` is available, flow safely leaves
+the port and renders the map. Result Continue also opens a port when no reward was available.
+
+Content hooks: `onPort(run, ctx)` runs once per visit, with mutable `ctx.port` containing
+`extraBoons` (additional offers), `discount` (fraction, clamped 0–1 for pricing) and `freeReroll`.
+`price(item, cost, ctx)` receives an item `{ kind: 'boon'|'sticker'|'upgrade'|'undo'|'reroll'|'sell'|'service', id?, type? }`.
+Discount precedes held-boon price hooks; the final cost is rounded up and floored at zero.
+Selling starts at the config amount and applies held-boon price hooks before removing the sold boon;
+the shop's fractional discount does not reduce the payout. Run-level hooks have `level`, `family`, `coins`, `stickers`,
+`runMemo` and an uncapped `api.addUndos`/`api.addCoins`. Board-end `coins` and `boardUndos` hooks
+also receive `sb`, `stars` and the scoring context. Statistics add `coinsEarned`, `coinsSpent`,
+`portVisits`, `stickersBought`, and `upgrades`, synced once via a saved per-run watermark.
+
+§4.8 additions: `reward.picks` is the **remaining** number of picks (initially 1–2, capped by
+offered stock). After the first of two picks, the same result screen re-renders with the chosen
+offer removed and `picks: 1`. `result.charm` retains the first selection for existing summary
+renderers; `result.charms` records all selections. Only the final pick opens the port/map.
+`port.services` renders content-defined extra stalls. `needsCard` requests a card id 1–52;
+`needsBoon` requests a held boon id; no flag means the handler may omit `arg`.
+Service functions are re-derived from held charms after resume and never stored in JSON;
+prices use `price({ kind: 'service', id }, cost, ctx)`. A service returning `false` discards
+all its trial changes and spends no coins. `onUpgrade` runs after level 2 is set, once per upgrade.
+Held-boon `lookahead` adjusts revealed/visible map rows (clamp 1–4); `challengeStrength` adjusts
+challenge strength in plans (clamp 1–7) while boon strength and final-boss strength remain unchanged.
+
+Markets are scheduled, not rolled per island. Every node on boards 2, 4, and 6 has `port: true`
+and a `market` descriptor. The chart also lists those stops in `view.markets`, drawn between the
+tables. Board 2 sells stickers, board 4 sells charms, and board 6 sells upgrades. Selling, undos,
+and the shared reroll stall are on every visit. Sell payout starts at the config amount.
+
+Storm stretch: every map node adds `storm: boolean`, `stormChallenge: Charm|null`. On rows 1–5,
+eligible non-harbour nodes have a seeded 1-in-6 storm chance; rows 0/6 and all harbours are excluded.
+The secondary challenge has a different theme and disjoint tags from the table's own challenge.
+`current` adds `storm`, `stormChallenge`, and `extraChallenges: [Charm]` for the extra challenge
+chip/intro. `BoardResult.storm` marks the cleared storm. Storms pay double final earned coins
+(the additional coins appear as a breakdown line) and reveal 3 available boon offers irrespective
+of stars. Both challenges compose through `composeBoard({ extraChallenges: [id] })` and the dealer.
+
+## Ability targeting (replaces the numbered `pickTargets` overlay)
+
+The engine lights targets on the table itself, with the same visuals as the rest of the game:
+legal cards get the rank-key blue, and legal empty cells or column ends pulse like drop targets.
+The aimed target rises slightly, and earlier picks of the same ability stay lifted. The UI only
+provides the banner and a small menu:
+
+```js
+voyageUI.showTargetPrompt({ ability, icon, name, text, avoidTop }, onCancel)
+                               // non-modal one-row banner over the HUD stat chips; moves up, or to the
+                               // bottom edge, if it would cover the table's top row (avoidTop, px).
+                               // Marks the charm in the tray with .targeting; any tray charm click cancels.
+voyageUI.updateTargetPrompt(label)   // the aimed target's name ("Column 3 · 2♥ on top"), or '' for the hint
+voyageUI.nudgeTargetPrompt()         // a click that missed every target
+voyageUI.clearTargetPrompt()
+voyageUI.choose({ icon, name, text, options: [{ value, label, detail, disabled }], at }) -> value|null
+                               // small menu anchored above a card (at = screen point) or centred;
+                               // Esc / outside click cancels. Used for Glaze direction, Misprint sticker,
+                               // Safety Pin suit, Broken Seal obstacle and sticker replacement.
+voyageUI.cancelPick()          // closes either (board teardown, menu)
+```
+
+Input during a pick: click/tap a lit target, or Tab/arrows + Enter. Esc, right-click, Cancel, a
+tray charm or any other control cancels, and nothing is spent. Game hotkeys wait until the pick ends.
+Tests drive picks with `FreeCell.voyage.targeting()` / `FreeCell.voyage.pickTarget(value)`, or with
+real clicks via `tools/charm-checks/_browser-pick.mjs`.
+
+Card modifications from abilities are stacking top tabs (`mod-*` marks; see `js/card.js`):
+purple diamond = ignores colour, black bars = anything may be placed on it, blue ▲/▼ + rank = Glaze.

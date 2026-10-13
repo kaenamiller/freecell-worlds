@@ -44,7 +44,7 @@ export const defaultSettings = {
   music: 0.45,
   ambience: 0.5,
   muted: false,
-  quality: 'auto', // auto | high | medium | low
+  quality: 'auto', // auto | ultra | high | medium | low
   autoFoundation: true,
   fourColor: false,
   highContrast: false,

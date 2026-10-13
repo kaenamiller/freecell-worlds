@@ -11,7 +11,13 @@ const tiers = Array.isArray(bank.tiers) ? bank.tiers : Object.values(bank.tiers)
 const random = stream('K1-calibration-v1');
 const deals = Array.from({ length: count }, (_, i) => random.pick(tiers[i % tiers.length]).d);
 const bits = (...ranks) => ranks.reduce((m, r) => m | (1 << r), 0);
-const rows = [
+const rows = process.env.CALIBRATE_52 ? [
+  ['Base (4 cells)', {}], ['Base minus one cell', { freeCells: 3 }],
+  ...[6, 12, 18].map((n) => [`emptyCure ${n}`, { emptyCure: n }]),
+  ...[1, 2].map((n) => [`cellsNeedEmpty ${n}`, { cellsNeedEmpty: n }]),
+  ...[bits(12), bits(11, 12), bits(10, 11, 12), bits(9, 10, 11, 12)].map((mask) => [`sameColorRanks ${mask}`, { sameColorRanks: mask }]),
+  ...[3, 15, 255].map((mask) => [`noExitCols ${mask}`, { noExitCols: mask }]),
+] : [
   ['Base (4 cells)', {}], ['Base minus one cell', { freeCells: 3 }],
   ['moveBonus −1', { moveBonus: -1 }], ['moveBonus −2', { moveBonus: -2 }],
   ['emptyFactor 1', { emptyFactor: 1 }], ['emptyFactor 1.5', { emptyFactor: 1.5 }],
@@ -25,6 +31,18 @@ const rows = [
   ['maxHeight 12', { maxHeight: 12 }], ['maxHeight 7', { maxHeight: 7 }],
   ['cellColors 1 red', { cellColors: ['red'] }], ['cellColors 2 red +2 black', { cellColors: ['red', 'black', 'red', 'black'] }],
   ['oneWayCellRanks K', { oneWayCellRanks: bits(13) }], ['oneWayCellRanks 8–K', { oneWayCellRanks: bits(8, 9, 10, 11, 12, 13) }],
+  ['cellLimits 1 ≤5', { cellLimits: [{ maxRank: 5 }] }], ['cellLimits 1 ≥9', { cellLimits: [{ minRank: 9 }] }],
+  ['cellLimits 1 diamonds', { cellLimits: [{ suits: 2 }] }],
+  ['emptyMaxRank 7', { emptyMaxRank: 7 }], ['emptyMaxRank 5', { emptyMaxRank: 5 }],
+  ['cellClose 1 @28', { cellClose: { at: [28] } }], ['cellClose 3 @16,28,40', { cellClose: { at: [16, 28, 40] } }],
+  ['gate ♣ after 6', { gate: { suit: 0, after: 6 } }], ['gate ♣ after 12', { gate: { suit: 0, after: 12 } }],
+  ['dealSkew slope', { dealSkew: 'slope' }], ['dealSkew valley', { dealSkew: 'valley' }],
+  ['phase courts → spread3 @26', { noCellRanks: bits(11, 12, 13), phase: { at: 26, rules: { noCellRanks: 0, foundationSpread: 3 } } }],
+  ['phase capacity @26', { phase: { at: 26, rules: { emptyFactor: 1, moveBonus: -1 } } }],
+  ['cellStack 2', { cellStack: 2 }], ['cellStack 4', { cellStack: 4 }],
+  ['pinned 7♣ until 12', { pinned: { cards: [7], until: 12 } }],
+  ['maxEmpty 2', { maxEmpty: 2 }], ['colorSpread 3', { colorSpread: 3 }],
+  ['emptyColors 4 red', { emptyColors: ['red', 'red', 'red', 'red'] }], ['barrenCards 2', { barrenCards: [7, 20] }],
 ];
 const median = (a) => a.length ? [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)] : null;
 const previous = process.env.CALIBRATE_ONLY ? JSON.parse(readFileSync(new URL('./charm-calibration.json', import.meta.url))) : null;
@@ -61,7 +79,7 @@ for (const row of measurements) {
   row.ease = -Math.min(2, Math.max(0, (pressure(row) - pressure(base)) / anchor)) * cellTiers;
 }
 const report = { count, budgetMs: budget, elapsedMs: (previous?.elapsedMs || 0) + Date.now() - started, cellTiers, tierWidth, deals, measurements };
-writeFileSync(new URL('./charm-calibration.json', import.meta.url), JSON.stringify(report, null, 2) + '\n');
+writeFileSync(process.env.CALIBRATE_52 ? '/tmp/n52-calibration.json' : new URL('./charm-calibration.json', import.meta.url), JSON.stringify(report, null, 2) + '\n');
 const table = [
   `Measured on ${count} seeded, tier-stratified bank deals (K1-calibration-v1); ${budget} ms/deal guard, 6 × 2,000-node restarts, full sequence generation, maxDepth 320. Run time: ${(report.elapsedMs / 1000).toFixed(1)} s. Each ruleset uses the same seeded search stream.`,
   '',
@@ -73,10 +91,5 @@ const table = [
   '',
   'Raw per-deal outcomes: `tools/charm-calibration.json`. Re-run: `node tools/charm-calibrate.mjs` (`CALIBRATE_DEALS` / `CALIBRATE_MS` override the sample/budget). Free-cell count is already modeled exactly by the bank; do not add ease for a cell boon or challenge. Restriction estimates that round to zero were indistinguishable from base at this budget; this does not prove they have no human cost.',
 ];
-const doc = new URL('../docs/voyage/charms-design.md', import.meta.url);
-const text = readFileSync(doc, 'utf8');
-const marker = '### 2.5 Calibration (short)';
-const a = text.indexOf(marker), b = text.indexOf('### 2.6 Visuals', a);
-if (a < 0 || b < 0) throw new Error('calibration section not found');
-writeFileSync(doc, text.slice(0, a) + marker + '\n\n' + table.join('\n') + '\n\n' + text.slice(b));
-console.log('wrote §2.5 and tools/charm-calibration.json');
+// The shared design document belongs to content authors. K1 copies these measurements to its report.
+console.log(process.env.CALIBRATE_52 ? 'wrote /tmp/n52-calibration.json' : 'wrote tools/charm-calibration.json');

@@ -1,37 +1,7 @@
-// arctic: boons + challenge. Spec: docs/voyage/charms-design.md (theme `arctic`).
+// arctic: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `arctic`).
+// Complex: arctic.aurora, arctic.heatlamp in ./special/
 import { defineCharm } from '../registry.js';
 import { rankOf, suitOf } from './kit.js';
-
-defineCharm({
-  id: 'arctic.aurora',
-  kind: 'boon',
-  theme: 'arctic',
-  name: 'Aurora',
-  icon: '🌌',
-  text: 'Each chain of 6+ cards home is worth ×1.1 on the board (up to ×1.3).',
-  score(sb) {
-    const big = sb.stat.chains.filter((n) => n >= 6).length;
-    const bonus = Math.min(0.3, big * 0.1);
-    if (bonus) sb.scale('chains', 1 + bonus);
-  },
-});
-
-defineCharm({
-  id: 'arctic.heatlamp',
-  kind: 'boon',
-  theme: 'arctic',
-  name: 'Heat Lamp',
-  icon: '💡',
-  text: 'One extra free cell, frozen until 13 cards are home.',
-  // The bank rates the extra cell as fully open; it starts frozen (calibration: one cell frozen
-  // until 8 home ≈ −0.76 tiers), so hand most of that back.
-  ease: -0.6,
-  rules(r) {
-    r.freeCells += 1;
-    const t = r.cellThaw || { frozen: 0, at: [] };
-    r.cellThaw = { frozen: t.frozen + 1, at: [...t.at, 13].sort((a, b) => a - b) };
-  },
-});
 
 defineCharm({
   id: 'arctic.sled',
@@ -39,16 +9,20 @@ defineCharm({
   theme: 'arctic',
   name: 'Sled Team',
   icon: '🛷',
-  text: '+1 undo each time a foundation first reaches 7 (up to 2 per board).',
+  family: 'undo',
+  text: '+1 undo each time a foundation reaches 7 while another is still below 3 (up to 2 per board).',
+  upgrade: 'Up to 3.',
   on: {
     foundation(ctx, { card }) {
       if (rankOf(card) !== 7) return;
+      const cap = ctx.level === 2 ? 3 : 2;
+      if ((ctx.memo.grants || 0) >= cap) return;
       const suit = suitOf(card);
-      ctx.memo.sevens ??= {};
-      if (ctx.memo.sevens[suit]) return;
-      const count = Object.keys(ctx.memo.sevens).length;
-      if (count >= 2) return;
-      ctx.memo.sevens[suit] = true;
+      const found = ctx.api.state.found;
+      if (found[suit] !== 7) return;
+      const lagging = found.some((n, i) => i !== suit && n < 3);
+      if (!lagging) return;
+      ctx.memo.grants = (ctx.memo.grants || 0) + 1;
       ctx.api.addUndos(1);
     },
   },

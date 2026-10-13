@@ -1,3 +1,7 @@
+# Final roster status — October 13, 2026
+
+The game now has **52 active themes**. The ten final additions and their production palettes are below. Earlier concept briefs remain as provenance; Daylight Express, Canopy Station, Bannerkeep, Deep Space Station, Varsity Club and Driftwood Bay are retired from selection. See [parked themes](parked-themes.md) and [the final roster](voyage/overhaul/ROSTER-52.md).
+
 # FreeCell Worlds — top 10 proposed theme briefs
 
 Approved expansion brief · October 11, 2026 · Includes the additional Frontier Saloon direction below.
@@ -343,3 +347,20 @@ A small 1980s club just off stage. Matte black paint, silver tape, one bare bulb
 *Dripping honey, black-and-yellow stripes, and a queen on the comb.*
 
 A living hive. Amber playing surface, a hazard-stripe rail with honey dripping inward, and comb pouring gold in the backdrop. Courts are bees: a worker, a queen in a honey crown, and a drone. Cormorant Garamond. Voyage: Forager, Nectar, Winter Stores, and Capped Comb.
+
+## Final ten production worlds
+
+| Id / name | Palette and material | Typography | Atmosphere / sound |
+| --- | --- | --- | --- |
+| `signal` / Signal | Polar-night navy, charcoal metal, dish white, amber instruments, cold starlight; cream cards with navy and muted red indices | Antonio | Sparse cold motes; analog synth, felt piano, relay clicks and observatory ventilation |
+| `rink` / Roller Rink | Honey maple, mirror silver, magenta and teal, warm tungsten; cream cards with plum-black and magenta-red indices | Josefin Sans | Disco-colored motes; mellow disco, wheel taps and empty-rink air |
+| `darkroom` / The Darkroom | Safelight red, amber-black, silver trays, photographic cream; dark bench and cream cards | Antonio | Restrained red motes; felt piano, bowed vibraphone, tongs and enlarger hum |
+| `smokewatch` / Smoke Watch | Weathered pine, forest green, stove orange, smoke blue and dusk violet; linen-cream cards | Antonio | Dusk dust; guitar, bowed strings, high-cab wind and stove crackle |
+| `bloodmoon` / Bloodmoon | Cold stone, dried-blood crimson, black oak, candle amber and moonlight; warm parchment cards | Cinzel | Candle dust; cello, harpsichord, iron latch and corridor wind |
+| `deepsea` / Deep Sea | Abyssal blue-black, luminous cyan, jellyfish rose, brass and pressure glass; pale ivory cards | Cormorant Garamond | Bubbles and faint edge caustics; glass harmonica, celesta and pressure-shell hum |
+| `plaster` / Plaster Studio | Plaster white, linen, clay pink, north-light grey and charcoal; matte worktop and white cards | Cormorant Garamond | North-light dust; piano, viola, plaster taps and linen rustle |
+| `backrooms` / Backrooms | Moist butter yellow, nicotine cream, stained beige, fluorescent green-white and faint pink; dark charcoal / red card indices | Antonio | Sparse fluorescent dust; detuned electric piano, pads, switch clicks and ballast hum |
+| `vaporwave` / Vaporwave | Pink marble, magenta, cyan, peach sunset, teal glass and cream; dark navy / magenta-red card indices | Josefin Sans | Sunset dust; electric piano, FM bells, cassette taps and mall fountain |
+| `cinema` / Silent Cinema | Silver nitrate, carbon-arc white, velvet burgundy, amber and soft black; photographic-cream cards | Josefin Sans | Projector dust; upright piano, chamber organ, film lever and projector mechanism |
+
+Art masters reuse the approved locked-theme sets without removing the original folders. Smoke Watch uses `lookout/hero-smoke.png`, Bloodmoon uses `castle/hero-distant.png`, Deep Sea uses `bathysphere/hero-deepsea.png`, and Plaster Studio uses the reframed `plaster/hero.png`. The other six use their approved `hero.png`. Serving WebPs come from `tools/optimize-assets.sh`. Music is a 90-second original instrumental per theme; the four effects are UI, chime, win and a 20-second looping ambience. Sea-chart art uses the existing Gemini nautical-gouache generator, with a compact transparent 256px footprint.

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { surfaceTextures, slotTexture, freeCellTexture, foundationTexture, radialTexture } from './textures.js';
 import { makePointMaterial, makeShapeMaterial } from './fx.js';
 import { CARD } from './card.js';
-import { activeFreeCells } from './rules.js';
+import { activeFreeCells, cellIsClosed, cardsHome, rulesForState, suitHomeCount, foundationTop } from './rules.js';
 
 const BUBBLE_FRAG = /* glsl */ `
   varying float vAlpha;
@@ -210,6 +210,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     m.rotation.x = -Math.PI / 2;
     m.position.set(x, L.SURFACE_Y - 0.003, z);
     group.add(m);
+    return m;
   };
   for (let i = 0; i < Math.max(4, L.freeCells ?? 4); i++) addSlot(L.freeX(i), L.FREE_Z, freeMat);
   for (let i = 0; i < 4; i++) addSlot(L.foundX(i), L.FREE_Z, foundMats[i]);
@@ -233,6 +234,29 @@ export function buildTableLayer(theme, art, L, opts = {}) {
         ctx.beginPath(); ctx.moveTo(x, 34); ctx.lineTo(x + 30, 100); ctx.lineTo(x - 4, 168); ctx.lineTo(x + 18, 222); ctx.stroke();
       }
       ctx.fillStyle = '#edfaff'; ctx.font = '64px sans-serif'; ctx.fillText('❄', 192, 128);
+    } else if (type === 'wet') {
+      const sheen = ctx.createLinearGradient(20, 20, 360, 220);
+      sheen.addColorStop(0, 'rgba(200,213,210,.06)'); sheen.addColorStop(.5, 'rgba(235,249,246,.42)'); sheen.addColorStop(1, 'rgba(200,213,210,.06)');
+      ctx.fillStyle = sheen; ctx.fillRect(12, 16, 360, 224);
+      ctx.strokeStyle = 'rgba(232,249,244,.4)'; ctx.lineWidth = 3;
+      for (let y = 60; y < 220; y += 44) { ctx.beginPath(); ctx.moveTo(24, y); ctx.lineTo(360, y - 18); ctx.stroke(); }
+    } else if (type === 'shutter') {
+      ctx.fillStyle = 'rgba(29,35,43,.5)'; ctx.fillRect(12, 16, 360, 224);
+      ctx.strokeStyle = 'rgba(224,230,232,.65)'; ctx.lineWidth = 4;
+      for (let y = 30; y < 240; y += 26) { ctx.beginPath(); ctx.moveTo(16, y); ctx.lineTo(368, y); ctx.stroke(); }
+    } else if (type === 'tide') {
+      ctx.fillStyle = 'rgba(80,125,145,.35)'; ctx.fillRect(12, 120, 360, 120);
+      ctx.strokeStyle = 'rgba(215,237,240,.75)'; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(12, 118);
+      for (let x = 12; x <= 372; x += 4) ctx.lineTo(x, 118 + 8 * Math.sin(x / 24));
+      ctx.stroke();
+      ctx.font = 'bold 48px sans-serif'; ctx.fillStyle = '#d7edf0'; ctx.fillText('CLOSED', 192, 180);
+    } else if (type === 'gate') {
+      // Draw the lock as geometry so it does not depend on emoji font support.
+      ctx.strokeStyle = '#dbe4eb'; ctx.lineWidth = 10;
+      ctx.beginPath(); ctx.arc(150, 94, 30, Math.PI, 0); ctx.lineTo(180, 136); ctx.stroke();
+      ctx.fillStyle = 'rgba(219,228,235,.8)'; ctx.fillRect(109, 104, 82, 72);
+      ctx.font = 'bold 70px sans-serif'; ctx.fillText(label, 270, 142);
     } else if (type === 'seal') {
       ctx.fillStyle = 'rgba(29,35,43,.8)'; ctx.fillRect(8, 40, 368, 176);
       ctx.strokeStyle = '#c2c8d0'; ctx.lineWidth = 9;
@@ -242,6 +266,8 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     } else if (type === 'pip') {
       ctx.fillStyle = label === 'red' ? '#efb1b1' : '#d0d9e1';
       ctx.font = '120px serif'; ctx.fillText(label === 'red' ? '♦' : '♠', 192, 128);
+    } else if (type === 'limit' || type === 'maxrank' || type === 'emptycolor' || type === 'stack' || type === 'spurcap' || type === 'loop') {
+      ctx.fillStyle = 'rgba(230,235,239,.75)'; ctx.font = 'bold 92px serif'; ctx.fillText(label, 192, 128);
     } else {
       ctx.fillStyle = 'rgba(230,235,239,.65)'; ctx.font = 'bold 104px serif'; ctx.fillText(label + '+', 192, 128);
     }
@@ -249,8 +275,9 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     const mat = track(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: .85 }));
     const g = new THREE.Group();
     const pieces = type === 'seal' || type === 'frost' ? 3 : 1;
-    const width = type === 'pip' ? .22 : CARD.W * .92;
-    const height = type === 'seal' ? .23 : type === 'pip' ? .22 : CARD.H * .9;
+    const small = ['pip', 'limit', 'gate', 'stack', 'emptycolor', 'spurcap', 'loop'].includes(type);
+    const width = small ? (type === 'gate' ? .52 : .34) : CARD.W * .92;
+    const height = type === 'seal' ? .23 : small ? .24 : CARD.H * .9;
     for (let i = 0; i < pieces; i++) {
       const geo = new THREE.PlaneGeometry(width / pieces, height);
       const uv = geo.attributes.uv;
@@ -279,10 +306,20 @@ export function buildTableLayer(theme, art, L, opts = {}) {
   }
   let ceiling = null;
   let foundationBand = null, tellUntil = 0;
+  let spurSlot = null, spurSuit = null;
   function flashBossTell() { tellUntil = ruleTime + 2; }
   function setRules(game) {
     if (!game) return;
-    const r = game.rules || {}, st = game.state;
+    const st = game.state, r = rulesForState(st, game.rules);
+    for (const item of ruleMarkers.values()) if (['limit', 'gate', 'maxrank', 'emptycolor', 'stack', 'spurcap', 'wet', 'shutter', 'loop'].includes(item.type)) { item.active = false; item.group.visible = false; }
+    if (st.spur) {
+      if (!spurSlot) { spurSlot = addSlot(L.SPUR_X ?? 4.75, L.SPUR_Z ?? -1, foundMats[st.spur.suit]); spurSlot.name = 'voyage-spur-slot'; }
+      spurSlot.visible = true;
+      if (spurSuit !== st.spur.suit) spurSlot.material = foundMats[st.spur.suit];
+      spurSuit = st.spur.suit;
+      showMarker(marker(`spurcap:${st.spur.suit}:${st.spur.base}`, 'spurcap', '≤' + (st.spur.base - 1)), true,
+        L.foundX(st.spur.suit), L.SURFACE_Y + st.found[st.spur.suit] * CARD.D + .04, L.FREE_Z + CARD.H * .35);
+    } else if (spurSlot) spurSlot.visible = false;
     const active = activeFreeCells(st, r);
     for (let i = 0; i < 4; i++) {
       const key = `cellSeal:${i}`;
@@ -292,9 +329,22 @@ export function buildTableLayer(theme, art, L, opts = {}) {
       const frostKey = `frost:${i}`, pipKey = `pip:${i}:${r.cellColors?.[i]}`;
       if (i >= active || ruleMarkers.has(frostKey)) showMarker(marker(frostKey, 'frost'), i >= active, L.freeX(i), L.SURFACE_Y + .035, L.FREE_Z);
       if (r.cellColors?.[i]) showMarker(marker(pipKey, 'pip', r.cellColors[i]), true, L.freeX(i) + CARD.W * .38, L.SURFACE_Y + .04, L.FREE_Z - CARD.H * .38);
+      const shutter = r.cellsNeedEmpty && !st.tableau.some((col) => !col.length) && i < active && i >= Math.max(0, active - r.cellsNeedEmpty);
+      if (shutter || ruleMarkers.has(`shutter:${i}`)) showMarker(marker(`shutter:${i}`, 'shutter'), !!shutter, L.freeX(i), L.SURFACE_Y + .039, L.FREE_Z);
+      const closeKey = `tide:${i}`, closed = !shutter && cellIsClosed(st, i, r);
+      if (closed || ruleMarkers.has(closeKey)) showMarker(marker(closeKey, 'tide'), closed, L.freeX(i), L.SURFACE_Y + .038, L.FREE_Z);
+      const limit = r.cellLimits[i];
+      if (limit) {
+        const label = (limit.minRank != null ? '≥' + limit.minRank : '') + (limit.maxRank != null ? '≤' + limit.maxRank : '') +
+          (limit.suits != null ? ['♣', '♦', '♥', '♠'].filter((_, s) => limit.suits & (1 << s)).join('') : '');
+        showMarker(marker(`limit:${i}:${label}`, 'limit', label), true, L.freeX(i), L.SURFACE_Y + .045, L.FREE_Z + CARD.H * .36);
+      }
+      if (i < r.cellStack) showMarker(marker(`stack:${i}`, 'stack', '→'), true, L.freeX(i), L.SURFACE_Y + .045, L.FREE_Z - CARD.H * .38);
     }
     for (const [key, item] of ruleMarkers) if (item.type === 'pip' && !key.endsWith(':' + r.cellColors?.[Number(key.split(':')[1])])) item.group.visible = false;
     for (let c = 0; c < st.tableau.length; c++) {
+      if (r.emptyCure && cardsHome(st) < r.emptyCure && !st.tableau[c].length) showMarker(marker(`wet:${c}`, 'wet'), true, L.colX(c), L.SURFACE_Y + .016, L.TABLEAU_Z);
+      if (r.noExitCols & (1 << c)) showMarker(marker(`loop:${c}`, 'loop', '↻'), true, L.colX(c) + CARD.W * .4, L.SURFACE_Y + .018, L.TABLEAU_Z - CARD.H * .46);
       const sealed = !!(st.sealed & (1 << c)), sealKey = `seal:${c}`;
       if (sealed || ruleMarkers.has(sealKey)) showMarker(marker(sealKey, 'seal'), sealed, L.colX(c), L.SURFACE_Y + CARD.D + .025, L.TABLEAU_Z - CARD.H * .4);
       const rankKey = `rank:${c}:${r.emptyMinRank}`;
@@ -302,8 +352,18 @@ export function buildTableLayer(theme, art, L, opts = {}) {
         const label = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][r.emptyMinRank] || String(r.emptyMinRank);
         showMarker(marker(rankKey, 'rank', label), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .012, L.TABLEAU_Z);
       }
+      if (r.emptyMaxRank) {
+        const rank = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][r.emptyMaxRank] || String(r.emptyMaxRank);
+        showMarker(marker(`maxrank:${c}:${r.emptyMaxRank}`, 'maxrank', '≤' + rank), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .014, L.TABLEAU_Z);
+      }
+      if (r.emptyColors[c]) showMarker(marker(`emptycolor:${c}:${r.emptyColors[c]}`, 'emptycolor', r.emptyColors[c] === 'red' ? '♦' : '♠'), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .018, L.TABLEAU_Z + CARD.H * .35);
     }
     for (const [key, item] of ruleMarkers) if (item.type === 'rank' && !key.endsWith(':' + r.emptyMinRank)) item.group.visible = false;
+    if (r.gate) {
+      const remaining = Math.max(0, r.gate.after - (cardsHome(st) - suitHomeCount(st, r.gate.suit)));
+      if (remaining) showMarker(marker(`gate:${r.gate.suit}:${remaining}`, 'gate', String(remaining)), true,
+        L.foundX(r.gate.suit), L.SURFACE_Y + st.found[r.gate.suit] * CARD.D + .045, L.FREE_Z + CARD.H * .35);
+    }
     if (r.maxHeight && !ceiling) {
       ceiling = new THREE.Mesh(new THREE.PlaneGeometry(7.9, .018), track(new THREE.MeshBasicMaterial({ color: 0xe3e8eb, transparent: true, opacity: .25, depthWrite: false })));
       ceiling.rotation.x = -Math.PI / 2; group.add(ceiling);
@@ -319,7 +379,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
       foundationBand.rotation.x = -Math.PI / 2; foundationBand.renderOrder = 5; group.add(foundationBand);
     }
     if (foundationBand) {
-      const rank = Math.min(13, Math.min(...st.found) + (r.foundationSpread || 0));
+      const rank = Math.min(13, Math.min(...st.found.map((_, s) => foundationTop(st, s))) + (r.foundationSpread || 0));
       foundationBand.visible = !!r.foundationSpread;
       foundationBand.userData.ceilingRank = rank;
       foundationBand.position.set((L.foundX(0) + L.foundX(3)) / 2, L.SURFACE_Y + rank * CARD.D + .035, L.FREE_Z + CARD.H * .42);

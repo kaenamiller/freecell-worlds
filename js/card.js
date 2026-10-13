@@ -44,8 +44,12 @@ function getShared() {
   const backGeo = new THREE.PlaneGeometry(CARD.W, CARD.H);
   backGeo.rotateX(Math.PI / 2);
 
+  // Bodies and backs look the same on every card, so they share one material each:
+  // consecutive draws then skip re-uploading uniforms. A marked card gets its own
+  // body material for the mark's edge colour.
   const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf6f6f4, roughness: 0.6, metalness: 0.02 });
-  shared = { bodyGeo, frontGeo, backGeo, bodyMat };
+  const backMat = new THREE.MeshPhysicalMaterial({ alphaTest: 0.5 });
+  shared = { bodyGeo, frontGeo, backGeo, bodyMat, backMat, style: null };
   return shared;
 }
 
@@ -75,11 +79,11 @@ function styleFace(mat, style, map) {
 }
 
 export function buildCardMesh(id, style) {
-  const { bodyGeo, frontGeo, backGeo, bodyMat } = getShared();
+  const { bodyGeo, frontGeo, backGeo, bodyMat, backMat } = getShared();
   const group = new THREE.Group();
   group.userData.cardId = id;
 
-  const body = new THREE.Mesh(bodyGeo, bodyMat.clone());
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
   body.castShadow = true;
   body.receiveShadow = true;
   group.add(body);
@@ -91,13 +95,13 @@ export function buildCardMesh(id, style) {
   front.userData.cardId = id;
   group.add(front);
 
-  const backMat = new THREE.MeshPhysicalMaterial({ alphaTest: 0.5 });
   const back = new THREE.Mesh(backGeo, backMat);
   back.position.y = -CARD.D / 2 - 0.0012;
   group.add(back);
 
   group.userData.body = body;
   group.userData.front = front;
+  group.userData.back = back;
   group.userData.frontMat = frontMat;
   group.userData.backMat = backMat;
   applyCardStyle(group, style);
@@ -108,9 +112,16 @@ export function buildCardMesh(id, style) {
 export function applyCardStyle(group, style) {
   const id = group.userData.cardId;
   styleFace(group.userData.frontMat, style, group.userData.concealed ? cardBackTexture() : cardFaceTexture(id));
-  styleFace(group.userData.backMat, style, cardBackTexture());
+  // The shared back only needs restyling once per theme (setCardTheme() replaces the back texture).
+  const s = getShared();
+  if (s.style !== style || s.backMat.map !== cardBackTexture()) {
+    s.style = style;
+    styleFace(s.backMat, style, cardBackTexture());
+  }
   group.userData.edge = style.edge;
   setCardMark(group, group.userData.mark || null);
+  setCardSticker(group, group.userData.sticker || null);
+  setCardMods(group, group.userData.mods || []);
 }
 
 // Voyage marks use both an edge colour and a distinct monochrome corner sigil.
@@ -128,6 +139,11 @@ export const CARD_MARKS = {
   oneway: { color: '#1f8a78', paint: paintOneway },
   wild: { color: '#7a5cff', paint: paintWild },
   star: { color: '#eac447', paint: paintStar },
+  'sticker-wild': { color: '#7a5cff', paint: (ctx) => paintSticker(ctx, 'wild') },
+  'sticker-fool': { color: '#8c6a40', paint: (ctx) => paintSticker(ctx, 'fool') },
+  'sticker-key': { color: '#267878', paint: (ctx) => paintSticker(ctx, 'key') },
+  'sticker-gold': { color: '#c49427', paint: (ctx) => paintSticker(ctx, 'gold') },
+  'sticker-lucky': { color: '#42764a', paint: (ctx) => paintSticker(ctx, 'lucky') },
 };
 
 // Hazard tape, a honey wash and drips along the top (the part that stays visible in a
@@ -387,6 +403,54 @@ function paintStar(ctx) {
   });
 }
 
+// Stickers occupy the lower-left corner, opposite the upper-right charm seal.
+// Draw paths, rather than font glyphs, so all five remain distinct on every device.
+function paintSticker(ctx, type) {
+  ctx.save();
+  ctx.translate(29, 329);
+  ctx.fillStyle = 'rgba(255, 252, 237, .94)';
+  ctx.strokeStyle = '#343029';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(-19, -19, 38, 38, 8); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = CARD_MARKS[`sticker-${type}`].color;
+  ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  if (type === 'wild') {
+    ctx.moveTo(0, -12); ctx.lineTo(10, 0); ctx.lineTo(0, 12); ctx.lineTo(-10, 0); ctx.closePath();
+    ctx.moveTo(0, -6); ctx.lineTo(0, 6);
+  } else if (type === 'fool') {
+    ctx.moveTo(0, -12); ctx.lineTo(11, 10); ctx.lineTo(-11, 10); ctx.closePath();
+    ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.moveTo(0, 7); ctx.lineTo(0, 7.2);
+  } else if (type === 'key') {
+    ctx.arc(-4, -6, 5, 0, Math.PI * 2); ctx.moveTo(0, -2); ctx.lineTo(10, 8);
+    ctx.lineTo(6, 12); ctx.moveTo(6, 4); ctx.lineTo(2, 8);
+  } else if (type === 'gold') {
+    ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.moveTo(-5, -6); ctx.lineTo(5, -6);
+    ctx.moveTo(-5, 6); ctx.lineTo(5, 6); ctx.moveTo(0, -6); ctx.lineTo(0, 6);
+  } else {
+    for (const [x, y] of [[-5, -5], [5, -5], [-5, 5], [5, 5]]) {
+      ctx.moveTo(x + 4, y); ctx.arc(x, y, 4, 0, Math.PI * 2);
+    }
+    ctx.moveTo(0, 4); ctx.lineTo(3, 13);
+  }
+  ctx.stroke(); ctx.restore();
+}
+
+// Upper-right seal on the 256×360 mark texture (sigil chip, status disc, or honey seal).
+// Canvas y grows downward; texture flipY puts that edge at uv.y near 1.
+const MARK_FACE = { w: 256, h: 360 };
+const MARK_SIGIL_PX = { x: 178, y: 0, w: 78, h: 80 };
+
+export function markSigilHit(uv) {
+  if (!uv) return false;
+  const { x, y, w, h } = MARK_SIGIL_PX;
+  const u0 = x / MARK_FACE.w;
+  const u1 = (x + w) / MARK_FACE.w;
+  const v0 = 1 - (y + h) / MARK_FACE.h;
+  const v1 = 1 - y / MARK_FACE.h;
+  return uv.x >= u0 && uv.x <= u1 && uv.y >= v0 && uv.y <= v1;
+}
+
 const markTextures = new Map();
 function markTexture(style) {
   if (markTextures.has(style)) return markTextures.get(style);
@@ -405,9 +469,14 @@ function markTexture(style) {
   markTextures.set(style, tex); return tex;
 }
 export function setCardMark(group, style = null) {
+  // Compatibility with runtime api.mark(id, 'sticker-*'): use the independent slot.
+  if (style?.startsWith('sticker-')) { setCardSticker(group, style); return; }
+  if (style?.startsWith('mod-')) { addCardMod(group, style); return; }
   if (style && !CARD_MARKS[style]) throw new Error(`Unknown card mark: ${style}`);
   const u = group.userData;
+  const resealed = !!u.mark !== !!style;
   u.mark = style;
+  if (resealed && u.mods?.length) setCardMods(group, u.mods);
   if (style && !u.markMesh) {
     const mat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     u.markMesh = new THREE.Mesh(getShared().frontGeo, mat);
@@ -418,8 +487,144 @@ export function setCardMark(group, style = null) {
     u.markMesh.visible = !!style && !u.concealed;
     if (style) { u.markMesh.material.map = markTexture(style); u.markMesh.material.needsUpdate = true; }
   }
-  u.body.material.color.set(style ? CARD_MARKS[style].color : u.edge);
+  const { bodyMat } = getShared();
+  if (style) {
+    if (u.body.material === bodyMat) u.body.material = bodyMat.clone();
+    u.body.material.color.set(CARD_MARKS[style].color);
+  } else {
+    if (u.body.material !== bodyMat) {
+      u.body.material.dispose();
+      u.body.material = bodyMat;
+    }
+    bodyMat.color.set(u.edge);
+  }
 }
+
+// Only one face of a card can point at the camera. Hiding the other skips a full
+// physical-material draw per card; the GPU would have back-face culled it anyway.
+const _up = new THREE.Vector3();
+const _toEye = new THREE.Vector3();
+export function cullCardFaces(group, eye) {
+  const u = group.userData;
+  _up.set(0, 1, 0).applyQuaternion(group.quaternion);
+  const facing = _up.dot(_toEye.subVectors(eye, group.position));
+  u.front.visible = facing > -0.05;
+  u.back.visible = facing < 0.05;
+}
+// type is wild/fool/key/gold/lucky (sticker-* is also accepted); null clears only the sticker.
+export function setCardSticker(group, type = null) {
+  const style = type ? (type.startsWith('sticker-') ? type : `sticker-${type}`) : null;
+  if (style && !CARD_MARKS[style]) throw new Error(`Unknown card sticker: ${type}`);
+  const u = group.userData;
+  u.sticker = style;
+  if (style && !u.stickerMesh) {
+    const material = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 });
+    u.stickerMesh = new THREE.Mesh(getShared().frontGeo, material);
+    u.stickerMesh.position.y = CARD.D / 2 + 0.003;
+    group.add(u.stickerMesh);
+  }
+  if (u.stickerMesh) {
+    u.stickerMesh.visible = !!style && !u.concealed;
+    if (style) { u.stickerMesh.material.map = markTexture(style); u.stickerMesh.material.needsUpdate = true; }
+  }
+}
+// Ability modifications (Glaze, Redaction, Double Exposure…) are tabs along the top
+// edge, between the index and the seal, so they stay readable in a fanned column and
+// never compete with a challenge seal or a sticker. Several can stack on one card.
+//   mod-wild            ignores colour (same diamond as the Wild seal and sticker)
+//   mod-anchor          anything may be placed on this card
+//   mod-rank-up-<r>     stacks as rank r (Glaze raised it)
+//   mod-rank-down-<r>   stacks as rank r (Glaze lowered it)
+// After the corner index (a "10" and its suit end near x≈118) and before the seal (from
+// x≈190), inside the top strip a fanned column still shows. A card with no seal also
+// gets the seal's corner.
+const MOD_TAB = { x0: 122, x1: 188, x1Open: 248, y: 6, h: 54 };
+const RANK_LABEL = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
+export const isModStyle = (style) => /^mod-(wild|anchor|rank-(up|down)-([1-9]|1[0-3]))$/.test(String(style));
+
+export function modHit(uv, sealed = true) {
+  if (!uv) return false;
+  const u0 = MOD_TAB.x0 / MARK_FACE.w, u1 = (sealed ? MOD_TAB.x1 : MOD_TAB.x1Open) / MARK_FACE.w;
+  const v0 = 1 - (MOD_TAB.y + MOD_TAB.h + 8) / MARK_FACE.h, v1 = 1;
+  return uv.x >= u0 && uv.x <= u1 && uv.y >= v0 && uv.y <= v1;
+}
+
+function paintModTab(ctx, style, x, w) {
+  const { y, h } = MOD_TAB;
+  const rank = /^mod-rank-(up|down)-(\d+)$/.exec(style);
+  const fill = rank ? '#1d4fa6' : style === 'mod-anchor' ? '#22242c' : '#7a5cff';
+  ctx.save();
+  ctx.fillStyle = fill; ctx.strokeStyle = '#fffdf6'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 9); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#fffdf6'; ctx.strokeStyle = '#fffdf6';
+  const cx = x + w / 2, cy = y + h / 2;
+  if (rank) {
+    // Azulejo-style corner flourishes, an arrow for the direction and the new rank.
+    ctx.globalAlpha = 0.35; ctx.lineWidth = 1.5;
+    for (const [px, py, sx, sy] of [[x + 5, y + 5, 1, 1], [x + w - 5, y + 5, -1, 1], [x + 5, y + h - 5, 1, -1], [x + w - 5, y + h - 5, -1, -1]]) {
+      ctx.beginPath(); ctx.moveTo(px, py + sy * 8); ctx.quadraticCurveTo(px, py, px + sx * 8, py); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    const label = RANK_LABEL[rank[2]] || rank[2];
+    // Shrink the label (not the arrow) until it fits a narrow tab, e.g. "10" beside another tab.
+    let size = 40;
+    do { ctx.font = `bold ${size}px sans-serif`; size -= 2; } while (ctx.measureText(label).width + 26 > w - 10 && size > 18);
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+    const tw = ctx.measureText(label).width, ax = cx - (tw + 24) / 2;
+    ctx.beginPath();
+    if (rank[1] === 'up') { ctx.moveTo(ax, cy + 8); ctx.lineTo(ax + 9, cy - 9); ctx.lineTo(ax + 18, cy + 8); }
+    else { ctx.moveTo(ax, cy - 8); ctx.lineTo(ax + 9, cy + 9); ctx.lineTo(ax + 18, cy - 8); }
+    ctx.closePath(); ctx.fill();
+    ctx.fillText(label, ax + 24, cy + 2);
+  } else {
+    // Icons are drawn for a 44px tab and shrink with a narrower one.
+    const k = Math.min(1, (w - 6) / 38);
+    ctx.translate(cx, cy); ctx.scale(k, k);
+    if (style === 'mod-anchor') {
+      // Redaction bars: the face is blacked out, so anything may land here.
+      for (const [dy, bw] of [[-13, 32], [0, 24], [13, 28]]) ctx.fillRect(-16, dy - 4, bw, 8);
+    } else {
+      ctx.beginPath(); ctx.moveTo(0, -18); ctx.lineTo(14, 0); ctx.lineTo(0, 18); ctx.lineTo(-14, 0); ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+const modTextures = new Map();
+function modTexture(styles, sealed) {
+  const key = `${styles.join('|')}${sealed ? '#' : ''}`;
+  if (modTextures.has(key)) return modTextures.get(key);
+  const c = document.createElement('canvas'); c.width = MARK_FACE.w; c.height = MARK_FACE.h;
+  const ctx = c.getContext('2d');
+  // A rank tab carries a label, so it gets twice the width of an icon tab.
+  const gap = 5, span = (sealed ? MOD_TAB.x1 : MOD_TAB.x1Open) - MOD_TAB.x0;
+  const weight = (style) => style.startsWith('mod-rank-') ? 2 : 1;
+  const unit = Math.min(44, (span - gap * (styles.length - 1)) / styles.reduce((n, style) => n + weight(style), 0));
+  let x = MOD_TAB.x0;
+  for (const style of styles) { const w = unit * weight(style); paintModTab(ctx, style, x, w); x += w + gap; }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  modTextures.set(key, tex); return tex;
+}
+
+// Wild, then anchor, then rank tabs, so a card's tabs keep their order between redraws.
+const MOD_ORDER = (style) => style === 'mod-wild' ? 0 : style === 'mod-anchor' ? 1 : 2;
+export function setCardMods(group, styles = []) {
+  const u = group.userData;
+  const next = [...new Set(styles)].filter(isModStyle).sort((a, b) => MOD_ORDER(a) - MOD_ORDER(b) || a.localeCompare(b));
+  u.mods = next;
+  if (next.length && !u.modMesh) {
+    const material = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
+    u.modMesh = new THREE.Mesh(getShared().frontGeo, material);
+    u.modMesh.position.y = CARD.D / 2 + 0.0035;
+    group.add(u.modMesh);
+  }
+  if (u.modMesh) {
+    u.modMesh.visible = next.length > 0 && !u.concealed;
+    if (next.length) { u.modMesh.material.map = modTexture(next, !!u.mark); u.modMesh.material.needsUpdate = true; }
+  }
+}
+export const addCardMod = (group, style) => setCardMods(group, [...(group.userData.mods || []), style]);
+
 export function setCardConcealed(group, concealed) {
   const u = group.userData;
   u.concealed = !!concealed;
@@ -427,4 +632,6 @@ export function setCardConcealed(group, concealed) {
   if (u.frontMat.emissiveMap) u.frontMat.emissiveMap = u.frontMat.map;
   u.frontMat.needsUpdate = true;
   if (u.markMesh) u.markMesh.visible = !!u.mark && !concealed;
+  if (u.stickerMesh) u.stickerMesh.visible = !!u.sticker && !concealed;
+  if (u.modMesh) u.modMesh.visible = !!u.mods?.length && !concealed;
 }

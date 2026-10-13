@@ -1,50 +1,84 @@
-// carnival: boons + challenge. Spec: docs/voyage/charms-design.md (theme `carnival`).
+// carnival: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `carnival`).
 import { cardId, SUIT_CHARS } from '../../rules.js';
 import { defineCharm } from '../registry.js';
+import { stream } from '../rng.js';
 import { cardsOfRanks, rankMask, suitOf } from './kit.js';
 
 const minBlockedRank = (s) => Math.max(1, 14 - 2 * s);
 
 defineCharm({
-  id: 'carnival.wheel', kind: 'boon', theme: 'carnival', name: 'Prize Wheel', icon: '🎡',
-  text: 'Each board spins a score multiplier between ×1.0 and ×1.3.',
-  setup(board, ctx) {
-    ctx.memo.mult ??= 1 + ctx.rng.int(4) * 0.1;
+  id: 'carnival.wheel',
+  kind: 'boon',
+  theme: 'carnival',
+  name: 'Prize Wheel',
+  icon: '🎡',
+  family: 'coin',
+  text: 'Each board spins a coin multiplier from ×1 to ×2 for that board\'s payout.',
+  upgrade: '×1.5 to ×2.5.',
+  setup(_board, ctx) {
+    const steps = 11;
+    const base = ctx.level >= 2 ? 1.5 : 1;
+    ctx.memo.mult = base + ctx.rng.int(steps) * 0.1;
     ctx.api.badge(`×${ctx.memo.mult.toFixed(1)}`);
   },
-  score(sb, ctx) {
-    if (ctx.memo.mult > 1) sb.mult('Prize Wheel', ctx.memo.mult);
+  coins(n, ctx) {
+    const mult = ctx.memo.mult ?? 1;
+    return Math.round(n * mult);
   },
 });
 
 defineCharm({
-  id: 'carnival.ringmaster', kind: 'boon', theme: 'carnival', name: 'Ringmaster', icon: '🎪',
-  text: 'Nines are wild: they ignore colour when stacking.',
+  id: 'carnival.ringmaster',
+  kind: 'boon',
+  theme: 'carnival',
+  name: 'Ringmaster',
+  icon: '🎪',
+  family: 'wild',
+  text: 'Nines are wild.',
+  upgrade: 'Nines and Eights.',
   ease: 0.2,
-  rules(r) {
-    r.wildRanks = (r.wildRanks || 0) | rankMask(9);
+  rules(r, ctx) {
+    const ranks = ctx.level >= 2 ? [8, 9] : [9];
+    r.wildRanks = (r.wildRanks || 0) | rankMask(...ranks);
   },
-  setup(_board, ctx) { ctx.api.mark(cardsOfRanks([9]), 'wild'); },
-});
-
-defineCharm({
-  id: 'carnival.ticket', kind: 'boon', theme: 'carnival', name: 'Ticket Stub', icon: '🎟️',
-  text: 'Each board cleared with 2★+ earns a ticket; at 3 tickets, gain +3 undos.',
-  on: {
-    win(ctx, { result }) {
-      if (result.stars < 2) return;
-      ctx.runMemo.tickets = (ctx.runMemo.tickets || 0) + 1;
-      if (ctx.runMemo.tickets >= 3) {
-        ctx.runMemo.tickets = 0;
-        ctx.api.addUndos(3);
-        ctx.api.notify('Three tickets: +3 undos');
-      }
-    },
+  setup(_board, ctx) {
+    ctx.api.mark(cardsOfRanks(ctx.level >= 2 ? [8, 9] : [9]), 'wild');
   },
 });
 
+// The Fool is picked once from the rules stream, so the marked card is exactly the anchored one.
+function foolCards(ctx, boardIdx = ctx.idx) {
+  const count = ctx.level >= 2 ? 2 : 1;
+  const rng = stream(ctx.seed, 'rules', boardIdx, 'carnival.fool');
+  return rng.shuffle(Array.from({ length: 52 }, (_, i) => i + 1)).slice(0, count);
+}
+
 defineCharm({
-  id: 'carnival.challenge', kind: 'challenge', theme: 'carnival', name: 'Rigged Booth', icon: '🎯',
+  id: 'carnival.fool',
+  kind: 'boon',
+  theme: 'carnival',
+  name: 'The Fool',
+  icon: '🃏',
+  family: 'wild',
+  text: 'Each board, one random card is the Fool: anything may be placed on it.',
+  upgrade: 'Two Fools.',
+  rules(r, ctx) {
+    const fools = foolCards(ctx);
+    if (fools.length) r.anchorCards = [...new Set([...(r.anchorCards || []), ...fools])];
+  },
+  setup(board, ctx) {
+    const onBoard = new Set([...board.state.tableau.flat(), ...board.state.free].filter(Boolean));
+    const picks = foolCards(ctx, ctx.run.boardIdx).filter((id) => onBoard.has(id));
+    if (picks.length) ctx.api.mark(picks, 'wild');
+  },
+});
+
+defineCharm({
+  id: 'carnival.challenge',
+  kind: 'challenge',
+  theme: 'carnival',
+  name: 'Rigged Booth',
+  icon: '🎯',
   tags: ['CELLS'],
   text: (s) => `One suit's cards ranked ${minBlockedRank(s)} and up can't enter free cells.`,
   ease: (ctx) => -0.08 * ctx.strength,

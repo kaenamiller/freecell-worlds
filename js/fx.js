@@ -130,8 +130,10 @@ export class Particles {
     this.points = new THREE.Points(geo, this.mat);
     this.points.frustumCulled = false;
     this.points.renderOrder = 10;
+    this.points.visible = false;
     scene.add(this.points);
     this.geo = geo;
+    this.live = 0; // particles alive after the last update; 0 means the pool is idle
   }
 
   setScale(viewHeightPx, fovDeg) {
@@ -159,14 +161,21 @@ export class Particles {
       this.grav[i] = gravity;
       this.drag[i] = drag;
     }
+    this.live += count;
+    this.points.visible = true;
+    this.geo.attributes.aColor.needsUpdate = true;
   }
 
   update(dt) {
+    // Idle pool: nothing to simulate, upload or draw.
+    if (!this.live) return;
+    let live = 0;
     for (let i = 0; i < this.max; i++) {
       if (this.life[i] <= 0) {
         this.alpha[i] = 0;
         continue;
       }
+      live++;
       this.life[i] -= dt;
       const k = Math.max(0, this.life[i] / this.maxLife[i]);
       const damp = Math.max(0, 1 - this.drag[i] * dt);
@@ -179,10 +188,12 @@ export class Particles {
       this.alpha[i] = k;
       this.size[i] = this.baseSize[i] * (0.5 + 0.5 * k);
     }
+    this.live = live;
+    // The last frame still uploads, so expired particles reach the GPU at alpha 0.
+    this.points.visible = live > 0;
     this.geo.attributes.position.needsUpdate = true;
     this.geo.attributes.aAlpha.needsUpdate = true;
     this.geo.attributes.aSize.needsUpdate = true;
-    this.geo.attributes.aColor.needsUpdate = true;
   }
 }
 
@@ -191,6 +202,9 @@ export class Pulses {
   constructor(scene) {
     this.scene = scene;
     this.rings = [];
+    // Finished rings are kept for reuse. Disposing the last ring material would
+    // free its shader program, and the next foundation move would recompile it.
+    this.spare = [];
     this.geo = new THREE.RingGeometry(0.46, 0.5, 48);
     this.geo.rotateX(-Math.PI / 2);
     this.light = new THREE.PointLight(0xffffff, 0, 6, 2);
@@ -200,12 +214,24 @@ export class Pulses {
   }
 
   ring(x, z, colorHex, size = 1) {
-    const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
-    const m = new THREE.Mesh(this.geo, mat);
+    const m = this.spare.pop() ||
+      new THREE.Mesh(this.geo, new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    m.material.color.setHex(colorHex);
+    m.material.opacity = 0.9;
+    m.scale.setScalar(1);
     m.position.set(x, 0.02, z);
     m.userData = { t: 0, size };
     this.scene.add(m);
     this.rings.push(m);
+  }
+
+  // Pooled rings live outside the scene, so shader warm-up can't find them.
+  // Keep one spare ready and hand the idle ones over for compiling.
+  idleMeshes() {
+    if (!this.spare.length && !this.rings.length) {
+      this.spare.push(new THREE.Mesh(this.geo, new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false })));
+    }
+    return this.spare;
   }
 
   flash(x, y, z, colorHex, intensity = 14) {
@@ -224,8 +250,8 @@ export class Pulses {
       m.material.opacity = Math.max(0, 0.9 * (1 - t));
       if (t >= 1) {
         this.scene.remove(m);
-        m.material.dispose();
         this.rings.splice(i, 1);
+        this.spare.push(m);
       }
     }
     this.lightLevel = Math.max(0, this.lightLevel - dt * 3.2);

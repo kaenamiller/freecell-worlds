@@ -1,7 +1,7 @@
-// saffron: boons + challenge. Spec: docs/voyage/charms-design.md (theme `saffron`).
+// saffron: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `saffron`).
+// Complex: saffron.loom in ./special/saffron.loom.js
 import { defineCharm } from '../registry.js';
-import { colorOf } from '../../rules.js';
-import { foundationSequence, replay, suitOf } from './kit.js';
+import { replay, suitOf } from './kit.js';
 
 defineCharm({
   id: 'saffron.spice',
@@ -9,17 +9,18 @@ defineCharm({
   theme: 'saffron',
   name: 'Spice Blend',
   icon: '🌶️',
-  text: '+30 each time all four foundations reach the same rank.',
-  score(sb) {
-    let bonus = 0;
+  family: 'coin',
+  text: '+3 coins each time all four foundations reach the same rank below Queen.',
+  upgrade: '+5 coins.',
+  score(sb, ctx) {
+    const pay = ctx.level >= 2 ? 5 : 3;
     const tops = [0, 0, 0, 0];
     replay(sb, (move) => {
       if (move.t !== 'F') return;
       tops[suitOf(move.card)]++;
       const rank = tops[0];
-      if (rank && tops.every((t) => t === rank)) bonus += 30;
+      if (rank && rank < 12 && tops.every((t) => t === rank)) sb.addCoins(`spice.${rank}`, 'Spice Blend', pay);
     });
-    if (bonus) sb.add('spice', 'Spice Blend', bonus);
   },
 });
 
@@ -29,25 +30,12 @@ defineCharm({
   theme: 'saffron',
   name: 'Silk Road',
   icon: '🐫',
+  family: 'cells',
   text: 'One extra free cell on boards 5–7.',
+  upgrade: 'Boards 3–7.',
   rules(r, ctx) {
-    if (ctx.idx >= 4) r.freeCells = (r.freeCells || 4) + 1;
-  },
-});
-
-defineCharm({
-  id: 'saffron.loom',
-  kind: 'boon',
-  theme: 'saffron',
-  name: 'Loom',
-  icon: '🧵',
-  text: '+5 for each move of 3+ cards at once.',
-  score(sb) {
-    let woven = 0;
-    replay(sb, (move) => {
-      if (move.t === 'T' && move.count >= 3) woven++;
-    });
-    if (woven) sb.add('loom', 'Loom', woven * 5);
+    const minIdx = ctx.level >= 2 ? 2 : 4;
+    if (ctx.idx >= minIdx) r.freeCells = (r.freeCells || 4) + 1;
   },
 });
 
@@ -55,27 +43,12 @@ defineCharm({
   id: 'saffron.challenge',
   kind: 'challenge',
   theme: 'saffron',
-  name: 'Woven Pattern',
+  name: 'Warp and Weft',
   icon: '🧶',
-  tags: ['SCORE'],
-  text: (s) => `Each time 3+ cards of the same colour go home in a row, lose ${10 * s} points.`,
+  tags: ['FOUND'],
+  text: (s) => `Red and black cards home must stay within ${Math.max(2, 9 - s)} of each other.`,
   ease: (ctx) => -0.06 * ctx.strength,
-  score(sb, ctx) {
-    const seq = foundationSequence(sb.history);
-    let run = 0;
-    let last = null;
-    let hits = 0;
-    const closeRun = () => {
-      if (run >= 3) hits++;
-      run = 0;
-      last = null;
-    };
-    for (const card of seq) {
-      const color = colorOf(card);
-      if (color === last) run++;
-      else { closeRun(); run = 1; last = color; }
-    }
-    closeRun();
-    if (hits) sb.add('woven', 'Woven Pattern', -10 * ctx.strength * hits);
+  rules(r, ctx) {
+    r.colorSpread = Math.max(2, 9 - ctx.strength);
   },
 });

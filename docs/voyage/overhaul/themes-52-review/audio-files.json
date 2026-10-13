@@ -1,0 +1,502 @@
+[
+  {
+    "file": "assets/music/signal.mp3",
+    "bytes": 1440750,
+    "duration": 90.044063,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/signal_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/signal_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/signal_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/signal_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/music/rink.mp3",
+    "bytes": 1440750,
+    "duration": 90.044063,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/rink_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/rink_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/rink_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/rink_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/music/darkroom.mp3",
+    "bytes": 1440750,
+    "duration": 90.044063,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/darkroom_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/darkroom_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/darkroom_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/darkroom_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/music/smokewatch.mp3",
+    "bytes": 1440750,
+    "duration": 90.044063,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/smokewatch_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/smokewatch_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/smokewatch_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/smokewatch_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/music/bloodmoon.mp3",
+    "bytes": 1440750,
+    "duration": 90.044063,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/bloodmoon_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/bloodmoon_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/bloodmoon_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/bloodmoon_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/music/deepsea.mp3",
+    "bytes": 1439914,
+    "duration": 89.991813,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/deepsea_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/deepsea_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/deepsea_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/deepsea_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/music/plaster.mp3",
+    "bytes": 1439914,
+    "duration": 89.991813,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/plaster_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/plaster_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/plaster_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/plaster_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/music/backrooms.mp3",
+    "bytes": 1440750,
+    "duration": 90.044063,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/backrooms_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/backrooms_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/backrooms_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/backrooms_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/music/vaporwave.mp3",
+    "bytes": 1440750,
+    "duration": 90.044063,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/vaporwave_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/vaporwave_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/vaporwave_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/vaporwave_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/music/cinema.mp3",
+    "bytes": 1440750,
+    "duration": 90.044063,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/cinema_ambience.mp3",
+    "bytes": 321036,
+    "duration": 20.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/cinema_chime.mp3",
+    "bytes": 33062,
+    "duration": 2.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/cinema_ui.mp3",
+    "bytes": 8821,
+    "duration": 0.48,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  },
+  {
+    "file": "assets/sfx/cinema_win.mp3",
+    "bytes": 97010,
+    "duration": 6.0,
+    "stream": {
+      "codec_name": "mp3",
+      "sample_rate": "44100",
+      "channels": 2
+    }
+  }
+]

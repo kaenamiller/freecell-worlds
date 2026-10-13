@@ -76,10 +76,11 @@ def main():
             continue
         keyed = key_white(Image.open(src))
         w, h = keyed.size
-        rows = sheet['rows']
-        cw, ch = w // 4, h // 4
+        rows = sheet['rows'] or 4
+        cols = 4
+        cw, ch = w // cols, h // rows
         for n, (cid, subject) in enumerate(sheet['cells']):
-            col, row = n % 4, n // 4
+            col, row = n % cols, n // cols
             if row >= rows:
                 break
             cell = keyed.crop((col * cw, row * ch, (col + 1) * cw, (row + 1) * ch))

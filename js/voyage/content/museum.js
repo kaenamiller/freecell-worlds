@@ -1,5 +1,5 @@
-// museum: boons + challenge. Spec: docs/voyage/charms-design.md (theme `museum`).
-// digsite (C) lives in ./special/museum.digsite.js
+// museum: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `museum`).
+// Complex: museum.digsite in ./special/museum.digsite.js
 import { defineCharm } from '../registry.js';
 import { replay } from './kit.js';
 
@@ -22,18 +22,23 @@ defineCharm({
   theme: 'museum',
   name: 'Fossil Record',
   icon: '🦴',
-  text: 'Your first chain of 6+ cards on each board grants +1 undo.',
-  on: {
-    foundation(ctx) {
-      ctx.memo.chain = (ctx.memo.chain || 0) + 1;
-      if (!ctx.memo.chainUndo && ctx.memo.chain >= 6) {
-        ctx.memo.chainUndo = true;
-        ctx.api.addUndos(1);
-      }
-    },
-    move(ctx, { move }) {
-      if (move.t !== 'F') ctx.memo.chain = 0;
-    },
+  family: 'coin',
+  text: '+2 coins for each of the four 7-card columns you empty before 30 cards are home.',
+  upgrade: '+4.',
+  score(sb, ctx) {
+    if (!sb.initial) return;
+    const per = ctx.level === 2 ? 4 : 2;
+    const sevenCols = new Set(sb.initial.tableau.map((col, i) => (col.length === 7 ? i : -1)).filter((i) => i >= 0));
+    const cleared = new Set();
+    let home = 0;
+    replay(sb, (_move, state) => {
+      home = state.found.reduce((n, rank) => n + rank, 0);
+      state.tableau.forEach((col, i) => {
+        if (col.length === 0 && sevenCols.has(i) && !cleared.has(i) && home < 30) cleared.add(i);
+      });
+    });
+    const coins = Math.min(4, cleared.size) * per;
+    if (coins) sb.addCoins('fossil', 'Fossil Record', coins);
   },
 });
 
@@ -43,11 +48,12 @@ defineCharm({
   theme: 'museum',
   name: 'Docent',
   icon: '🎟️',
-  text: 'Once per board, show the best next move.',
-  ability: {
-    uses: 1,
-    label: 'Show best move',
-    use: (ctx) => ctx.api.hint(),
+  family: 'ability',
+  text: 'Your ability boons get +1 use per board for every 2 ability boons you hold (this one included).',
+  upgrade: 'For every ability boon.',
+  abilityBonus(ctx) {
+    const n = ctx.family('ability');
+    return ctx.level === 2 ? n : Math.floor(n / 2);
   },
 });
 
@@ -57,10 +63,11 @@ defineCharm({
   theme: 'museum',
   name: 'Fragile Exhibits',
   icon: '🏺',
+  pressure: true,
   tags: ['SCORE'],
   text: (s) => {
     const n = 1 + s;
-    return `${n} fragile card${n === 1 ? '' : 's'}; −25 each time one moves again after its first move (except to its foundation).`;
+    return `${n} fragile card${n === 1 ? '' : 's'}; −25 each time one moves again after its first move (except to its foundation), at most twice per card.`;
   },
   setup(board, ctx) {
     const need = 1 + ctx.strength;
@@ -72,7 +79,8 @@ defineCharm({
   score(sb, ctx) {
     const fragile = new Set(ctx.memo.fragile || []);
     if (!fragile.size) return;
-    const moved = new Set();
+    // Capped at two charges per card: carried along inside runs, an uncapped tax could zero a board.
+    const moved = new Set(), charges = new Map();
     let penalty = 0;
     replay(sb, (move) => {
       if (move.auto) return;
@@ -83,6 +91,8 @@ defineCharm({
           moved.add(id);
           continue;
         }
+        if ((charges.get(id) || 0) >= 2) continue;
+        charges.set(id, (charges.get(id) || 0) + 1);
         penalty += 25;
       }
     });

@@ -1,6 +1,7 @@
-// forest: boons + challenge. Spec: docs/voyage/charms-design.md (theme `forest`).
+// forest: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `forest`).
+import { cardsHome } from '../../rules.js';
 import { defineCharm } from '../registry.js';
-import { ALL_RANKS, cardsOfRanks, countHome, rankMask, suitMask } from './kit.js';
+import { ALL_RANKS, cardsOfRanks, rankMask, replay, suitMask } from './kit.js';
 
 function clubBarrenRanks(strength) {
   const min = Math.max(1, 14 - 2 * strength);
@@ -15,12 +16,17 @@ defineCharm({
   theme: 'forest',
   name: 'Changeling',
   icon: '🧚',
-  text: 'Jacks are wild: they ignore colour when stacking.',
+  family: 'wild',
+  text: 'Jacks are wild.',
+  upgrade: 'Jacks and Queens are wild.',
   ease: 0.25,
-  rules(r) {
-    r.wildRanks = (r.wildRanks || 0) | rankMask(11);
+  rules(r, ctx) {
+    const ranks = ctx.level >= 2 ? [11, 12] : [11];
+    r.wildRanks = (r.wildRanks || 0) | rankMask(...ranks);
   },
-  setup(_board, ctx) { ctx.api.mark(cardsOfRanks([11]), 'wild'); },
+  setup(_board, ctx) {
+    ctx.api.mark(cardsOfRanks(ctx.level >= 2 ? [11, 12] : [11]), 'wild');
+  },
 });
 
 defineCharm({
@@ -29,12 +35,15 @@ defineCharm({
   theme: 'forest',
   name: 'Firefly Jar',
   icon: '✨',
-  text: 'Each board, 4 buried cards glow; +50 for each one you send home.',
+  family: 'coin',
+  text: '4 buried cards glow; each one you send home before 26 cards are home pays 3 coins.',
+  upgrade: '6 glowing cards, 4 coins each.',
   setup(board, ctx) {
     const buried = board.state.tableau.flatMap((col) => col.slice(0, -1));
     const pool = [...buried];
+    const count = ctx.level >= 2 ? 6 : 4;
     const picks = [];
-    for (let i = 0; i < 4 && pool.length; i++) {
+    for (let i = 0; i < count && pool.length; i++) {
       const j = Math.floor(ctx.rng() * pool.length);
       picks.push(pool.splice(j, 1)[0]);
     }
@@ -43,8 +52,12 @@ defineCharm({
   },
   score(sb, ctx) {
     const ids = new Set(ctx.memo.fireflies || []);
-    const home = countHome(sb.history, (id) => ids.has(id));
-    if (home) sb.add('fireflies', 'Firefly Jar', home * 50);
+    if (!ids.size) return;
+    const pay = ctx.level >= 2 ? 4 : 3;
+    replay(sb, (move, state) => {
+      if (move.t !== 'F' || !ids.has(move.card)) return;
+      if (cardsHome(state) < 26) sb.addCoins(`firefly.${move.card}`, 'Firefly Jar', pay);
+    });
   },
 });
 
@@ -54,12 +67,18 @@ defineCharm({
   theme: 'forest',
   name: 'Mossy Bed',
   icon: '🌱',
+  family: 'suit',
   text: 'Clubs may also be built down in suit.',
+  upgrade: 'Clubs and Spades.',
   ease: 0.2,
-  rules(r) {
-    r.suitBuild = (r.suitBuild || 0) | suitMask(0);
+  rules(r, ctx) {
+    const suits = ctx.level >= 2 ? [0, 3] : [0];
+    r.suitBuild = (r.suitBuild || 0) | suitMask(...suits);
   },
-  setup(_board, ctx) { ctx.api.mark(cardsOfRanks(ALL_RANKS, [0]), 'wild'); },
+  setup(_board, ctx) {
+    const suits = ctx.level >= 2 ? [0, 3] : [0];
+    ctx.api.mark(cardsOfRanks(ALL_RANKS, suits), 'wild');
+  },
 });
 
 defineCharm({

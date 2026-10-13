@@ -1,7 +1,6 @@
 // lapis: boons + challenge. Spec: docs/voyage/charms-design.md (theme `lapis`).
 import { defineCharm } from '../registry.js';
-import { SCORE } from '../config.js';
-import { rankOf } from './kit.js';
+import { suitOf } from './kit.js';
 
 function pickNonAdjacentCols(rng, count) {
   const picked = [];
@@ -19,14 +18,21 @@ defineCharm({
   theme: 'lapis',
   name: 'Ankh',
   icon: '☥',
-  text: 'Sending a King home grants +1 undo (up to 2 per board).',
+  family: 'undo',
+  text: '+1 undo each time you complete a suit while 13 or more cards are still in play (twice per board).',
+  upgrade: '+1 undo each time you complete a suit while 13 or more cards are still in play (three times per board).',
   ease: 0.2,
   on: {
     foundation(ctx, ev) {
-      if (rankOf(ev.card) !== 13) return;
-      ctx.memo.kings ??= 0;
-      if (ctx.memo.kings >= 2) return;
-      ctx.memo.kings += 1;
+      const st = ctx.api.state;
+      const suit = suitOf(ev.card);
+      if (st.found[suit] !== 13) return;
+      const inPlay = 52 - st.found.reduce((n, rank) => n + rank, 0);
+      if (inPlay < 13) return;
+      const cap = ctx.level >= 2 ? 3 : 2;
+      ctx.memo.ankhGrants = ctx.memo.ankhGrants || 0;
+      if (ctx.memo.ankhGrants >= cap) return;
+      ctx.memo.ankhGrants += 1;
       ctx.api.addUndos(1);
     },
   },
@@ -38,12 +44,13 @@ defineCharm({
   theme: 'lapis',
   name: 'Canopic Jars',
   icon: '🏺',
-  text: 'Free cells never cost points.',
-  score(sb) {
-    const line = sb.lines.find((l) => l.key === 'freecells');
-    if (!line) return;
-    const refund = SCORE.freeCellBudget - line.pts;
-    if (refund > 0) sb.add('canopic', 'Canopic Jars', refund);
+  family: 'cells',
+  text: 'Cards leaving a free cell for a column ignore colour.',
+  upgrade: 'Cards leaving a free cell for a column ignore colour, and you can move 1 more card at once.',
+  ease: 0.15,
+  rules(r, ctx) {
+    r.cellExitWild = true;
+    if (ctx.level >= 2) r.moveBonus = (r.moveBonus || 0) + 1;
   },
 });
 
@@ -53,14 +60,17 @@ defineCharm({
   theme: 'lapis',
   name: 'Eye of Horus',
   icon: '👁️',
+  family: 'vision',
   text: 'Once per board, show the best next move and uncover up to 3 face-down cards.',
+  upgrade: 'Once per board, show the best next move and uncover up to 6 face-down cards.',
   ease: 0.25,
   ability: {
     uses: 1,
     label: 'Eye of Horus',
     async use(ctx) {
       const hinted = await ctx.api.hint();
-      const hidden = (ctx.api.concealed || []).slice(0, 3);
+      const limit = ctx.level >= 2 ? 6 : 3;
+      const hidden = (ctx.api.concealed || []).slice(0, limit);
       if (hidden.length) ctx.api.reveal(hidden);
       return hinted || hidden.length > 0;
     },
