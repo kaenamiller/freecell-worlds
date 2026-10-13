@@ -137,6 +137,7 @@ export const CARD_MARKS = {
   lock: { color: '#2f6fad', paint: paintLock },
   bar: { color: '#8a4632', paint: paintBar },
   oneway: { color: '#1f8a78', paint: paintOneway },
+  noexit: { color: '#a07a1c', paint: paintNoExit },
   wild: { color: '#7a5cff', paint: paintWild },
   star: { color: '#eac447', paint: paintStar },
   'sticker-wild': { color: '#7a5cff', paint: (ctx) => paintSticker(ctx, 'wild') },
@@ -356,6 +357,33 @@ function paintOneway(ctx) {
   });
 }
 
+// No Exit / Full House: this card can only leave its column to the foundation.
+function paintNoExit(ctx) {
+  paintStatus(ctx, {
+    color: '#a07a1c',
+    wash: 'rgba(214, 170, 52, 0.38)',
+    emblem(g) {
+      g.strokeStyle = '#fffaea';
+      g.fillStyle = '#fffaea';
+      g.lineWidth = 3.4;
+      g.lineCap = 'round';
+      // A loop that comes back round on itself, arrowhead along the arc's tangent.
+      const end = Math.PI * 1.33;
+      const ex = 10 * Math.cos(end), ey = 1 + 10 * Math.sin(end);
+      const tx = -Math.sin(end), ty = Math.cos(end);
+      g.beginPath();
+      g.arc(0, 1, 10, -Math.PI * 0.2, end);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(ex + tx * 7, ey + ty * 7);
+      g.lineTo(ex - ty * 6, ey + tx * 6);
+      g.lineTo(ex + ty * 6, ey - tx * 6);
+      g.closePath();
+      g.fill();
+    },
+  });
+}
+
 function paintWild(ctx) {
   ctx.save();
   ctx.translate(128, 180);
@@ -403,9 +431,21 @@ function paintStar(ctx) {
   });
 }
 
-// Stickers occupy the lower-left corner, opposite the upper-right charm seal.
-// Draw paths, rather than font glyphs, so all five remain distinct on every device.
-function paintSticker(ctx, type) {
+// Same die-cut used in the sticker market. The lower-left corner is opposite the charm seal.
+const STICKER_TYPES = ['wild', 'fool', 'key', 'gold', 'lucky'];
+const stickerArt = new Map();
+function loadStickerArt(type) {
+  let entry = stickerArt.get(type);
+  if (entry) return entry;
+  const img = new Image();
+  img.src = new URL(`../assets/art/stickers/${type}.webp`, import.meta.url).href;
+  entry = { img, ready: img.decode().catch(() => {}) };
+  stickerArt.set(type, entry);
+  return entry;
+}
+export const stickerArtReady = Promise.all(STICKER_TYPES.map((type) => loadStickerArt(type).ready));
+
+function paintStickerGlyph(ctx, type) {
   ctx.save();
   ctx.translate(29, 329);
   ctx.fillStyle = 'rgba(255, 252, 237, .94)';
@@ -434,6 +474,15 @@ function paintSticker(ctx, type) {
     ctx.moveTo(0, 4); ctx.lineTo(3, 13);
   }
   ctx.stroke(); ctx.restore();
+}
+
+function paintSticker(ctx, type) {
+  const { img } = loadStickerArt(type);
+  if (img.complete && img.naturalWidth) {
+    ctx.drawImage(img, 6, 300, 56, 56);
+    return;
+  }
+  paintStickerGlyph(ctx, type);
 }
 
 // Upper-right seal on the 256×360 mark texture (sigil chip, status disc, or honey seal).
@@ -466,7 +515,17 @@ function markTexture(style) {
     ctx.font = 'bold 34px sans-serif'; ctx.fillText(mark.sigil, 224, 33);
   }
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-  markTextures.set(style, tex); return tex;
+  markTextures.set(style, tex);
+  if (style.startsWith('sticker-')) {
+    const { img, ready } = loadStickerArt(style.slice(8));
+    if (!img.complete || !img.naturalWidth) ready.then(() => {
+      if (!img.naturalWidth) return;
+      ctx.clearRect(0, 0, c.width, c.height);
+      mark.paint(ctx);
+      tex.needsUpdate = true;
+    });
+  }
+  return tex;
 }
 export function setCardMark(group, style = null) {
   // Compatibility with runtime api.mark(id, 'sticker-*'): use the independent slot.

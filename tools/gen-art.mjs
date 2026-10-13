@@ -3,7 +3,8 @@ import { existsSync } from 'node:fs';
 import { need, save, pool, retry } from './lib.mjs';
 import { manifest } from './art-manifest.mjs';
 
-const MODEL = process.env.ART_MODEL || 'gemini-3-pro-image';
+// Repo default is Nano Banana 2.1. See AGENTS.md. ART_MODEL overrides one command only.
+const MODEL = process.env.ART_MODEL || 'gemini-nano-banana-2.1';
 const args = process.argv.slice(2);
 const force = args.includes('--force');
 const filter = args.find((a) => !a.startsWith('--'));

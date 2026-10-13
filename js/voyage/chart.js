@@ -35,8 +35,8 @@ function geometry(view, portrait, box) {
   const currentRow = all.find(n => n.state === 'current')?.row ?? -1;
   const choiceRow = all.find(n => n.state === 'available')?.row ?? currentRow + 1;
   const sizeFor = n => portrait
-    ? ({ available: 96, current: 92, upcoming: 76, visited: 64, skipped: 60 }[n.state] || 76)
-    : ({ available: 128, current: 96, upcoming: 60, visited: 64, skipped: 60 }[n.state] || 72);
+    ? ({ available: 108, current: 100, upcoming: 88, visited: 76, skipped: 68 }[n.state] || 88)
+    : ({ available: 156, current: 124, upcoming: 100, visited: 92, skipped: 80 }[n.state] || 100);
   let height, edge;
   if (portrait) {
     const marketRows = new Set((view.markets || []).map((market) => market.row));
@@ -44,7 +44,7 @@ function geometry(view, portrait, box) {
       const nodes = all.filter(n => n.row === row).sort((a,b) => a.id.localeCompare(b.id));
       const size = Math.max(...nodes.map(sizeFor));
       const step = size / 1.12 + 24;
-      return { row, nodes, size, step, extent: Math.ceil(nodes.length / 3) * step + (marketRows.has(row) ? 100 : 8) };
+      return { row, nodes, size, step, extent: Math.ceil(nodes.length / 3) * step + (marketRows.has(row) ? 200 : 8) };
     });
     const fogRoom = 68 + future * 18;
     height = Math.max(viewportHeight, fogRoom + bands.reduce((sum,b) => sum + b.extent, 0) + 62);
@@ -61,7 +61,7 @@ function geometry(view, portrait, box) {
         sizes.set(n.id, sizeFor(n));
       });
       const market = (view.markets || []).find((item) => item.row === row);
-      if (market) points.set(market.id, { x: width / 2, y: y - extent + 42 });
+      if (market) points.set(market.id, { x: width / 2, y: y - extent + 96 });
       y -= extent;
     }
     edge = y + 6;
@@ -69,19 +69,34 @@ function geometry(view, portrait, box) {
     const viewW = Math.max(1, box.width || 620);
     // History keeps the same column pitch as the live route. Start the camera
     // at the current position; the earlier boards remain reachable to the left.
-    const colGap = 300;
-    const firstX = Math.max(190, (viewW - 160) / 2);
+    // Markets get a column of their own between their row and the next, so
+    // their lanes can gather and split again without crowding the islands.
+    const colGap = 330, marketGap = 230;
+    const marketRows = (view.markets || []).map((market) => market.row);
+    const colX = (row) => firstX + row * colGap + marketRows.filter((r) => r < row).length * marketGap;
+    const firstX = Math.max(200, (viewW - 160) / 2);
     const hasChoices = all.some(n => n.state === 'available');
+    const harbour = (view.markets || []).find((market) => ['available', 'current'].includes(market.state));
     const initialPan = currentRow < 0 ? 0 : hasChoices
-      ? choiceRow * colGap
-      : Math.max(0, firstX + currentRow * colGap - viewW * .43);
+      ? Math.max(0, colX(choiceRow) - firstX - (harbour ? (colGap + marketGap) / 2 : 0))
+      : Math.max(0, colX(currentRow) + (harbour ? (colGap + marketGap) / 2 : 0) - viewW * .43);
+    // The boat and first two live columns stay framed in the viewport, so a
+    // crowded near column trims its islands until they fit. Later columns
+    // keep full size and may extend the scrollable height instead.
+    const span = (count, size) => count * (size / 1.12 + 40) + 32;
+    const scale = new Map(rows.map(row => {
+      const nodes = all.filter(n => n.row === row);
+      const size = Math.max(...nodes.map(sizeFor));
+      if (row >= choiceRow + 2 || span(nodes.length, size) <= viewportHeight) return [row, 1];
+      return [row, Math.max(.6, ((viewportHeight - 32) / nodes.length - 40) * 1.12 / size)];
+    }));
     height = Math.max(viewportHeight, ...rows.map(row => {
       const nodes = all.filter(n => n.row === row);
-      return nodes.length * (Math.max(...nodes.map(sizeFor)) / 1.12 + 34) + 32;
+      return span(nodes.length, Math.max(...nodes.map(sizeFor)) * scale.get(row));
     }));
     for (const row of rows) {
       const nodes = all.filter(n => n.row === row).sort((a,b) => a.id.localeCompare(b.id));
-      const x = firstX + row * colGap;
+      const x = colX(row);
       const skipped = nodes.filter(n => n.state === 'skipped');
       nodes.forEach((n,i) => {
         const isHistory = row <= currentRow;
@@ -92,14 +107,14 @@ function geometry(view, portrait, box) {
         const bandHeight = row < choiceRow + 2 ? viewportHeight : height;
         const y = 16 + (bandHeight - 32) * u;
         points.set(n.id, { x: x + (isHistory ? 0 : jitter(`${view.seed}:${n.id}:x`, 4)), y: y + jitter(`${view.seed}:${n.id}:y`, 1) });
-        sizes.set(n.id, sizeFor(n));
+        sizes.set(n.id, Math.round(sizeFor(n) * scale.get(row)));
       });
     }
-    edge = firstX + last * colGap + 72;
-    placeMarkets(view, points);
+    edge = colX(last) + 84;
+    placeMarkets(view, points, (colGap + marketGap) / 2);
     for (const market of view.markets || []) {
       const point = points.get(market.id);
-      if (point) edge = Math.max(edge, point.x + 78);
+      if (point) edge = Math.max(edge, point.x + 120);
     }
     width = Math.max(viewW + initialPan, edge + 280);
     return { width, height, points, sizes, edge, rowCount: rows.length, viewW, initialPan,
@@ -109,20 +124,16 @@ function geometry(view, portrait, box) {
   return { width, height, points, sizes, edge, rowCount: rows.length, viewW: width, teasers: [] };
 }
 
-function placeMarkets(view, points) {
+function placeMarkets(view, points, offset) {
   for (const market of view.markets || []) {
-    const here = (view.map || []).flat().filter((node) => node.row === market.row).map((node) => points.get(node.id)).filter(Boolean);
+    const row = (view.map || []).flat().filter((node) => node.row === market.row);
+    // Once the row is played, the market sits in line with the table you docked from.
+    const docked = row.filter((node) => ['visited', 'current'].includes(node.state));
+    const here = (docked.length ? docked : row).map((node) => points.get(node.id)).filter(Boolean);
     if (!here.length) continue;
-    const next = (view.map || []).flat().filter((node) => node.row === market.row + 1).map((node) => points.get(node.id)).filter(Boolean);
     const hereX = here.reduce((sum, point) => sum + point.x, 0) / here.length;
     const hereY = here.reduce((sum, point) => sum + point.y, 0) / here.length;
-    if (!next.length) {
-      const top = Math.min(...here.map((point) => point.y));
-      points.set(market.id, { x: hereX, y: Math.max(52, top - 96) });
-    } else {
-      const nextX = next.reduce((sum, point) => sum + point.x, 0) / next.length;
-      points.set(market.id, { x: (hereX + nextX) / 2, y: hereY });
-    }
+    points.set(market.id, { x: hereX + offset, y: hereY });
   }
 }
 
@@ -264,15 +275,39 @@ export class VoyageChart {
       routes.push(`<path class="voyage-sea-lane-under ${cls}" d="${d}"/>`);
       routes.push(`<path class="voyage-sea-lane ${cls}" data-route-to="${esc(id)}" d="${d}"/>`);
     };
+    const laneClass = (state) => ['visited', 'current'].includes(state) ? 'taken'
+      : state === 'skipped' ? 'skipped' : state === 'available' ? 'available' : 'upcoming';
+    // Every table on a market row docks at the market, so all lanes gather there.
+    // Each table keeps its own channel through the harbour, and its branches
+    // split from that channel: the pairings stay readable past the market.
+    const marketAt = new Map((view.markets || []).filter((market) => points.get(market.id)).map((market) => [market.row, market]));
+    for (const [row, market] of marketAt) {
+      const m = points.get(market.id);
+      const axis = this.portrait ? 'x' : 'y';
+      const sources = all.filter((n) => n.row === row && points.get(n.id)).sort((a, b) => points.get(a.id)[axis] - points.get(b.id)[axis]);
+      const pivot = sources.findIndex((n) => ['visited', 'current'].includes(n.state));
+      const gap = Math.min(this.portrait ? 26 : 38, (this.portrait ? 72 : 100) / Math.max(1, sources.length - 1));
+      sources.forEach((node, i) => {
+        const a = points.get(node.id);
+        const shift = (pivot >= 0 ? i - pivot : i - (sources.length - 1) / 2) * gap;
+        const port = { ...m, [axis]: m[axis] + shift };
+        const docked = ['visited', 'current'].includes(node.state);
+        const cls = node.state === 'skipped' ? 'skipped' : docked ? laneClass(market.state) : 'upcoming';
+        emit(cls, docked ? market.id : `${node.id}>${market.id}`, curve(a, port, this.portrait));
+        for (const childId of node.links || []) {
+          const child = byId.get(childId), b = points.get(childId);
+          if (child && b) emit(laneClass(child.state), childId, curve(port, b, this.portrait));
+        }
+      });
+    }
     for (const node of all) {
+      if (marketAt.has(node.row)) continue;
       const a = points.get(node.id);
       for (const childId of node.links || []) {
         const child = byId.get(childId);
         const b = points.get(childId);
         if (!a || !b || !child) continue;
-        const cls = ['visited', 'current'].includes(child.state) ? 'taken'
-          : child.state === 'skipped' ? 'skipped' : child.state === 'available' ? 'available' : 'upcoming';
-        emit(cls, childId, curve(a, b, this.portrait));
+        emit(laneClass(child.state), childId, curve(a, b, this.portrait));
       }
     }
     if (!this.portrait && lastVisible < (view.boards || 7) - 1) {
@@ -292,7 +327,9 @@ export class VoyageChart {
       emit(cls, root.id, curve(origin, point, this.portrait));
     }
     const current = all.find((node) => node.state === 'current') || all.filter((node) => node.state === 'visited').at(-1);
-    const boatAt = current ? points.get(current.id) : (this.portrait ? { x: width / 2, y: height - 28 } : this.geo.origin);
+    const harbour = (view.markets || []).find((market) => market.state === 'current');
+    const boatAt = harbour && points.get(harbour.id) ? points.get(harbour.id)
+      : current ? points.get(current.id) : (this.portrait ? { x: width / 2, y: height - 28 } : this.geo.origin);
     const islands = all.map((node) => {
       const p = points.get(node.id);
       if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return '';
@@ -313,8 +350,9 @@ export class VoyageChart {
     const markets = (view.markets || []).map((market) => {
       const p = points.get(market.id);
       if (!p) return '';
-      const label = `${market.name} after board ${market.afterBoard}. ${market.wares} You can also sell a charm, buy undos, and reroll.`;
-      return `<button type="button" class="voyage-market" data-node="${esc(market.id)}" style="--chart-x:${(p.x / width) * 100}%;--chart-y:${(p.y / height) * 100}%" aria-label="${esc(label)}" aria-pressed="${market.id === selected}"><span class="voyage-harbour-mark" aria-hidden="true"><b>⚓</b><i></i></span><strong>${esc(market.name)}</strong><small>After board ${market.afterBoard}</small></button>`;
+      const label = `${market.name} after board ${market.afterBoard}, ${market.state === 'available' ? 'next stop' : market.state === 'current' ? 'your position' : market.state === 'visited' ? 'visited' : 'ahead'}. ${market.wares} You can also sell a charm, buy undos, and reroll.`;
+      const art = this.options.marketUrl?.(market.kind) || '';
+      return `<button type="button" class="voyage-market ${esc(market.state || 'upcoming')}" data-node="${esc(market.id)}" style="--chart-x:${(p.x / width) * 100}%;--chart-y:${(p.y / height) * 100}%;--island-accent:#e0b877" aria-label="${esc(label)}" aria-pressed="${market.id === selected}" title="${esc(market.name)}"><span class="voyage-island-glow" aria-hidden="true"></span><span class="voyage-island-art"><img src="${esc(art)}" alt="" draggable="false" loading="lazy" onerror="this.hidden=true">${fallbackIsland('#e0b877')}</span><span class="voyage-harbour-mark" aria-hidden="true"><b>⚓</b><i></i></span><span class="voyage-island-name">${esc(market.name)}</span><small>After board ${market.afterBoard}</small></button>`;
     }).join('');
     const futureRows = Math.max(0, (view.boards || 7) - lastVisible - 1);
     const taken = view.confiscated || all.find(n => n.final && n.confiscated)?.confiscated;

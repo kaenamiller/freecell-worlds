@@ -2,7 +2,7 @@ import { THEMES, THEME_ORDER } from '../js/themes.js';
 import { createRun, startBoard, winBoard, pickCharm, loseRun, runView } from '../js/voyage/run.js';
 import { nextChoices } from '../js/voyage/map.js';
 import { leavePort } from '../js/voyage/port.js';
-import { buildCardMesh, setCardMark, setCardSticker, setCardConcealed, applyCardStyle } from '../js/card.js';
+import { buildCardMesh, setCardMark, setCardSticker, setCardConcealed, applyCardStyle, stickerArtReady } from '../js/card.js';
 import { setCardTheme } from '../js/textures.js';
 import { voyageUI } from '../js/voyage/ui.js';
 import { ui } from '../js/ui.js';
@@ -30,7 +30,10 @@ for (let board = 1; board <= 7; board++) {
   winBoard(run, fakeHistory(board), null, { elapsed: 150 + board * 32 });
   scenes.push({ id: `result${board}`, title: `Result · board ${board}`, view: snapshot(run) });
   while (run.status === 'reward') pickCharm(run, run.reward.offers[0]);
-  if (run.status === 'port') leavePort(run);
+  if (run.status === 'port') {
+    scenes.push({ id: `chart-market${board}`, title: `Chart · market after board ${board}`, view: snapshot(run) });
+    leavePort(run);
+  }
   if (run.status === 'map') scenes.push({ id: `map${board + 1}`, title: `Map · board ${board + 1}`, view: snapshot(run) });
 }
 scenes.push({ id: 'end-win', title: 'Run end · victory', view: snapshot(run) });
@@ -76,6 +79,8 @@ portBase.port = {
     { type: 'wild', name: 'Wild', text: 'Ignores colour when stacking.', price: 30, sold: false },
     { type: 'gold', name: 'Gold', text: '+5 coins when this card goes home early.', price: 20, sold: false },
     { type: 'key', name: 'Key', text: 'Ignores free-cell restrictions.', price: 25, sold: false },
+    { type: 'lucky', name: 'Lucky', text: '+1 undo the first time this card goes home each board.', price: 25, sold: false },
+    { type: 'fool', name: 'Fool', text: 'Any card may be placed on this card.', price: 40, sold: false },
   ],
   upgrades: fixtureBoons.slice(1).map((charm) => ({ charm, price: 40 })),
   provisions: { price: 15, left: 3 },
@@ -206,6 +211,7 @@ document.getElementById('btn-title-deal-reveal').addEventListener('click', () =>
 voyageUI.init({
   ...Object.fromEntries(['portBuyBoon', 'portBuySticker', 'portUpgrade', 'portBuyUndo', 'portSell', 'portReroll', 'portLeave', 'portService'].map((name) => [name, (...args) => portAction(name, ...args)])),
   startVoyage: () => show('map1'), continueVoyage: () => show('map1'),
+  enterPort: () => { calls.push({ name: 'enterPort', args: [] }); show('port'); },
   pickNode: (id) => { calls.push({ name: 'pickNode', args: [id] }); show(`intro${Math.min(7, (focusScene?.view.results.length || 0) + 1)}`); },
   pickCharm: (id) => {
     if (focusScene.view.reward?.picks > 1) { focusScene.view.reward.picks--; focusScene.view.reward.offers = focusScene.view.reward.offers.filter((c) => c.id !== id); calls.push({ name: 'pickCharm', args: [id] }); voyageUI.showResult(focusScene.view); return; }
@@ -271,7 +277,8 @@ function show(id) {
   history.replaceState(null, '', `?screen=${scene.id}&theme=${activeTheme}${document.body.classList.contains('preview-clean') ? '&clean=1' : ''}`);
 }
 const markGroups = [];
-function showMarks() {
+async function showMarks() {
+  await stickerArtReady;
   setCardTheme(THEMES[activeTheme]);
   const panel = document.createElement('section'); panel.id = 'preview-marks'; panel.className = 'panel';
   panel.innerHTML = '<p class="voyage-kicker">Voyage · card stickers</p><h2>Small marks, lasting luck</h2><p>Charm seal above. Sticker sigil in the opposite corner.</p><div class="preview-mark-grid"></div>';

@@ -653,13 +653,20 @@ function setFreeCellCount(n) {
   }
 }
 
-async function applyTheme(id) {
+let themeGen = 0;
+
+async function applyTheme(id, { persist = true, gen } = {}) {
   const theme = THEMES[id];
   const art = await loadThemeAssets(theme);
+  if (gen != null && gen !== themeGen) return;
   currentTheme = theme;
   currentArt = art;
-  settings.theme = id;
-  saveSettings();
+  // Voyage tables are chosen by the run. Saving them would replace the theme
+  // the player picked for classic.
+  if (persist) {
+    settings.theme = id;
+    saveSettings();
+  }
 
   ui.applyThemeCss(theme);
   setCardTheme(theme, art, { fourColor: settings.fourColor, highContrast: settings.highContrast });
@@ -776,15 +783,17 @@ function withRenderTarget(target, fn) {
   }
 }
 
-async function switchTheme(id) {
-  if (id === currentTheme.id && currentArt) return;
-  audio.ui();
+async function switchTheme(id, { persist = true, sound = true } = {}) {
+  if (!THEMES[id] || (id === currentTheme.id && currentArt)) return;
+  const gen = ++themeGen;
+  if (sound) audio.ui();
   // A title that is already animating away no longer hides the table, so the
   // heavy swap (texture uploads, shader warm-up) goes behind the fade instead.
   const tl = ui.els.title.classList;
   const onTitle = !tl.contains('hidden') && !tl.contains('leaving');
-  if (onTitle) await applyTheme(id);
-  else await ui.transition(() => applyTheme(id));
+  const apply = () => applyTheme(id, { persist, gen });
+  if (onTitle) await apply();
+  else await ui.transition(apply);
 }
 
 // ---------------------------------------------------------------------------
@@ -2753,6 +2762,17 @@ function voyageToMenu() {
   voyageUI.hideAll();
   ui.showTitle();
   voyageRefreshTitle();
+  if (ui.titleMode === 'classic') ui.handlers.restoreClassicTheme?.();
+}
+
+// The run names each table. Apply that look without replacing the classic theme.
+function applyVoyageBoardTheme(id) {
+  return switchTheme(id, { persist: false });
+}
+
+function restoreClassicTheme() {
+  if (ui.titleMode !== 'classic' || !THEMES[settings.theme]) return;
+  return switchTheme(settings.theme, { sound: false });
 }
 
 function voyagePersist() {
@@ -2786,11 +2806,8 @@ function voyagePrepareAhead() {
 async function voyageShowMap() {
   const view = vyView();
   for (const n of view.map.flat()) n.strength = boardPlan(vy.run, n.theme, { idx: n.row, nodeId: n.id }).strength;
-  if (vy.run?.status === 'port') {
-    await voyageUI.showDocking?.(view);
-    if (vy.run?.status === 'port') voyagePortShow();
-    return;
-  }
+  // A market row ends on the chart with the market as the only open stop;
+  // the player sails in from there.
   voyageUI.showMap(view);
   voyageUI.tutorial('map');
   voyagePrepareAhead();
@@ -2829,23 +2846,25 @@ async function voyageContinue() {
   await loadBank();
   if (r.status === 'map') return voyageShowMap();
   if (r.status === 'port') {
-    ui.hideTitle();
     vy.effects = null;
     vy.boardLive = false;
-    return voyagePortShow();
+    return voyageShowMap();
   }
   if (r.status === 'reward') {
     ui.hideTitle();
     return voyageUI.showResult(vyView());
   }
   // A board in progress: resume it (or bring the table back if it is already live).
-  if (vy.boardLive && game && game.dealNumber === r.current.deal && vy.effects) {
+  // The title screen can change the classic theme while this board is still dealt,
+  // so the table has to be put back on the run's theme either way.
+  if (vy.boardLive && game && r.current && game.dealNumber === r.current.deal && vy.effects) {
     ui.hideTitle();
+    await applyVoyageBoardTheme(r.current.theme);
     voyageHud();
     return;
   }
   ui.hideTitle();
-  await switchTheme(r.current.theme);
+  await applyVoyageBoardTheme(r.current.theme);
   voyageDealBoard({ restore: { moves: r.current.history || [], elapsed: r.current.elapsed || 0, undos: 0, hints: 0, counted: true } });
 }
 
@@ -2877,7 +2896,7 @@ async function voyagePickNode(nodeId) {
   saveRun(r);
   voyageUI.hideMap();
   if (!ui.els.title.classList.contains('hidden')) ui.hideTitle();
-  await switchTheme(r.current.theme);
+  await applyVoyageBoardTheme(r.current.theme);
   await voyageUI.showBossIntro(runView(r));
   await voyageUI.showBoardIntro(vyView());
   voyageDealBoard();
@@ -3490,6 +3509,12 @@ const voyageHandlers = {
   portReroll: () => voyagePortAction(rerollPort),
   portService: (serviceId, arg) => voyagePortAction(portService, serviceId, arg),
   portLeave: () => voyagePortLeave(),
+  enterPort: () => {
+    if (vy.run?.status !== 'port') return;
+    voyageUI.hideMap();
+    if (!ui.els.title.classList.contains('hidden')) ui.hideTitle();
+    voyagePortShow();
+  },
   continueToMap: () => voyageShowMap(),
   showRunEnd: () => {
     voyageUI.showRunEnd(vyView());
@@ -3545,6 +3570,7 @@ ui.handlers = {
     return switchTheme(randomThemeId(currentTheme.id));
   },
   home: () => voyageToMenu(),
+  restoreClassicTheme: () => restoreClassicTheme(),
   newGame: () => {
     if (mode === 'voyage') leaveVoyageMode();
     return newGame(randomDealNumber());

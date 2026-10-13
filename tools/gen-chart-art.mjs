@@ -21,16 +21,19 @@ const only = new Set((args.find((arg) => arg.startsWith('--only='))?.slice(7) ||
 const source = 'assets-src/art/chart';
 const output = 'assets/art/chart';
 mkdirSync(`${source}/islands`, { recursive: true });
+mkdirSync(`${source}/markets`, { recursive: true });
 mkdirSync(`${output}/islands`, { recursive: true });
+mkdirSync(`${output}/markets`, { recursive: true });
 
 const PAINT = `Hand-painted storybook nautical chart art, traditional gouache and transparent watercolor with fine charcoal contours. Dark teal, indigo, weathered parchment, muted mineral pigments, warm lantern gold. Slightly imperfect handmade edges, sophisticated tabletop-game illustration, cohesive scale and three-quarter top-down angle. No typography, letters, numbers, border, frame, watermark, UI, card, or photorealism.`;
 
-async function image(id, prompt, ratio = '1:1', size = '1K') {
-  const file = `${source}/${id}.png`;
+async function image(id, prompt, ratio = '1:1', size = '1K', dest = null) {
+  const file = dest || `${source}/${id}.png`;
   if ((reprocessOnly || !force) && existsSync(file)) return file;
   if (reprocessOnly) throw new Error(`Missing master for ${id}`);
+  const text = dest ? prompt : `${PAINT}\n\n${prompt}`;
   const body = {
-    contents: [{ parts: [{ text: `${PAINT}\n\n${prompt}` }] }],
+    contents: [{ parts: [{ text }] }],
     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: ratio, imageSize: size } },
   };
   await retry(async () => {
@@ -136,6 +139,55 @@ function knockout(file) {
   if (result.status) throw new Error(`knockout failed for ${file}`);
 }
 
+const CHROMA = String.raw`#!/usr/bin/env python3
+"""Remove a flat chroma backdrop and trim to the sticker."""
+from collections import deque
+from PIL import Image
+import sys
+
+def chroma(path):
+    im = Image.open(path).convert('RGBA')
+    w, h = im.size
+    px = im.load()
+    corners = [px[2, 2][:3], px[w - 3, 2][:3], px[2, h - 3][:3], px[w - 3, h - 3][:3]]
+    bg = tuple(sum(c[i] for c in corners) // 4 for i in range(3))
+    def near(c):
+        return max(abs(c[i] - bg[i]) for i in range(3)) <= 46
+    visited = bytearray(w * h)
+    q = deque()
+    for x in range(w):
+        q.append((x, 0)); q.append((x, h - 1))
+    for y in range(h):
+        q.append((0, y)); q.append((w - 1, y))
+    while q:
+        x, y = q.popleft()
+        i = y * w + x
+        if visited[i]:
+            continue
+        visited[i] = 1
+        c = px[x, y]
+        if not near(c):
+            continue
+        px[x, y] = (c[0], c[1], c[2], 0)
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < w and 0 <= ny < h and not visited[ny * w + nx]:
+                q.append((nx, ny))
+    box = im.getbbox()
+    if box:
+        im = im.crop(box)
+    im.save(path)
+    print('chroma', path, bg, im.size)
+
+if __name__ == '__main__':
+    chroma(sys.argv[1])
+`;
+
+function chroma(file) {
+  const result = spawnSync('python3', ['-c', CHROMA, file], { stdio: 'inherit' });
+  if (result.status) throw new Error(`chroma failed for ${file}`);
+}
+
 function webp(input, target, filter, quality = 78) {
   const result = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', input, '-vf', filter, '-c:v', 'libwebp', '-quality', String(quality), '-compression_level', '6', target], { stdio: 'inherit' });
   if (result.status) throw new Error(`ffmpeg failed for ${target}`);
@@ -166,12 +218,47 @@ await pool(specials.filter(([id]) => !only.size || only.has(id)), 2, async ([id,
   } finally { rmSync(work, { recursive: true, force: true }); }
 });
 
+const markets = [
+  ['market-stickers', 'markets/stickers', 'One compact island vignette for the Sticker market, a harbour where sailors buy paper seals. The dominant feature is dozens of colorful round stickers and sticker sheets stuck across a wooden stall, crates, and a small rocky isle, plus one warm lantern and a short quay. Make it unmistakably a sticker stall, not a generic fair or a themed card table. Match the footprint, scale, three-quarter top-down camera, lighting and detail density of the other chart islands. No words, letters, or numbers. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge.'],
+  ['market-boons', 'markets/boons', 'One compact island vignette for the Charm market, a harbour where sailors buy talismans. A small rocky isle with brass stalls, hanging glass charms and lockets, a circular jeweler counter, tiny gem cases, and warm lanterns. Make it unmistakably a market stop, not a themed card table. Match the footprint, scale, three-quarter top-down camera, lighting and detail density of the other chart islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge.'],
+  ['market-upgrades', 'markets/upgrades', 'One compact island vignette for the Upgrade market, a harbour workshop that raises a charm to a finer second form. A small rocky isle with a two-level atelier, a gold-inlaid workbench, a brighter finished talisman beside a plainer one, light scaffolding, and a taller lantern. Make it unmistakably a workshop market, not a themed card table. Match the footprint, scale, three-quarter top-down camera, lighting and detail density of the other chart islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge.'],
+];
+
+await pool(markets.filter(([id]) => !only.size || only.has(id)), 2, async ([, file, prompt]) => {
+  const png = await image(file, prompt);
+  knockout(png);
+  webp(png, `${output}/${file}.webp`, 'format=rgba,scale=256:256:force_original_aspect_ratio=decrease:flags=lanczos', 76);
+});
+
 const themes = THEME_ORDER.filter((id) => !only.size || only.has(id));
 await pool(themes, 2, async (id) => {
   const theme = THEMES[id];
   const png = await image(`islands/${id}`, `One compact island vignette for "${theme.name}". Visual idea: ${theme.tagline}. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge.`);
   knockout(png);
   webp(png, `${output}/islands/${id}.webp`, 'format=rgba,scale=256:256:force_original_aspect_ratio=decrease:flags=lanczos', 76);
+});
+
+const STICKER = `A single die-cut paper sticker, straight-on, centered, filling about 70 percent of a square frame. Thick warm-white sticker border, slightly imperfect handmade cut, fine charcoal contour, soft gouache. One bold symbol only, readable at 40 pixels. No text, letters, numbers, watermark, cast shadow, or scenery. The background outside the sticker is a perfectly flat pure chroma green #00FF00, with no texture or gradient. The sticker itself contains no chroma green.`;
+const stickerDir = 'assets-src/art/stickers';
+const stickerOut = 'assets/art/stickers';
+mkdirSync(stickerDir, { recursive: true });
+mkdirSync(stickerOut, { recursive: true });
+const stickers = [
+  ['sticker-wild', 'wild', 'Symbol: a violet four-point diamond, cream highlight, like a wild-card seal.'],
+  ['sticker-fool', 'fool', 'Symbol: an ochre jester cap with two belled points.'],
+  ['sticker-key', 'key', 'Symbol: one antique key in teal and brass, bow and bit clearly readable.'],
+  ['sticker-gold', 'gold', 'Symbol: one round gold coin with a plain rim and no markings.'],
+  ['sticker-lucky', 'lucky', 'Symbol: one four-leaf clover in deep forest green, not chroma green.'],
+];
+await pool(stickers.filter(([id]) => !only.size || only.has(id)), 2, async ([id, name, symbol]) => {
+  const master = await image(id, `${STICKER}\n\n${symbol}`, '1:1', '1K', `${stickerDir}/${name}.png`);
+  const work = mkdtempSync(join(tmpdir(), 'sticker-art-'));
+  const png = join(work, `${name}.png`);
+  copyFileSync(master, png);
+  try {
+    chroma(png);
+    webp(png, `${stickerOut}/${name}.webp`, 'format=rgba,scale=256:256:force_original_aspect_ratio=decrease:flags=lanczos,pad=256:256:(ow-iw)/2:(oh-ih)/2:color=0x00000000', 82);
+  } finally { rmSync(work, { recursive: true, force: true }); }
 });
 
 // A reproducible contact sheet makes scale/style and compression outliers easy to inspect.

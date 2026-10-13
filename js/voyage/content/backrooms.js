@@ -2,6 +2,7 @@
 import { canPlaceTableau, isPinned, registerCustomMove } from '../../rules.js';
 import { defineCharm } from '../registry.js';
 import { VOYAGE } from '../config.js';
+import { liveMarks } from './kit.js';
 
 const source = (st, card) => st.tableau.findIndex((col) => col.includes(card) && col.at(-1) !== card);
 const destination = (st, rules, card, to) => Number.isInteger(to) && to >= 0 && to < st.tableau.length && to !== source(st, card) &&
@@ -63,4 +64,11 @@ defineCharm({
     const cols = ctx.rng.shuffle([0, 1, 2, 3, 4, 5, 6, 7]).slice(0, ctx.strength <= 2 ? 2 : ctx.strength <= 4 ? 4 : 8);
     r.noExitCols = (r.noExitCols || 0) | cols.reduce((mask, col) => mask | (1 << col), 0);
   },
+  setup(_board, ctx) { noExitMarks(ctx); },
+  on: { move(ctx) { noExitMarks(ctx); }, undo(ctx) { noExitMarks(ctx); } },
 });
+// The bottom card of each No Exit column is the one that can only leave to its foundation.
+function noExitMarks(ctx) {
+  const st = ctx.api.state, mask = ctx.api.rules?.noExitCols || 0;
+  liveMarks(ctx, st ? st.tableau.filter((col, c) => col.length && (mask & (1 << c))).map((col) => col[0]) : [], 'noexit');
+}

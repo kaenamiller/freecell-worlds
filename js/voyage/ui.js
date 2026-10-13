@@ -13,7 +13,10 @@ const esc = (value = '') => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&
 const num = (value) => Math.round(Number(value) || 0).toLocaleString();
 const theme = (id) => THEMES[id] || { name: id || 'Unknown table', tagline: '', art: {} };
 const art = (id) => theme(id).art?.thumb ? new URL(`../../${theme(id).art.thumb.replace(/^\.\//, '')}`, import.meta.url).href : '';
+const hero = (id) => theme(id).art?.hero ? new URL(`../../${theme(id).art.hero.replace(/^\.\//, '')}`, import.meta.url).href : '';
 const chartIsland = (id) => new URL(`../../assets/art/chart/islands/${id}.webp`, import.meta.url).href;
+const chartMarket = (kind) => new URL(`../../assets/art/chart/markets/${kind}.webp`, import.meta.url).href;
+const stickerArt = (type) => new URL(`../../assets/art/stickers/${type}.webp`, import.meta.url).href;
 const chartBoat = new URL('../../assets/art/chart/boat.webp', import.meta.url).href;
 const starText = (n) => `${'★'.repeat(Math.max(0, Number(n) || 0))}${'☆'.repeat(Math.max(0, 3 - (Number(n) || 0)))}`;
 const relationBadge = (c) => (c?.relation === '+' || c?.relation === '!') ? `<b class="voyage-boss-relation relation-${c.relation === '+' ? 'help' : 'weak'}" title="${esc(c.relationText)}" aria-label="${esc(c.relationText)}">${esc(c.relation)}</b>` : '';
@@ -91,6 +94,7 @@ export const voyageUI = {
     this.chart = new VoyageChart($('voyage-chart'), {
       theme,
       islandUrl: chartIsland,
+      marketUrl: chartMarket,
       boatUrl: chartBoat,
       landmarkUrl: new URL('../../assets/art/chart/boss-landmark.webp', import.meta.url).href,
       silhouetteUrl: new URL('../../assets/art/chart/fog-isle.webp', import.meta.url).href,
@@ -121,8 +125,14 @@ export const voyageUI = {
       if (this.chart?.didDrag) { this.chart.didDrag = false; return; }
       if (!button || this.preparing) return;
       if (String(button.dataset.node).startsWith('market:')) {
+        const market = this.mapView?.markets?.find((item) => item.id === button.dataset.node);
+        if (this.tappedNode === button.dataset.node && market?.state === 'available' && !this.mapReadOnly) {
+          this.enterMarket(market.id);
+          return;
+        }
         this.selectedByUser = true;
         this.selectMarket(button.dataset.node);
+        this.tappedNode = button.dataset.node;
         return;
       }
       if (button.dataset.node === '__boss__') {
@@ -154,6 +164,7 @@ export const voyageUI = {
         return;
       }
       if (event.target.closest('[data-sail]') && !event.target.closest('[data-sail]').disabled) this.handlers.pickNode?.(this.selectedNode);
+      if (event.target.closest('[data-enter-market]') && !event.target.closest('[data-enter-market]').disabled) this.enterMarket(this.selectedNode);
     });
     $('voyage-result-card')?.addEventListener('click', (event) => {
       const pick = event.target.closest('[data-pick-charm]');
@@ -211,7 +222,7 @@ export const voyageUI = {
     });
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Tab') {
-        const dialog = ['voyage-confirm', 'voyage-sticker-picker', 'voyage-port', 'voyage-intro', 'voyage-result', 'voyage-end', 'voyage-map'].map($).find((el) => !el.hidden);
+        const dialog = ['voyage-confirm', 'voyage-sticker-picker', 'voyage-port', 'voyage-intro', 'voyage-result', 'voyage-end', 'voyage-map'].map($).find((el) => !el.hidden && !el.classList.contains('leaving'));
         if (dialog) {
           const items = [...dialog.querySelectorAll('button:not([disabled]), [tabindex="0"]')].filter((el) => el.getClientRects().length);
           if (items.length) {
@@ -224,7 +235,7 @@ export const voyageUI = {
         return;
       }
       if (!$('voyage-map').hidden && $('voyage-tutorial').hidden && !this.preparing && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
-        const choices = [...$('voyage-chart').querySelectorAll('.voyage-island.available, [data-node="__boss__"]')];
+        const choices = [...$('voyage-chart').querySelectorAll('.voyage-island.available, .voyage-market.available, [data-node="__boss__"]')];
         if (choices.length) {
           event.preventDefault();
           const current = Math.max(0, choices.findIndex((el) => el.dataset.node === this.selectedNode));
@@ -238,7 +249,10 @@ export const voyageUI = {
       }
       if (!$('voyage-map').hidden && $('voyage-tutorial').hidden && event.key === 'Enter' && !this.mapReadOnly && !this.preparing) {
         const node = this.mapView?.map.flat().find((item) => item.id === this.selectedNode);
-        if (node?.state === 'available') {
+        if (this.mapView?.markets?.some((m) => m.id === this.selectedNode && m.state === 'available')) {
+          event.preventDefault();
+          this.enterMarket(this.selectedNode);
+        } else if (node?.state === 'available') {
           event.preventDefault();
           this.handlers.pickNode?.(node.id);
         }
@@ -299,7 +313,7 @@ export const voyageUI = {
     this.closeStickerPicker();
     $('voyage-port').hidden = true;
     this.mapView = view;
-    this.mapReadOnly = view.status !== 'map';
+    this.mapReadOnly = !['map', 'port'].includes(view.status);
     this.hideTooltip();
     $('voyage-result').hidden = true;
     $('voyage-end').hidden = true;
@@ -308,7 +322,7 @@ export const voyageUI = {
     $('voyage-map-coins').innerHTML = purse(view.coins);
     $('voyage-map-progress').textContent = `${view.results.length} of ${view.boards} boards cleared · ${view.undos} shared undos`;
     $('voyage-map-close').textContent = this.mapReadOnly ? 'Return to board' : 'Menu';
-    const firstAvailable = view.map.flat().find((n) => n.state === 'available');
+    const firstAvailable = (view.markets || []).find((m) => m.state === 'available') || view.map.flat().find((n) => n.state === 'available');
     const current = view.map.flat().find((n) => n.state === 'current');
     this.selectedNode = this.mapReadOnly ? current?.id : firstAvailable?.id;
     this.mapRouteNode = this.selectedNode;
@@ -319,7 +333,7 @@ export const voyageUI = {
     this.selectNode(this.selectedNode, false, false);
     this.setPreparing(this.preparing);
     requestAnimationFrame(() => {
-      $('voyage-map').querySelector(this.mapReadOnly ? '#voyage-map-close' : '.voyage-map-detail [data-sail]')?.focus({ preventScroll: true });
+      $('voyage-map').querySelector(this.mapReadOnly ? '#voyage-map-close' : '.voyage-map-detail :is([data-sail], [data-enter-market])')?.focus({ preventScroll: true });
     });
   },
 
@@ -328,7 +342,7 @@ export const voyageUI = {
     this.preparing = !!value;
     $('voyage-preparing').hidden = !value;
     $('voyage-chart').classList.toggle('preparing', !!value);
-    $('voyage-map-detail').querySelector('[data-sail]')?.toggleAttribute('disabled', !!value);
+    $('voyage-map-detail').querySelector('[data-sail], [data-enter-market]')?.toggleAttribute('disabled', !!value);
   },
 
   renderChart() {
@@ -340,14 +354,16 @@ export const voyageUI = {
   selectMarket(id) {
     const market = (this.mapView?.markets || []).find((item) => item.id === id);
     if (!market) return;
+    if (this.selectedNode !== id) this.tappedNode = null;
     this.selectedNode = id;
-    this.tappedNode = id;
     this.highlightNode = null;
     this.chart?.select(id);
+    const canEnter = market.state === 'available' && !this.mapReadOnly;
+    const status = { current: 'Market visited · your next table sails from here', visited: 'Market visited', upcoming: 'Ahead on the chart' }[market.state] || 'Docked';
     const reroll = market.kind === 'upgrades'
       ? 'The upgrade list is the charms you already hold, so the reroll stays closed.'
       : 'You can reroll that stall once during the visit.';
-    $('voyage-map-detail').innerHTML = `<div class="voyage-detail-hero voyage-detail-boss"><span class="voyage-detail-icon">⚓</span><div><small>After board ${market.afterBoard}</small><h3>${esc(market.name)}</h3><p>Every route stops here.</p></div></div><div class="voyage-detail-body"><p>${esc(market.wares)}</p><p class="voyage-harbour-note">You can also sell a charm and buy undos. ${esc(reroll)}</p><p class="voyage-detail-note">This marker sits between tables. It does not change your next course.</p></div>`;
+    $('voyage-map-detail').innerHTML = `<div class="voyage-detail-hero voyage-detail-boss"><span class="voyage-detail-icon">⚓</span><div><small>After board ${market.afterBoard}</small><h3>${esc(market.name)}</h3><p>Every route stops here.</p></div></div><div class="voyage-detail-body"><p>${esc(market.wares)}</p><p class="voyage-harbour-note">You can also sell a charm and buy undos. ${esc(reroll)}</p><p class="voyage-detail-note">${canEnter ? 'Your next tables leave from this harbour.' : 'Every route between these tables passes through this harbour.'}</p></div><div class="voyage-detail-actions">${canEnter ? `<button type="button" class="btn primary" data-enter-market ${this.preparing ? 'disabled' : ''}>Enter market →</button>` : `<span class="voyage-detail-status">${status}</span>`}</div>`;
   },
 
   selectNode(id, focus = true, highlight = true) {
@@ -384,19 +400,17 @@ export const voyageUI = {
     return this.chart?.sailTo(nodeId, { reducedMotion: settings.reducedMotion, ...options }) || Promise.resolve();
   },
 
-  async showDocking(view) {
-    this.showMap(view);
-    const node = view.map.flat().find((item) => item.state === 'current' && item.port)
-      || [...view.map.flat()].reverse().find((item) => item.port && ['current', 'visited'].includes(item.state));
-    const market = (view.markets || []).find((item) => item.row === node?.row);
-    if (market) {
-      this.selectMarket(market.id);
-      await this.chart?.dock(market.id, { reducedMotion: settings.reducedMotion });
-      return;
+  // Sail the boat into the market island, light its lantern, then open the stalls.
+  async enterMarket(id) {
+    if (this.preparing || this.mapReadOnly || this.mapView?.markets?.find((m) => m.id === id)?.state !== 'available') return;
+    this.setPreparing(true);
+    try {
+      await this.chart?.sailTo(id, { reducedMotion: settings.reducedMotion });
+      await this.chart?.dock(id, { reducedMotion: settings.reducedMotion });
+    } finally {
+      this.setPreparing(false);
     }
-    if (!node) return;
-    this.selectNode(node.id, false, false);
-    await this.chart?.dock(node.id, { reducedMotion: settings.reducedMotion });
+    this.handlers.enterPort?.();
   },
 
   showPort(view) {
@@ -428,7 +442,7 @@ export const voyageUI = {
     const rerollClosed = port.kind === 'upgrades';
     $('voyage-port-stalls').innerHTML =
       (showKind('boons') ? stall('Charms', 'A new companion for the crossing.', (port.boons || []).map((o) => charmCard(o.charm, `<small class="voyage-port-theme">${esc(theme(o.charm.theme).name)}</small>${buy('boon', o.price, `data-id="${esc(o.charm.id)}"`, o.sold, 'Buy', 'Sold')}`)).join('')) : '') +
-      (showKind('stickers') ? stall('Stickers', 'Choose a card. Its sticker lasts the voyage.', (port.stickers || []).map((o, i) => `<article class="voyage-sticker-offer"><span class="voyage-sticker-sigil" aria-hidden="true">${esc(STICKERS[o.type]?.[0] || '✧')}</span><div><h4>${esc(o.name)}</h4><p>${esc(o.text)}</p></div>${buy('sticker', o.price, `data-offer="${i}"`, o.sold, 'Choose card', 'Sold')}</article>`).join('')) : '') +
+      (showKind('stickers') ? stall('Stickers', 'Choose a card. Its sticker lasts the voyage.', (port.stickers || []).map((o, i) => `<article class="voyage-sticker-offer"><span class="voyage-sticker-sigil" aria-hidden="true"><img src="${esc(stickerArt(o.type))}" alt="" draggable="false"></span><div><h4>${esc(o.name)}</h4><p>${esc(o.text)}</p></div>${buy('sticker', o.price, `data-offer="${i}"`, o.sold, 'Choose card', 'Sold')}</article>`).join('')) : '') +
       (showKind('upgrades') ? stall('Upgrade', 'Bring a held charm to level II.', (port.upgrades || []).map((o) => charmCard(o.charm, buy('upgrade', o.price, `data-id="${esc(o.charm.id)}"`, false, 'Upgrade'), true)).join('')) : '') +
       stall('Provisions', 'Shared undos for the tables ahead.', port.provisions ? `<article class="voyage-port-simple"><strong>↶ +1 undo</strong><p>${num(port.provisions.left)} purchases left this visit</p>${buy('undo', port.provisions.price, '', port.provisions.left <= 0, 'Provision', 'Visit limit reached')}</article>` : '') +
       stall('Sell', 'Trade a held charm for a fuller purse.', (port.sell || []).map((o) => charmCard(o.charm, `<button type="button" class="btn" data-port-action="sell" data-id="${esc(o.charm.id)}">Sell · +⛁ ${num(o.price)}</button>`)).join('')) +
@@ -465,7 +479,7 @@ export const voyageUI = {
     const held = new Map((this.portView.stickers || []).map((s) => [Number(s.card), s.type]));
     $('voyage-sticker-picker-card').innerHTML = `<p class="voyage-kicker">${esc(label)} · ⛁ ${num(price)}</p><h2 id="voyage-sticker-picker-title">Choose its card</h2><p>${esc(text)}</p><div class="voyage-card-picker" aria-label="52 cards, four suit rows">${SUITS.map((suit, row) => `<div class="voyage-suit-row" role="group" aria-label="${SUIT_NAMES[row]}">${RANKS.map((rank, col) => {
       const id = row * 13 + col + 1, sticker = held.get(id);
-      return `<button type="button" class="voyage-mini-card ${row === 1 || row === 2 ? 'red' : ''}" data-sticker-card="${id}" aria-label="${esc(`${rank} of ${SUIT_NAMES[row].toLowerCase()}${sticker ? `, ${STICKERS[sticker]?.[1]} sticker; replace it` : ''}`)}"><b>${rank}</b><span aria-hidden="true">${suit}</span>${sticker ? `<i aria-hidden="true">${esc(STICKERS[sticker]?.[0])}</i>` : ''}</button>`;
+      return `<button type="button" class="voyage-mini-card ${row === 1 || row === 2 ? 'red' : ''}" data-sticker-card="${id}" aria-label="${esc(`${rank} of ${SUIT_NAMES[row].toLowerCase()}${sticker ? `, ${STICKERS[sticker]?.[1]} sticker; replace it` : ''}`)}"><b>${rank}</b><span aria-hidden="true">${suit}</span>${sticker ? `<img class="voyage-mini-sticker" src="${esc(stickerArt(sticker))}" alt="" draggable="false">` : ''}</button>`;
     }).join('')}</div>`).join('')}</div><div class="voyage-actions"><button type="button" class="btn" data-sticker-cancel>Cancel · Esc</button></div>`;
     $('voyage-sticker-picker').hidden = false;
     $('voyage-sticker-picker').querySelector('[data-sticker-card]')?.focus({ preventScroll: true });
@@ -492,7 +506,7 @@ export const voyageUI = {
     this.syncMotion();
     $('voyage-intro-card').classList.remove('has-secondary');
     $('voyage-intro-card').innerHTML = `<p class="voyage-kicker">Board 7 · The finale</p><div class="voyage-boss-icon" aria-hidden="true">${charmGlyph(boss)}</div><h2 id="voyage-intro-title">${esc(boss.name)}</h2><p>${esc(boss.text)}</p>${confiscation(view)}<p class="voyage-boss-watch">Watch for: ${esc(boss.tell)}</p>${view.current.budgeted ? '<p class="voyage-detail-note">Challenge eased for the finale.</p>' : ''}<button type="button" class="btn primary voyage-intro-continue" data-intro-continue>Continue</button>`;
-    return this.openIntro();
+    return this.openIntro(view.current.theme);
   },
 
   flashBossTell(view) {
@@ -516,11 +530,21 @@ export const voyageUI = {
     const t = theme(cur.theme);
     const thresholds = cur.starThresholds || [];
     $('voyage-intro-card').classList.toggle('has-secondary', secondaryChallenges(cur).length > 0);
-    $('voyage-intro-card').innerHTML = `<p class="voyage-kicker">${localDate(view.daily)} · Board ${cur.idx + 1} of ${view.boards}</p><div class="voyage-intro-art"><img src="${esc(art(cur.theme))}" alt=""></div><h2 id="voyage-intro-title">${esc(t.name)}</h2><p class="voyage-intro-tagline">${esc(t.tagline)}</p><div class="voyage-intro-challenge">${compactCharm(cur.challenge)}<span><small>${kindName(cur.challenge)} · Strength ${cur.strength ?? cur.idx + 1}</small><strong>${esc(cur.challenge?.name || '')}</strong><em>${esc(cur.challenge?.text || '')}</em></span></div>${secondaryChallenges(cur).map((c) => `<div class="voyage-intro-challenge storm">${compactCharm(c)}<span><small>${cur.storm ? 'Storm · ' : ''}${kindName(c)}</small><strong>${esc(c.name)}</strong><em>${esc(activeText(c))}</em></span></div>`).join('')}${cur.storm ? stormNote : ''}${cur.boss ? `<div class="voyage-intro-challenge boss">${compactCharm(cur.boss)}<span><small>Final boss</small><strong>${esc(cur.boss.name)}</strong><em>${esc(cur.boss.text)}</em>${confiscation(view)}</span></div>` : ''}<div class="voyage-intro-facts"><span>Par <b>${num(cur.par)} moves</b></span><span>Free cells <b>${num(cur.freeCells)}</b></span></div><div class="voyage-intro-stars">${thresholds.map((score, i) => `<span>${'★'.repeat(i + 1)}<b>${i === 0 && !score ? 'Clear' : num(score)}</b></span>`).join('')}</div>${cur.bossRelented ? `<p class="voyage-detail-note">${esc(view.boss?.name || 'The boss')} relented: no fair deal could be verified under it.</p>` : cur.budgeted ? '<p class="voyage-detail-note">Challenge eased for the finale.</p>' : cur.relaxed ? '<p class="voyage-detail-note">Challenge eased for a verified deal.</p>' : ''}<button type="button" class="btn primary voyage-intro-continue" data-intro-continue>Continue</button>`;
-    return this.openIntro();
+    const stars = thresholds.map((score, i) => {
+      const clear = i === 0 && !score;
+      return `<li><span class="voyage-intro-star-row" aria-label="${i + 1} star${i ? 's' : ''}">${'★'.repeat(i + 1)}<i>${'★'.repeat(2 - i)}</i></span><b>${clear ? 'Clear' : num(score)}</b><small>${clear ? 'Finish the table' : 'points'}</small></li>`;
+    }).join('');
+    $('voyage-intro-card').innerHTML = `<p class="voyage-kicker">${localDate(view.daily)} · Board ${cur.idx + 1} of ${view.boards}</p><h2 id="voyage-intro-title">${esc(t.name)}</h2><p class="voyage-intro-tagline">${esc(t.tagline)}</p><div class="voyage-intro-challenge">${compactCharm(cur.challenge)}<span><small>${kindName(cur.challenge)} · Strength ${cur.strength ?? cur.idx + 1}</small><strong>${esc(cur.challenge?.name || '')}</strong><em>${esc(cur.challenge?.text || '')}</em></span></div>${secondaryChallenges(cur).map((c) => `<div class="voyage-intro-challenge storm">${compactCharm(c)}<span><small>${cur.storm ? 'Storm · ' : ''}${kindName(c)}</small><strong>${esc(c.name)}</strong><em>${esc(activeText(c))}</em></span></div>`).join('')}${cur.storm ? stormNote : ''}${cur.boss ? `<div class="voyage-intro-challenge boss">${compactCharm(cur.boss)}<span><small>Final boss</small><strong>${esc(cur.boss.name)}</strong><em>${esc(cur.boss.text)}</em>${confiscation(view)}</span></div>` : ''}<section class="voyage-intro-goals" aria-label="Table goals"><div class="voyage-intro-facts"><span>Par<b>${num(cur.par)} moves</b></span><span>Free cells<b>${num(cur.freeCells)}</b></span></div><ol class="voyage-intro-stars">${stars}</ol></section>${cur.bossRelented ? `<p class="voyage-detail-note">${esc(view.boss?.name || 'The boss')} relented: no fair deal could be verified under it.</p>` : cur.budgeted ? '<p class="voyage-detail-note">Challenge eased for the finale.</p>' : cur.relaxed ? '<p class="voyage-detail-note">Challenge eased for a verified deal.</p>' : ''}<button type="button" class="btn primary voyage-intro-continue" data-intro-continue>Continue</button>`;
+    return this.openIntro(cur.theme);
   },
-  openIntro() {
-    $('voyage-intro').hidden = false;
+  openIntro(themeId) {
+    const overlay = $('voyage-intro');
+    clearTimeout(this.introFade);
+    const src = hero(themeId);
+    $('voyage-intro-hero').src = src;
+    overlay.classList.toggle('has-hero', Boolean(src));
+    overlay.classList.remove('leaving');
+    overlay.hidden = false;
     const card = $('voyage-intro-card');
     (card.querySelector('[data-intro-continue]') || card).focus();
     return new Promise((resolve) => {
@@ -529,7 +553,19 @@ export const voyageUI = {
       $('voyage-intro').onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.finishIntro(); } };
     });
   },
-  finishIntro() { if (!this.introResolve) return; $('voyage-intro').hidden = true; const done = this.introResolve; this.introResolve = null; done(); },
+  // Resolve straight away so the table entrance plays while the hero fades out.
+  finishIntro() {
+    if (!this.introResolve) return;
+    const overlay = $('voyage-intro');
+    const done = this.introResolve;
+    this.introResolve = null;
+    if (settings.reducedMotion || matchMedia('(prefers-reduced-motion: reduce)').matches) overlay.hidden = true;
+    else {
+      overlay.classList.add('leaving');
+      this.introFade = setTimeout(() => { overlay.hidden = true; overlay.classList.remove('leaving'); }, 600);
+    }
+    done();
+  },
 
   setHud(view) {
     if (!view) return;
@@ -710,7 +746,7 @@ export const voyageUI = {
       const ids = r.charms?.length ? r.charms : r.charm ? [r.charm] : [];
       return ids.length ? `${ids.length > 1 ? 'Charms' : 'Charm'}: ${ids.map((id) => esc(allCharms.get(id)?.name || CHARMS[id]?.name || id)).join(' · ')}` : 'No charm picked';
     };
-    $('voyage-end-card').innerHTML = `<p class="voyage-kicker">${localDate(view.daily)}</p><h2 id="voyage-end-title">${won ? 'Voyage complete' : 'Voyage ended'}</h2><p class="voyage-end-sub">${won ? 'Seven tables crossed. Your chart is complete.' : view.lostReason === 'abandoned' ? 'The run was abandoned.' : 'No more routes through this table.'}</p><div class="voyage-end-totals"><div><small>Boards reached</small><strong>${reached} / ${view.boards}</strong></div><div><small>Total score</small><strong>${num(view.score)}</strong></div><div><small>Stars earned</small><strong>${num(view.stars)}</strong></div></div><div class="voyage-end-list">${view.results.map((r) => `<div class="voyage-end-row"><img src="${esc(art(r.theme))}" alt=""><span><small>Board ${r.idx + 1}${r.storm ? ' · ϟ Storm' : ''}</small><strong>${esc(theme(r.theme).name)}</strong><em>${picksText(r)}</em></span><span class="voyage-end-row-score"><b>${starText(r.stars)}</b><strong>${num(r.total)}</strong></span></div>`).join('')}</div><div class="voyage-end-charms"><small>Charms collected</small><div>${view.boons.length ? view.boons.map((c) => compactCharm(c)).join('') : '<span>None</span>'}</div></div><div class="voyage-end-stickers"><small>Card stickers · ${view.stickers?.length || 0}</small><div>${(view.stickers || []).map((sticker) => `<span>${esc(cardName(sticker.card))} · ${esc(STICKERS[sticker.type]?.join(' ') || sticker.type)}</span>`).join('') || '<span>None</span>'}</div></div><div class="voyage-actions"><button class="btn primary" data-new-voyage>New Voyage</button><button class="btn" data-end-menu>Menu</button></div>`;
+    $('voyage-end-card').innerHTML = `<p class="voyage-kicker">${localDate(view.daily)}</p><h2 id="voyage-end-title">${won ? 'Voyage complete' : 'Voyage ended'}</h2><p class="voyage-end-sub">${won ? 'Seven tables crossed. Your chart is complete.' : view.lostReason === 'abandoned' ? 'The run was abandoned.' : 'No more routes through this table.'}</p><div class="voyage-end-totals"><div><small>Boards reached</small><strong>${reached} / ${view.boards}</strong></div><div><small>Total score</small><strong>${num(view.score)}</strong></div><div><small>Stars earned</small><strong>${num(view.stars)}</strong></div></div><div class="voyage-end-list">${view.results.map((r) => `<div class="voyage-end-row"><img src="${esc(art(r.theme))}" alt=""><span><small>Board ${r.idx + 1}${r.storm ? ' · ϟ Storm' : ''}</small><strong>${esc(theme(r.theme).name)}</strong><em>${picksText(r)}</em></span><span class="voyage-end-row-score"><b>${starText(r.stars)}</b><strong>${num(r.total)}</strong></span></div>`).join('')}</div><div class="voyage-end-charms"><small>Charms collected</small><div>${view.boons.length ? view.boons.map((c) => compactCharm(c)).join('') : '<span>None</span>'}</div></div><div class="voyage-end-stickers"><small>Card stickers · ${view.stickers?.length || 0}</small><div>${(view.stickers || []).map((sticker) => `<span><img src="${esc(stickerArt(sticker.type))}" alt="">${esc(cardName(sticker.card))} · ${esc(STICKERS[sticker.type]?.[1] || sticker.type)}</span>`).join('') || '<span>None</span>'}</div></div><div class="voyage-actions"><button class="btn primary" data-new-voyage>New Voyage</button><button class="btn" data-end-menu>Menu</button></div>`;
     $('voyage-end').hidden = false;
     $('voyage-end-card').querySelector('[data-new-voyage]')?.focus({ preventScroll: true });
   },

@@ -1,7 +1,7 @@
 // safetypin: boons + challenge. Spec: docs/voyage/overhaul/ROSTER.md (theme `safetypin`).
-import { cardId } from '../../rules.js';
+import { cardId, isPinned } from '../../rules.js';
 import { defineCharm } from '../registry.js';
-import { ALL_RANKS, cardsOfRanks, rankOf, suitOf, suitName } from './kit.js';
+import { ALL_RANKS, cardsOfRanks, liveMarks, rankOf, suitOf, suitName } from './kit.js';
 const pinCount = (s) => 1 + Math.floor(s / 2);
 const pinUntil = (s) => 6 + 2 * s;
 
@@ -128,8 +128,11 @@ defineCharm({
     if (!picks.length) return;
     r.pinned = { cards: picks, until: pinUntil(ctx.strength) };
   },
-  setup(_board, ctx) {
-    const cards = ctx.api.rules?.pinned?.cards || [];
-    if (cards.length) ctx.api.mark(cards, 'lock');
-  },
+  setup(_board, ctx) { pinMarks(ctx); },
+  on: { move(ctx) { pinMarks(ctx); }, undo(ctx) { pinMarks(ctx); } },
 });
+// Locks come off once the pins release (or Broken Seal frees a card) and return on undo.
+function pinMarks(ctx) {
+  const st = ctx.api.state, rules = ctx.api.rules;
+  liveMarks(ctx, st ? (rules?.pinned?.cards || []).filter((card) => isPinned(st, card, rules)) : [], 'lock');
+}

@@ -44,6 +44,18 @@ export function cardsOfRanks(ranks, suits = [0, 1, 2, 3]) {
 }
 export { rankOf, suitOf };
 
+// Marks that follow the board (No Exit's bottom cards, expiring pins): show `ids` with
+// `style` and drop the ones this charm marked before. Only touches what changed, so
+// calling it from every move/undo hook stays cheap.
+export function liveMarks(ctx, ids, style) {
+  const saved = ctx.memo._runtime?.marks || {};
+  const gone = (ctx.memo.marked || []).filter((id) => !ids.includes(id) && saved[id]);
+  const added = ids.filter((id) => saved[id] !== style);
+  if (gone.length) ctx.api.unmark(gone);
+  if (added.length) ctx.api.mark(added, style);
+  ctx.memo.marked = [...ids];
+}
+
 // Pure guards for reset/window abilities. Automatic plays alone cannot be rewound
 // as a player step; a won board is never an ability target.
 export const hasPlayerMove = (history) => history.some((move) => !move.auto);

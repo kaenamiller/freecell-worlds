@@ -35,6 +35,7 @@ const cases = [
   ['desktop-title', 1440, 900, 'title-classic', 'roman'],
   ['phone-title', 390, 844, 'title-classic', 'roman'],
   ['phone-intro', 390, 844, 'intro7', 'jetset'],
+  ['desktop-intro', 1440, 900, 'intro1', 'roman'],
   ['desktop-final-result', 1440, 900, 'result7', 'roman'],
   ['phone-stats', 390, 844, 'stats', 'roman'],
   ['phone-confirm', 390, 844, 'confirm', 'zen'],
@@ -46,7 +47,7 @@ const cases = [
 for (const screen of ['port', 'port-grand', 'port-poor', 'port-spent', 'sticker-picker', 'boss-intro', 'hud-finale', 'hud-curse', 'map-confiscation', 'result-coins', 'sticker-marks', 'end-win', 'reward-two', 'service-card', 'service-boon', 'map-storm', 'intro-storm', 'hud-storm', 'result-storm']) {
   for (const [size, width, height] of [['desktop', 1024, 768], ['mobile', 390, 844]]) cases.push([`k2b-${screen}-${size}`, width, height, screen, 'roman']);
 }
-for (const screen of ['chart-start', 'chart-mid', 'map-storm', 'map-confiscation', 'chart-lookahead-2', 'chart-lookahead-3', 'chart-lookahead-4', 'chart-readonly', 'chart-sail', 'chart-docking', 'chart-late', 'chart-board7-readonly', 'chart-boss-selected']) {
+for (const screen of ['chart-start', 'chart-mid', 'map-storm', 'map-confiscation', 'chart-lookahead-2', 'chart-lookahead-3', 'chart-lookahead-4', 'chart-readonly', 'chart-sail', 'chart-docking', 'chart-market2', 'chart-late', 'chart-board7-readonly', 'chart-boss-selected']) {
   for (const [size, width, height] of [['desktop', 1024, 768], ['mobile', 390, 844]]) cases.push([`${screen}-${size}`, width, height, screen, 'roman']);
 }
 for (const theme of ['azulejo', 'jetset', 'space', 'muertos']) cases.push([`k2b-port-${theme}`, 390, 844, 'port', theme]);
@@ -138,7 +139,7 @@ assert.deepEqual(failures, [], 'Preview errors or unintended overflow');
 
 async function inspectChart(page) {
   return page.evaluate(() => {
-    const islands = [...document.querySelectorAll('.voyage-island')];
+    const islands = [...document.querySelectorAll('.voyage-island, .voyage-market')];
     const overlaps = [];
     for (let i = 0; i < islands.length; i++) for (let j = i + 1; j < islands.length; j++) {
       const a = islands[i].getBoundingClientRect(), b = islands[j].getBoundingClientRect();
@@ -252,6 +253,18 @@ async function checkInteractions(width) {
     assert.equal(await page.$eval('#voyage-chart', (e) => e.classList.contains('is-sailing')), false);
     await reset('chart-docking');
     assert.equal(await page.$$eval('.voyage-market.docking .voyage-harbour-mark', (e) => e.length), 1);
+    // Docked after board 2: the market is the only open stop, and the tables beyond leave from it.
+    await reset('chart-market2');
+    assert.equal(await page.$$eval('.voyage-market.available', (e) => e.length), 1);
+    assert.equal(await page.$$eval('.voyage-island.available', (e) => e.length), 0);
+    assert.equal(await page.$eval('#voyage-map-detail [data-enter-market]', (e) => !!e), true);
+    assert.equal(await page.$$eval('.voyage-sea-lane[data-route-to="market:stickers"]', (e) => e.length), 1);
+    await page.click('#voyage-map-detail [data-enter-market]');
+    await page.waitForFunction(() => !document.getElementById('voyage-port').hidden);
+    assert.equal((await calls()).at(-1).name, 'enterPort');
+    await reset('map3');
+    assert.equal(await page.$$eval('.voyage-market.current', (e) => e.length), 1);
+    assert.equal(await page.$$eval('.voyage-island.available', (e) => e.length > 0), true);
     await reset('chart-late');
     const late = await page.evaluate(() => {
       const view = window.preview.scenes.find((s) => s.id === 'chart-late').view;
