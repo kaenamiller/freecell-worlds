@@ -59,6 +59,10 @@ body[data-mode='voyage'] #status-bar { bottom: calc(22px + var(--safe-bottom)); 
 .voyage-screen::before { content: ''; position: absolute; inset: 0; opacity: .16; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 31px, var(--accent) 32px), repeating-linear-gradient(90deg, transparent 0 31px, var(--accent) 32px); mask-image: radial-gradient(ellipse at center, black, transparent 80%); }
 .voyage-screen-head, .voyage-map-layout, .voyage-map-footer { position: relative; z-index: 1; }
 .voyage-screen-head { display: flex; justify-content: space-between; align-items: start; gap: 20px; margin-bottom: 18px; }
+.voyage-screen-head > div:first-child { min-width: 0; }
+.voyage-screen-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.voyage-screen-actions .fs-toggle { width: 36px; height: 36px; background: color-mix(in srgb, var(--panel-solid) 88%, transparent); border-color: var(--border); }
+.voyage-screen-actions .fs-toggle svg { width: 18px; height: 18px; }
 .voyage-kicker { margin: 0 0 7px; font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: .28em; text-transform: uppercase; }
 .voyage-screen-head h2 { margin: 0; font-size: clamp(27px, 3vw, 48px); line-height: 1; letter-spacing: .06em; }
 .voyage-screen-head p:last-child { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
