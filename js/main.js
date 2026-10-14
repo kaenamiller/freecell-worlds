@@ -10,6 +10,7 @@ import { buildTableLayer } from './table.js';
 import { THEMES, loadThemeAssets, randomThemeId } from './themes.js';
 import { audio, SHARED_SOUNDS } from './audio.js';
 import { settings, saveSettings, load, save } from './store.js';
+import { initAccount } from './account.js';
 import { stats, recordStart, recordWin, recordLoss, resetStats, dailyDealNumber, todayKey } from './stats.js';
 import { ui } from './ui.js';
 import { voyageUI } from './voyage/ui.js';
@@ -3912,6 +3913,26 @@ async function boot() {
   loop();
   ui.setLoading(1, 'Ready');
   setTimeout(() => ui.hideLoader(), 250);
+  // After the first theme has loaded, so settings pulled from an account can't race it.
+  initAccount({ ui, onRemote: accountDataArrived, canReplaceSession: () => document.body.classList.contains('title-open') });
+}
+
+// Saves pulled from the player's account were written to the live objects in store.js;
+// bring the running game and the visible screens up to date.
+function accountDataArrived(keys) {
+  if (keys.includes('settings')) {
+    ui.refreshSettingsInputs();
+    for (const k of ['quality', 'reducedMotion', 'autoFoundation', 'fourColor']) ui.handlers.settings(k);
+  }
+  if (keys.includes('stats') || keys.includes('voyageStats')) {
+    ui.renderStats();
+    voyageUI.renderStats(voyageStats);
+  }
+  if (document.body.classList.contains('title-open')) {
+    ui.refreshDaily();
+    document.getElementById('btn-play-label').textContent = ui.handlers.hasResume() ? 'Continue' : 'Play';
+    voyageRefreshTitle();
+  }
 }
 
 boot().catch((err) => {

@@ -1,0 +1,25 @@
+{
+  "name": "freecell-worlds-api",
+  "private": true,
+  "description": "Accounts, sign-in and progress sync for FreeCell Worlds (Cloudflare Worker + D1).",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply freecell-worlds --local",
+    "db:migrate": "wrangler d1 migrations apply freecell-worlds --remote",
+    "gen:schema": "node scripts/gen-schema.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "better-auth": "^1.7.7",
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "wrangler": "^4.150.0"
+  },
+  "allowScripts": {
+    "workerd@1.20261006.1": true,
+    "esbuild@0.28.2": true
+  }
+}

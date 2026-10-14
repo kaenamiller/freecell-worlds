@@ -1,6 +1,6 @@
 // Voyage's DOM layer. main.js owns the run and supplies RunView snapshots.
 import { THEMES } from '../themes.js';
-import { load, save, settings } from '../store.js';
+import { load, save, settings, track } from '../store.js';
 import { ui } from '../ui.js';
 import { CHARMS } from './charms.js';
 import { VoyageChart } from './chart.js';
@@ -101,7 +101,7 @@ export const voyageUI = {
       charmGlyph: (charm) => charm?.icon || '✦',
     });
     this.syncMotion();
-    this.tutorialSeen = load('voyageTutorial', {});
+    this.tutorialSeen = track('voyageTutorial', load('voyageTutorial', {}));
     $('btn-voyage')?.addEventListener('click', () => this.handlers[this.titleRun ? 'continueVoyage' : 'startVoyage']?.(this.titleRun ? undefined : { daily: false }));
     $('btn-voyage-new')?.addEventListener('click', () => this.handlers.startVoyage?.({ daily: false }));
     $('btn-voyage-daily')?.addEventListener('click', () => this.handlers.startVoyage?.({ daily: true }));

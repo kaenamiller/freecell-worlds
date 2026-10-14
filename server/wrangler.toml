@@ -1,0 +1,33 @@
+# FreeCell Worlds API. Secrets are not in this file; set them with
+#   npx wrangler secret put BETTER_AUTH_SECRET   (and GOOGLE_CLIENT_SECRET, RESEND_API_KEY, TURNSTILE_SECRET_KEY)
+# Local development reads .dev.vars instead (copy .dev.vars.example).
+name = "freecell-worlds-api"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [{ pattern = "api.freecellworlds.com", custom_domain = true }]
+
+[vars]
+BETTER_AUTH_URL = "https://api.freecellworlds.com"
+TRUSTED_ORIGINS = "https://freecellworlds.com,https://www.freecellworlds.com"
+COOKIE_DOMAIN = "freecellworlds.com"
+EMAIL_FROM = "FreeCell Worlds <accounts@mail.freecellworlds.com>"
+GOOGLE_CLIENT_ID = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "freecell-worlds"
+# Replace with the id printed by: npx wrangler d1 create freecell-worlds
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "THEME_ASSETS"
+bucket_name = "freecell-worlds-theme-assets"
+
+[triggers]
+crons = ["17 * * * *"]
+
+[observability]
+enabled = true

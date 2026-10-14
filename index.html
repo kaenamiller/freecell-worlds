@@ -149,6 +149,7 @@
       <div class="title-foot">
         <button class="link" id="btn-title-stats">Stats</button>
         <button class="link" id="btn-title-settings">Settings</button>
+        <button class="link" id="btn-title-account" aria-haspopup="dialog" aria-controls="modal-account">Sign in</button>
         <span class="hint" id="title-hint">Drag cards &middot; double-click to send home &middot; H hint &middot; U undo</span>
       </div>
       <nav class="title-legal" aria-label="About and legal">
@@ -332,6 +333,13 @@
         <h4>Data</h4>
         <button class="btn" id="btn-reset-stats">Reset statistics</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-account" role="dialog" aria-modal="true" aria-labelledby="account-title">
+    <div class="modal-card panel">
+      <header><h3 id="account-title">Save your progress</h3><button class="icon-btn close" data-close aria-label="Close">&times;</button></header>
+      <div class="modal-body account-body" id="account-body"></div>
     </div>
   </div>
 
