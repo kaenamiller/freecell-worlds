@@ -294,7 +294,8 @@ const WORLDS = [
   },
 ];
 
-function worldTheme(w) {
+// Also builds players' custom themes (js/custom-themes.js), which pass `art` URLs.
+export function worldTheme(w) {
   const light = channels(w.accent);
   return {
     id: w.id, name: w.name, tagline: w.tagline, fontFamily: w.font,
@@ -339,7 +340,7 @@ function worldTheme(w) {
     particles: w.particles || 'motes', ambientColor: channels(w.ambient), ambientCount: w.count,
     fx: { spark: light, dust: channels(w.paper[1]), flash: rgb(w.accent) },
     confetti: [w.accent, w.secondary, ...w.paper, w.red].map(rgb),
-    art: Object.fromEntries(['board', 'backdrop', 'env', 'back', 'hero', 'thumb', 'court_j', 'court_q', 'court_k']
+    art: w.art || Object.fromEntries(['board', 'backdrop', 'env', 'back', 'hero', 'thumb', 'court_j', 'court_q', 'court_k']
       .map((key) => [key, `./assets/art/${w.id}/${key}.webp`])),
   };
 }

@@ -337,6 +337,13 @@
     </div>
   </div>
 
+  <div class="modal" id="modal-create-theme" role="dialog" aria-modal="true" aria-labelledby="create-theme-title">
+    <div class="modal-card panel wide">
+      <header><h3 id="create-theme-title">Create a theme</h3><button class="icon-btn close" data-close aria-label="Close">&times;</button></header>
+      <div class="modal-body account-body" id="create-theme-body"></div>
+    </div>
+  </div>
+
   <div class="modal" id="modal-account" role="dialog" aria-modal="true" aria-labelledby="account-title">
     <div class="modal-card panel">
       <header><h3 id="account-title">Save your progress</h3><button class="icon-btn close" data-close aria-label="Close">&times;</button></header>
@@ -347,7 +354,10 @@
   <div class="modal" id="modal-themes" role="dialog" aria-modal="true" aria-labelledby="theme-picker-title">
     <div class="modal-card panel wide">
       <header><h3 id="theme-picker-title">Choose a table</h3><button class="icon-btn close" data-close aria-label="Close theme picker">&times;</button></header>
-      <div class="modal-body"><div class="theme-grid" id="theme-grid"></div></div>
+      <div class="modal-body">
+        <section class="custom-themes" id="custom-themes" hidden><h4>Your themes</h4><div class="theme-grid" id="custom-theme-grid"></div><h4>All tables</h4></section>
+        <div class="theme-grid" id="theme-grid"></div>
+      </div>
     </div>
   </div>
 

@@ -12,7 +12,9 @@ const APP_URL = location.origin + location.pathname;
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-async function api(path, { method = 'GET', body, captcha, keepalive } = {}) {
+export const API_URL = CONFIG.api;
+
+export async function api(path, { method = 'GET', body, captcha, keepalive } = {}) {
   try {
     const res = await fetch(CONFIG.api + path, {
       method,
@@ -92,7 +94,7 @@ function humanCheck(el) {
 }
 
 // --- account state and modal ------------------------------------------------------------
-export function initAccount({ ui, onRemote, canReplaceSession }) {
+export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {} }) {
   const state = { user: null, tokens: 0, view: 'signin', email: '', resetToken: '', syncing: false, lastSync: 0, error: '' };
   const sync = createSync({ api, onRemote, canReplaceSession });
   const body = $('#account-body');
@@ -116,6 +118,7 @@ export function initAccount({ ui, onRemote, canReplaceSession }) {
     state.user = user;
     state.view = 'account';
     refreshButton();
+    onUser(user);
     await runSync(() => sync.start(user));
     const me = await api('/v1/me');
     if (me.status === 200) state.tokens = me.json.tokens;
@@ -128,6 +131,7 @@ export function initAccount({ ui, onRemote, canReplaceSession }) {
     state.view = 'signin';
     sync.stop();
     refreshButton();
+    onUser(null);
   }
 
   const open = (view, error = '') => {
@@ -215,7 +219,8 @@ export function initAccount({ ui, onRemote, canReplaceSession }) {
       </div>
       <p class="account-sync" aria-live="polite">${status}</p>
       <h4>Theme Tokens</h4>
-      <p class="account-note">${state.tokens} token${state.tokens === 1 ? '' : 's'}</p>
+      <p class="account-note">${state.tokens} token${state.tokens === 1 ? '' : 's'}. Each one makes a table theme of your own.</p>
+      <div class="account-actions"><button type="button" class="btn" id="account-create-theme">Create a theme</button></div>
       <h4>Your data</h4>
       <div class="account-actions">
         <button type="button" class="btn" id="account-sync">Sync now</button>
@@ -303,6 +308,7 @@ export function initAccount({ ui, onRemote, canReplaceSession }) {
 
     if (view === 'account') {
       body.querySelector('#account-sync').addEventListener('click', () => runSync(() => sync.pull()));
+      body.querySelector('#account-create-theme').addEventListener('click', () => document.dispatchEvent(new CustomEvent('fcw:create-theme')));
       body.querySelector('#account-signout').addEventListener('click', async () => {
         await sync.flush();
         await api('/api/auth/sign-out', { method: 'POST', body: {} });

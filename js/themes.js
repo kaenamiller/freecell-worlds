@@ -960,6 +960,19 @@ export const THEMES = {
 
 export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'azulejo', 'jetset', 'riverboat', 'carvings', 'pinecone', 'winterglass', 'concrete', ...EXPANSION_THEME_ORDER];
 
+// Players' own themes (js/custom-themes.js), shown in the picker while signed in. They
+// stay out of THEME_ORDER, so random picks and Voyage only use the built-in tables.
+export const CUSTOM_ORDER = [];
+
+export function registerCustomTheme(theme) {
+  THEMES[theme.id] = theme;
+  if (!CUSTOM_ORDER.includes(theme.id)) CUSTOM_ORDER.unshift(theme.id);
+}
+
+export function unregisterCustomThemes() {
+  for (const id of CUSTOM_ORDER.splice(0)) delete THEMES[id];
+}
+
 export function randomThemeId(currentId) {
   const others = THEME_ORDER.filter((id) => id !== currentId);
   const choices = others.length ? others : THEME_ORDER;
@@ -975,6 +988,9 @@ export function loadImage(url) {
   const p = new Promise((resolve) => {
     const img = new Image();
     img.decoding = 'async';
+    // Custom theme art comes from the account API: send the session cookie, and keep the
+    // image CORS-clean so WebGL can use it as a texture.
+    if (/^https?:/.test(url) && new URL(url).origin !== location.origin) img.crossOrigin = 'use-credentials';
     // Decode off the main thread now, so the first texture upload or canvas
     // draw doesn't stall on a synchronous decode of a 2K board image.
     img.onload = () => img.decode().then(() => resolve(img), () => resolve(img));
