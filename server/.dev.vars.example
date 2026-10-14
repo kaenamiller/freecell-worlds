@@ -10,3 +10,9 @@ RESEND_API_KEY=
 EMAIL_FROM=FreeCell Worlds <onboarding@resend.dev>
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+# Theme generation. GEN_MOCK=1 runs the whole pipeline with stand-in art and no API calls;
+# set it to 0 and fill in the keys to generate for real.
+GEN_MOCK=1
+ANTHROPIC_API_KEY=
+GEMINI_API_KEY=
+ELEVENLABS_API_KEY=

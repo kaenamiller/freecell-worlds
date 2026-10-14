@@ -1,4 +1,5 @@
-// Player data in D1: versioned save slots, purchases, theme tokens and custom themes.
+// Player data in D1: versioned save slots, purchases and theme tokens. Custom themes: themes/store.js.
+import { listThemes, failStuckVariations } from './themes/store.js';
 
 // The client's localStorage keys (js/store.js) that sync to an account.
 export const SAVE_KEYS = ['settings', 'stats', 'game', 'voyage', 'voyageStats', 'voyageTutorial'];
@@ -41,38 +42,22 @@ export async function listPurchases(env, userId) {
   return results;
 }
 
-export async function listThemes(env, userId) {
-  const [themes, assets] = await env.DB.batch([
-    env.DB.prepare('SELECT id, name, prompt, status, chosen_option, created_at, updated_at FROM custom_theme WHERE user_id = ? ORDER BY created_at DESC').bind(userId),
-    env.DB.prepare(
-      'SELECT a.id, a.theme_id, a.option, a.kind, a.content_type, a.bytes FROM theme_asset a JOIN custom_theme t ON t.id = a.theme_id WHERE t.user_id = ?'
-    ).bind(userId),
-  ]);
-  return themes.results.map((t) => ({ ...t, assets: assets.results.filter((a) => a.theme_id === t.id) }));
-}
-
-// The asset row, only if it belongs to one of this user's themes.
-export async function ownedAsset(env, userId, themeId, assetId) {
-  return env.DB.prepare(
-    'SELECT a.r2_key, a.content_type FROM theme_asset a JOIN custom_theme t ON t.id = a.theme_id WHERE t.user_id = ? AND t.id = ? AND a.id = ?'
-  ).bind(userId, themeId, assetId).first();
-}
-
 // R2 objects aren't covered by the database cascade, so remove them before the user row goes.
 export async function deleteThemeAssets(env, userId) {
   if (!env.THEME_ASSETS) return;
   const { results } = await env.DB.prepare(
-    'SELECT a.r2_key FROM theme_asset a JOIN custom_theme t ON t.id = a.theme_id WHERE t.user_id = ?'
+    'SELECT a.r2_key FROM theme_asset a JOIN theme_variation v ON v.id = a.variation_id JOIN custom_theme t ON t.id = v.theme_id WHERE t.user_id = ?'
   ).bind(userId).all();
   for (let i = 0; i < results.length; i += 1000) await env.THEME_ASSETS.delete(results.slice(i, i + 1000).map((r) => r.r2_key));
 }
 
 // Everything we hold about a player, for the privacy-policy data export.
 export async function exportAccount(env, user) {
-  const [accounts, sessions, ledger] = await env.DB.batch([
+  const [accounts, sessions, ledger, prompts] = await env.DB.batch([
     env.DB.prepare('SELECT providerId, createdAt FROM account WHERE userId = ?').bind(user.id),
     env.DB.prepare('SELECT createdAt, expiresAt, ipAddress, userAgent FROM session WHERE userId = ?').bind(user.id),
     env.DB.prepare('SELECT delta, reason, purchase_id, theme_id, created_at FROM token_ledger WHERE user_id = ? ORDER BY created_at').bind(user.id),
+    env.DB.prepare('SELECT prompt, allowed, category, reason, created_at FROM theme_prompt_check WHERE user_id = ? ORDER BY created_at').bind(user.id),
   ]);
   return {
     exportedAt: new Date().toISOString(),
@@ -83,6 +68,7 @@ export async function exportAccount(env, user) {
     purchases: await listPurchases(env, user.id),
     tokenLedger: ledger.results,
     themes: await listThemes(env, user.id),
+    themePromptChecks: prompts.results,
   };
 }
 
@@ -128,5 +114,7 @@ export async function cleanup(env) {
     env.DB.prepare('DELETE FROM verification WHERE expiresAt < ?').bind(iso(now)),
     env.DB.prepare('DELETE FROM rateLimit WHERE lastRequest < ?').bind(dayAgo),
     env.DB.prepare('DELETE FROM login_throttle WHERE window_start < ? AND locked_until < ?').bind(dayAgo, now),
+    env.DB.prepare('DELETE FROM theme_prompt_check WHERE created_at < ?').bind(now - 90 * 24 * 60 * 60 * 1000),
   ]);
+  await failStuckVariations(env);
 }

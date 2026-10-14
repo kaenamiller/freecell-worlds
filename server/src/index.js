@@ -4,9 +4,11 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createAuth, origins } from './auth.js';
 import {
-  SAVE_KEYS, MAX_SAVE_BYTES, listSaves, putSave, tokenBalance, listPurchases, listThemes, ownedAsset,
-  exportAccount, signInLockedUntil, recordSignIn, cleanup,
+  SAVE_KEYS, MAX_SAVE_BYTES, listSaves, putSave, tokenBalance, listPurchases, exportAccount, signInLockedUntil, recordSignIn, cleanup,
 } from './data.js';
+import themes from './themes/routes.js';
+
+export { ThemeGeneration } from './themes/workflow.js';
 
 const app = new Hono();
 
@@ -83,14 +85,7 @@ v1.put('/saves/:key', async (c) => {
 
 v1.get('/purchases', async (c) => c.json({ purchases: await listPurchases(c.env, c.get('user').id) }));
 
-v1.get('/themes', async (c) => c.json({ themes: await listThemes(c.env, c.get('user').id) }));
-
-v1.get('/themes/:themeId/assets/:assetId', async (c) => {
-  const asset = await ownedAsset(c.env, c.get('user').id, c.req.param('themeId'), c.req.param('assetId'));
-  const obj = asset && (await c.env.THEME_ASSETS?.get(asset.r2_key));
-  if (!obj) return c.json({ code: 'NOT_FOUND', message: 'Asset not found.' }, 404);
-  return new Response(obj.body, { headers: { 'Content-Type': asset.content_type, 'Cache-Control': 'private, max-age=31536000, immutable' } });
-});
+v1.route('/themes', themes);
 
 v1.get('/account/export', async (c) => {
   const data = await exportAccount(c.env, c.get('user'));

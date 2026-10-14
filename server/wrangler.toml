@@ -1,5 +1,6 @@
 # FreeCell Worlds API. Secrets are not in this file; set them with
-#   npx wrangler secret put BETTER_AUTH_SECRET   (and GOOGLE_CLIENT_SECRET, RESEND_API_KEY, TURNSTILE_SECRET_KEY)
+#   npx wrangler secret put BETTER_AUTH_SECRET   (and GOOGLE_CLIENT_SECRET, RESEND_API_KEY, TURNSTILE_SECRET_KEY,
+#   ANTHROPIC_API_KEY, GEMINI_API_KEY, ELEVENLABS_API_KEY for theme generation)
 # Local development reads .dev.vars instead (copy .dev.vars.example).
 name = "freecell-worlds-api"
 main = "src/index.js"
@@ -14,6 +15,9 @@ TRUSTED_ORIGINS = "https://freecellworlds.com,https://www.freecellworlds.com"
 COOKIE_DOMAIN = "freecellworlds.com"
 EMAIL_FROM = "FreeCell Worlds <accounts@mail.freecellworlds.com>"
 GOOGLE_CLIENT_ID = ""
+# Theme generation. LLM_MODEL / IMAGE_MODEL override the defaults in src/themes/ (leave
+# unset); GEN_MOCK = "1" swaps every model call for local stand-ins.
+GEN_MOCK = "0"
 
 [[d1_databases]]
 binding = "DB"
@@ -25,6 +29,16 @@ migrations_dir = "migrations"
 [[r2_buckets]]
 binding = "THEME_ASSETS"
 bucket_name = "freecell-worlds-theme-assets"
+
+# Theme generation runs (src/themes/workflow.js).
+[[workflows]]
+name = "freecell-worlds-theme-generation"
+binding = "THEME_GEN"
+class_name = "ThemeGeneration"
+
+# Resizes generated art into the files the game loads.
+[images]
+binding = "IMAGES"
 
 [triggers]
 crons = ["17 * * * *"]
