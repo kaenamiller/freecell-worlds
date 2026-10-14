@@ -396,6 +396,15 @@ export const voyageUI = {
 
   finishSailingSoon(ms) { this.chart?.finishSoon(ms); },
 
+  // A load screen for the rare table that is still being dealt when the boat lands.
+  showLoading(text = 'Preparing board…') {
+    const overlay = $('voyage-loading');
+    if (!overlay) return;
+    $('voyage-loading-text').textContent = text;
+    overlay.hidden = false;
+  },
+  hideLoading() { if ($('voyage-loading')) $('voyage-loading').hidden = true; },
+
   sailTo(nodeId, options = {}) {
     return this.chart?.sailTo(nodeId, { reducedMotion: settings.reducedMotion, ...options }) || Promise.resolve();
   },
@@ -761,6 +770,7 @@ export const voyageUI = {
     this.hideMarkTip();
     $('voyage-hud').hidden = $('voyage-dock').hidden = true;
     for (const id of ['voyage-map', 'voyage-port', 'voyage-sticker-picker', 'voyage-intro', 'voyage-result', 'voyage-end', 'voyage-confirm', 'voyage-tutorial']) $(id).hidden = true;
+    this.hideLoading();
     this.resultTimers.forEach(clearTimeout);
     this.resultTimers = [];
     if (this.confirmResolve) this.resolveConfirm(false);

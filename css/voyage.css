@@ -26,12 +26,12 @@ body[data-mode='voyage'] #btn-undo { min-width: 70px; }
 .voyage-hud-buttons { padding: 6px; border-radius: calc(var(--radius) + 2px); background: var(--panel); border: 1px solid var(--border); backdrop-filter: blur(12px); }
 body[data-mode='voyage'] #status-bar { bottom: calc(22px + var(--safe-bottom)); }
 #voyage-hud { display: flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0; justify-content: center; }
-.voyage-hud-metric { display: flex; flex-direction: column; align-items: center; flex: none; min-width: 0; padding: 4px 11px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--border); backdrop-filter: blur(12px); }
+.voyage-hud-metric { display: flex; flex-direction: column; align-items: center; justify-content: center; height: var(--hud-h); flex: none; min-width: 0; padding: 4px 11px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--border); backdrop-filter: blur(12px); }
 .voyage-hud-metric[data-tip-name], .voyage-capacity[data-tip-name], .voyage-empty-charms[data-tip-name], .voyage-override-chip[data-tip-name] { cursor: help; }
 .voyage-hud-metric:focus-visible, .voyage-capacity:focus-visible, .voyage-empty-charms:focus-visible, .voyage-override-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .voyage-hud-metric small, .voyage-tray > small, .voyage-hud-effects > small { color: var(--muted); font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
 .voyage-hud-metric strong { font-size: 17px; line-height: 1.25; font-variant-numeric: tabular-nums; }
-.voyage-live { display: grid; grid-template-columns: auto auto; column-gap: 9px; align-items: center; justify-items: start; padding: 3px 11px; }
+.voyage-live { display: grid; grid-template-columns: auto auto; align-content: center; column-gap: 9px; align-items: center; justify-items: start; padding: 3px 11px; }
 .voyage-live small { grid-column: 1 / -1; line-height: 1; }
 .voyage-live strong { line-height: 1.15; }
 .voyage-star-track { position: relative; width: 110px; height: 17px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 20%, transparent)); border-radius: 99px; }
@@ -181,7 +181,7 @@ body[data-mode='voyage'] #status-bar { bottom: calc(22px + var(--safe-bottom)); 
 .voyage-fog-mask rect { fill: none; }
 .voyage-chart-wake { fill: none; }
 .voyage-sailing-wake { fill: none; stroke: #f7fff4; stroke-width: 8; stroke-linecap: round; stroke-dasharray: var(--wake-length); filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 4px #cde8ff); }
-.voyage-fog-haze { z-index: 3; pointer-events: none; opacity: .08; background: url('../assets/art/chart/fog.webp') center / 900px auto repeat; mix-blend-mode: screen; animation: voyage-fog-drift 38s linear infinite; }
+.voyage-fog-haze { z-index: 3; pointer-events: none; opacity: .08; background: url('../assets/art/chart/fog.webp') center / 900px auto repeat; mix-blend-mode: screen; animation: voyage-fog-drift 38s ease-in-out infinite alternate; }
 .voyage-fog-bank { z-index: 4; pointer-events: none; inset: 0; background: linear-gradient(90deg, transparent, rgba(214, 228, 228, .12) 28%, rgba(154, 192, 193, .24)); }
 .voyage-chart-world.landscape .voyage-fog-bank {
   -webkit-mask-image: linear-gradient(to right, transparent 0, transparent calc(var(--fog-edge) - 18%), rgba(0,0,0,.22) calc(var(--fog-edge) - 4%), rgba(0,0,0,.7) calc(var(--fog-edge) + 10%), #000 calc(var(--fog-edge) + 28%));
@@ -192,8 +192,13 @@ body[data-mode='voyage'] #status-bar { bottom: calc(22px + var(--safe-bottom)); 
   -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(var(--fog-edge) - 10%), rgba(0,0,0,.65) calc(var(--fog-edge) + 6%), rgba(0,0,0,.2) calc(var(--fog-edge) + 22%), transparent calc(var(--fog-edge) + 38%));
   mask-image: linear-gradient(to bottom, #000 0, #000 calc(var(--fog-edge) - 10%), rgba(0,0,0,.65) calc(var(--fog-edge) + 6%), rgba(0,0,0,.2) calc(var(--fog-edge) + 22%), transparent calc(var(--fog-edge) + 38%));
 }
-.voyage-fog-layer { position: absolute; inset: -30%; opacity: .35; background: url('../assets/art/chart/fog.webp') 0 0 / 640px auto repeat; mix-blend-mode: lighten; animation: voyage-fog-drift 28s linear infinite; }
-.voyage-fog-layer.fog-b { opacity: .22; transform: scale(1.14); animation-direction: reverse; animation-duration: 41s; }
+.voyage-fog-layer { position: absolute; inset: -30%; opacity: .35; background: url('../assets/art/chart/fog.webp') 0 0 / 640px auto repeat; mix-blend-mode: lighten; animation: voyage-fog-drift 28s ease-in-out infinite alternate; }
+.voyage-fog-layer.fog-b { opacity: .22; transform: scale(1.14); animation-direction: alternate-reverse; animation-duration: 41s; }
+/* WebGL fog (js/voyage/fog.js) shapes its own frontier, so the painted layers step aside. */
+.voyage-fog-volume { position: absolute; inset: 0; width: 100%; height: 100%; }
+.voyage-chart-world.fog-volume .voyage-fog-bank { background: none; -webkit-mask-image: none; mask-image: none; }
+.voyage-chart-world.fog-volume .voyage-fog-layer, .voyage-chart-world.fog-volume .voyage-fog-haze { display: none; }
+.voyage-chart.is-sailing .voyage-chart-world.fog-volume .voyage-fog-bank { animation: none; }
 @keyframes voyage-fog-drift { from { transform: translate(-2%, -1%); } to { transform: translate(2%, 1%); } }
 .voyage-islands { z-index: 5; pointer-events: none; }
 .voyage-island { --island-size: 160px; appearance: none; position: absolute; z-index: 5; left: var(--chart-x); top: var(--chart-y); width: max(var(--island-size), 112px); min-width: 44px; min-height: 44px; transform: translate(-50%,-46%); padding: 0; pointer-events: auto; cursor: pointer; border: 0; background: none; color: #fff5d5; text-align: center; display: flex; flex-direction: column; align-items: center; transition: transform .18s ease, opacity .18s ease; }
@@ -369,6 +374,17 @@ body[data-mode='voyage'] #status-bar { bottom: calc(22px + var(--safe-bottom)); 
 .voyage-end-charms > div { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 7px; }
 .voyage-end-charms .voyage-charm { width: 40px; height: 40px; font-size: 24px; }
 .voyage-confirm { z-index: 90; }
+/* Shown only when the boat lands before its table has been dealt. */
+.voyage-loading { z-index: 85; background: radial-gradient(ellipse at center, color-mix(in srgb, var(--bg) 35%, transparent), color-mix(in srgb, var(--bg) 75%, transparent)); backdrop-filter: blur(4px); animation: voyage-loading-in .25s ease-out both; }
+.voyage-loading-card { display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 220px; padding: 26px 34px 22px; text-align: center; }
+.voyage-loading-card p { margin: 0; color: #f4e3b0; font: 700 13px/1.2 system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+.voyage-loading-wheel { position: relative; width: 60px; height: 60px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, #e0b877 0deg 6deg, transparent 6deg 45deg); box-shadow: inset 0 0 0 4px #e0b877, 0 0 18px rgba(224,184,119,.35); animation: voyage-wheel 1.6s cubic-bezier(.45,.05,.55,.95) infinite; }
+.voyage-loading-wheel::before { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: #1d1611; box-shadow: inset 0 0 0 3px #e0b877; -webkit-mask: radial-gradient(circle, transparent 0 10px, #000 10.5px); mask: radial-gradient(circle, transparent 0 10px, #000 10.5px); }
+.voyage-loading-wheel i { position: absolute; inset: 22px; border-radius: 50%; background: #e0b877; }
+@keyframes voyage-wheel { to { transform: rotate(360deg); } }
+@keyframes voyage-loading-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .voyage-loading-wheel { animation-duration: 4s; animation-timing-function: linear; } }
+body.voyage-reduced-motion .voyage-loading-wheel { animation-duration: 4s; animation-timing-function: linear; }
 .voyage-confirm-card { width: min(100%, 400px); }
 .voyage-confirm-card h2 { font-size: 23px; margin: 0 0 8px; }
 .voyage-confirm-card p { color: var(--muted); font: 13px/1.5 system-ui, sans-serif; }

@@ -35,14 +35,6 @@ defineCharm({
     const cols = ctx.rng.shuffle([0, 1, 2, 3, 4, 5, 6, 7]).slice(0, n);
     r.openCols = cols.reduce((mask, col) => mask | (1 << col), 0);
   },
-  setup(board, ctx) {
-    const mask = ctx.api.rules?.openCols || 0;
-    for (let c = 0; c < 8; c++) {
-      if (!(mask & (1 << c))) continue;
-      const top = board.state.tableau[c].at(-1);
-      if (top) ctx.api.mark([top], 'glow');
-    }
-  },
 });
 
 defineCharm({

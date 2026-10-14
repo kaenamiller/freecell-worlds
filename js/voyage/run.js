@@ -127,6 +127,23 @@ export function upcomingPlans(run) {
   return plans;
 }
 
+// Tables two steps ahead, with the charms held now. Their deals may still change
+// with a later pick, but most candidate checks carry over, so this low-priority
+// pass takes the long solves off the moment the player sets course.
+export function laterPlans(run) {
+  refreshMap(run);
+  const from = run.status === 'map' || run.status === 'port' ? nextChoices(run.map)
+    : (run.status === 'board' || run.status === 'reward') && run.current ? [findNode(run.map, run.current.nodeId)].filter(Boolean).flatMap((n) => n.links.map((id) => findNode(run.map, id))) : [];
+  const seen = new Set(), plans = [];
+  for (const n of from.filter(Boolean)) for (const id of n.links) {
+    const child = findNode(run.map, id);
+    if (!child || seen.has(id) || child.row >= VOYAGE.boards - 1) continue;
+    seen.add(id);
+    plans.push(boardPlan(run, child.theme, { idx: child.row, nodeId: child.id }));
+  }
+  return plans;
+}
+
 // Offer hooks run once at deal time; the saved seeded pool is cut by stars later.
 export function boardOffers(run, theme, idx = boardIndex(run)) {
   const valid = (id) => CHARMS[id]?.kind === 'boon' && !CHARMS[id].hidden && !CHARMS[id].placeholder && !run.boons.includes(id);
