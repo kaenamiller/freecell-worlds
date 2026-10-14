@@ -17,12 +17,17 @@ Status (October 13, 2026): the API is built and tested locally on the `player-ac
           │                                                       │
           │  fetch(credentials: include)                          ├── D1 "freecell-worlds"  (accounts, saves, purchases)
           └──────────────────────────────────────────────────────▶├── R2 "freecell-worlds-theme-assets"  (custom theme files)
+                                                                  ├── Workflow "freecell-worlds-theme-generation"  (custom themes)
+                                                                  ├── Images binding  (cuts generated art to game sizes)
                                                                   ├── Cron, hourly at :17  (cleanup)
                                                                   │
                                        outbound ──────────────────┼── Google OAuth  (sign-in)
                                                                   ├── Resend  (account emails, from mail.freecellworlds.com)
                                                                   ├── Cloudflare Turnstile siteverify  (human check)
-                                                                  └── Have I Been Pwned range API  (breached passwords)
+                                                                  ├── Have I Been Pwned range API  (breached passwords)
+                                                                  ├── Anthropic Claude  (theme prompt check + art direction)
+                                                                  ├── Google Gemini, Nano Banana 2.1  (theme images)
+                                                                  └── ElevenLabs music  (theme music)
 ```
 
 The game and the API are on subdomains of the same registrable domain. Browsers therefore treat API requests as same-site, and the session cookie (set for `freecellworlds.com`) isn't blocked by Safari or Firefox tracking protection.
@@ -34,7 +39,9 @@ The game and the API are on subdomains of the same registrable domain. Browsers 
 | Game | GitHub Pages now (`.github/workflows/deploy-pages.yml`), Cloudflare Pages planned | `freecellworlds.com` | The static PWA. Unchanged by accounts apart from `js/account.js` and `js/sync.js` |
 | API | Cloudflare Workers | `freecell-worlds-api` at `api.freecellworlds.com` | Auth (`/api/auth/*`), player data (`/v1/*`) |
 | Database | Cloudflare D1 (SQLite) | `freecell-worlds`, binding `DB` | Users, sessions, save slots, rate limits, purchases, token ledger, custom themes |
-| File storage | Cloudflare R2 | `freecell-worlds-theme-assets`, binding `THEME_ASSETS` | Custom theme images and music. Reserved; nothing writes here yet |
+| File storage | Cloudflare R2 | `freecell-worlds-theme-assets`, binding `THEME_ASSETS` | Custom theme images and music |
+| Theme generation | Cloudflare Workflows | `freecell-worlds-theme-generation`, binding `THEME_GEN`, class `ThemeGeneration` | One durable run per theme version; see [custom-themes.md](custom-themes.md) |
+| Image resizing | Cloudflare Images binding | binding `IMAGES` | Cuts each generated original into the WebP sizes the game loads |
 | Scheduled job | Workers Cron Trigger | `17 * * * *` | Deletes unconfirmed sign-ups older than 24 h, expired sessions and tokens, old rate-limit rows |
 | Human check | Cloudflare Turnstile | widget for `freecellworlds.com` | On sign-up, password sign-in, password reset and resending the confirmation email |
 | Account email | Resend | sender `accounts@mail.freecellworlds.com` | Confirmation, password reset, account-deletion links |
@@ -67,6 +74,11 @@ Plain variables are in `server/wrangler.toml`. Secrets are set with `npx wrangle
 | `GOOGLE_CLIENT_SECRET` | secret | from Google Cloud | empty |
 | `RESEND_API_KEY` | secret | from Resend | empty (emails print to the wrangler log) |
 | `TURNSTILE_SECRET_KEY` | secret | from the Turnstile widget | Cloudflare's always-pass test secret |
+| `GEN_MOCK` | var | `0` | `1` (stand-in art, no model calls) |
+| `ANTHROPIC_API_KEY` | secret | from the Anthropic Console | empty while `GEN_MOCK=1` |
+| `GEMINI_API_KEY` | secret | from Google AI Studio / Cloud | empty while `GEN_MOCK=1` |
+| `ELEVENLABS_API_KEY` | secret | from ElevenLabs | empty while `GEN_MOCK=1` |
+| `LLM_MODEL`, `IMAGE_MODEL` | var (optional) | unset: `claude-opus-5-5` and `gemini-nano-banana-2.1` | unset |
 
 The Turnstile **site key** is public and lives in the client: `CONFIG.turnstileSiteKey` in `js/account.js`. It's still a placeholder (`0x4AAAAAAA_REPLACE_ME`).
 
@@ -104,6 +116,7 @@ A staging environment isn't planned yet. When one is needed, add an `[env.stagin
 - **D1, R2, Turnstile and Email Routing** should stay within included or free usage at launch.
 - **Resend:** the free tier covers early sign-up volume. Move to a paid tier if account emails exceed its monthly cap.
 - **Google OAuth:** free. Only the basic `email` and `profile` scopes are requested, so Google's sensitive-scope review doesn't apply.
+- **Theme generation** is the one cost that scales with sales: each version is two Claude calls, seven 2K images and one 90-second music track, and a token buys up to three versions. Price tokens from measured per-version cost (see [custom-themes.md](custom-themes.md)). Workflows and the Images binding bill per use on top of the Workers plan.
 
 Check current pricing pages before launch; these notes describe the plan tiers, not exact figures.
 
@@ -127,7 +140,7 @@ npm run deploy       # wrangler deploy
 
 - D1 Time Travel can restore the database to any minute in the last 30 days: `npx wrangler d1 time-travel restore freecell-worlds --timestamp=2026-10-13T08:00:00Z`.
 - For longer retention, add a scheduled `wrangler d1 export freecell-worlds --remote --output=backup.sql` (for example from a weekly GitHub Action) to a private R2 bucket.
-- R2 theme files have no automatic backup. Generated themes can be regenerated from their stored prompts if needed.
+- R2 theme files have no automatic backup. They are paid content, so add bucket replication or a periodic copy before launch. The original prompts and art-direction specs are in D1, but regenerating gives different art.
 - Players' localStorage is a second copy of their progress; a sync can re-upload it.
 
 ## Monitoring
@@ -138,6 +151,7 @@ npm run deploy       # wrangler deploy
   - 429 counts (attack or limits set too tight)
   - Resend delivery failures (logged as `[email] Resend <status>`)
   - whether the cron run succeeds
+  - theme versions that fail (`[themes] ... failed` in the logs) and the share of prompts the check refuses (`theme_prompt_check`)
 - Sentry is named in the privacy policy as the error reporter but isn't wired up yet. When it is, use the Workers SDK in the API and the browser SDK in the game.
 
 ## Planned additions
@@ -145,7 +159,6 @@ npm run deploy       # wrangler deploy
 | Addition | Infrastructure it needs |
 | --- | --- |
 | Stripe Checkout for Theme Tokens | `POST /v1/stripe/webhook` in the Worker, plus `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` secrets. The webhook writes to `purchase` and `token_ledger` |
-| Custom theme generation | Cloudflare Queues (or Workflows) for the multi-minute generation jobs, Gemini image and ElevenLabs audio API keys as secrets, output written to R2 and `theme_asset` |
 | Game hosting on Cloudflare | Cloudflare Pages project for the static site, replacing the GitHub Pages workflow. `tools/prepare-pages.mjs` already builds the `_site/` directory to upload |
 | Leaderboards / anti-cheat | A `game_result` table with move lists; the Worker replays classic deals with `js/rules.js` to verify wins |
 | Error reporting | Sentry DSN as a var, for the Worker and the game |
@@ -155,6 +168,8 @@ npm run deploy       # wrangler deploy
 
 - [ ] Create the D1 database and put its id in `server/wrangler.toml`.
 - [ ] Create the R2 bucket.
+- [ ] Turn on Cloudflare Images for the account (the `IMAGES` binding).
+- [ ] Set the `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` and `ELEVENLABS_API_KEY` secrets.
 - [ ] Create the Turnstile widget and replace the site-key placeholder in `js/account.js`.
 - [ ] Create the Google OAuth client and consent screen.
 - [ ] Verify `mail.freecellworlds.com` in Resend.

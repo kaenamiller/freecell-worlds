@@ -11,7 +11,7 @@ Infrastructure, configuration, deploys and costs: see [server-infrastructure.md]
 | Game (static) | `freecellworlds.com` | Unchanged hosting. `js/account.js` (sign-in UI, Turnstile), `js/sync.js` (sync engine) |
 | API (Cloudflare Worker) | `api.freecellworlds.com`, code in `server/` | Better Auth under `/api/auth/*`, player data under `/v1/*` |
 | Database (Cloudflare D1) | `freecell-worlds` | Users, sessions, save slots, purchases, token ledger, custom themes |
-| File storage (Cloudflare R2) | `freecell-worlds-theme-assets` | Custom theme images and music (scaffolding; nothing writes here yet) |
+| File storage (Cloudflare R2) | `freecell-worlds-theme-assets` | Custom theme images and music (see [custom-themes.md](custom-themes.md)) |
 | Email (Resend) | sends from `mail.freecellworlds.com` | Verification, password reset, account-deletion confirmation |
 
 The session cookie is issued by `api.freecellworlds.com` for the parent domain `freecellworlds.com`, so the browser treats it as same-site and Safari/Firefox tracking protection doesn't block it.
@@ -49,9 +49,9 @@ Each synced localStorage key is one save slot with a version number. A device se
   - `save_slot`: one row per user and key, with `version`.
   - `purchase`: Stripe purchases. `user_id` is set to NULL on account deletion so tax records survive.
   - `token_ledger`: Theme Token balance = `SUM(delta)`.
-  - `custom_theme` and `theme_asset`: a player's generated themes; files live in R2 and are deleted with the account.
+  - `custom_theme`, `theme_variation`, `theme_asset` and `theme_prompt_check`: a player's generated themes; files live in R2 and are deleted with the account. See [custom-themes.md](custom-themes.md).
 
-Purchases, tokens and themes have read endpoints (`GET /v1/purchases`, `/v1/themes`, `/v1/themes/:id/assets/:assetId`) and a balance in `GET /v1/me`. Nothing writes to them yet: the Stripe webhook and theme generation come later.
+Purchases have a read endpoint (`GET /v1/purchases`) and the token balance is in `GET /v1/me`. Nothing writes purchases yet: the Stripe webhook comes later, and `npm run grant` adds tokens by hand meanwhile. Custom themes have their own API, described in [custom-themes.md](custom-themes.md).
 
 ## Local development
 
