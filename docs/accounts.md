@@ -4,7 +4,7 @@ Players can sign in with Google or with an email and password. A signed-in playe
 
 Infrastructure, configuration, deploys and costs: see [server-infrastructure.md](server-infrastructure.md).
 
-
+## How it fits together
 
 | Piece | Where | What it does |
 | --- | --- | --- |
