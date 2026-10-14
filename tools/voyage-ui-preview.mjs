@@ -11,7 +11,7 @@ import { voyageStats } from '../js/voyage/stats.js';
 // Use the production markup so this page stays a faithful, standalone DOM preview.
 const html = await (await fetch('../index.html')).text();
 const source = new DOMParser().parseFromString(html, 'text/html');
-for (const id of ['title-screen', 'hud', 'voyage-hud', 'voyage-dock', 'voyage-map', 'voyage-port', 'voyage-sticker-picker', 'voyage-intro', 'voyage-result', 'voyage-end', 'voyage-confirm', 'voyage-tutorial', 'voyage-tooltip', 'modal-stats', 'modal-settings', 'modal-themes']) {
+for (const id of ['title-screen', 'hud', 'voyage-hud', 'voyage-dock', 'voyage-map', 'voyage-port', 'voyage-sticker-picker', 'voyage-intro', 'voyage-loading', 'voyage-result', 'voyage-end', 'voyage-confirm', 'voyage-tutorial', 'voyage-tooltip', 'modal-stats', 'modal-settings', 'modal-themes']) {
   document.body.append(source.getElementById(id));
 }
 const fakeHistory = (board) => [
@@ -133,6 +133,7 @@ scenes.push(
   { id: 'chart-readonly', title: 'Chart · read-only mid-board', view: chartReadOnly },
   { id: 'chart-sail', title: 'Chart · sailing frame', view: chartSail },
   { id: 'chart-docking', title: 'Chart · docking at harbour', view: chartDock },
+  { id: 'chart-loading', title: 'Chart · board still being dealt', view: chartMid },
   { id: 'chart-late', title: 'Chart · board 6 full history', view: chartLate },
   { id: 'map-storm', title: 'Map · storm route', view: stormMap },
   { id: 'intro-storm', title: 'Intro · secondary storm curse', view: stormBoard },
@@ -252,6 +253,7 @@ function show(id) {
     voyageUI.showMap(view);
     if (id === 'chart-boss-selected') voyageUI.selectNode('__boss__', false);
     if (id === 'chart-sail') voyageUI.sailTo(view.map.flat().find((node) => node.state === 'available').id, { preview: true });
+    if (id === 'chart-loading') voyageUI.showLoading();
     if (id === 'chart-docking' && dockMarket) voyageUI.chart.dock(dockMarket.id, { preview: true });
     if (id === 'tutorial-map') { voyageUI.tutorialSeen.map = false; voyageUI.tutorial('map'); }
   } else if (id.startsWith('intro')) {

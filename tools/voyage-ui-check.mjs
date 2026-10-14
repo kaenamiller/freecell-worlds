@@ -47,7 +47,7 @@ const cases = [
 for (const screen of ['port', 'port-grand', 'port-poor', 'port-spent', 'sticker-picker', 'boss-intro', 'hud-finale', 'hud-curse', 'map-confiscation', 'result-coins', 'sticker-marks', 'end-win', 'reward-two', 'service-card', 'service-boon', 'map-storm', 'intro-storm', 'hud-storm', 'result-storm']) {
   for (const [size, width, height] of [['desktop', 1024, 768], ['mobile', 390, 844]]) cases.push([`k2b-${screen}-${size}`, width, height, screen, 'roman']);
 }
-for (const screen of ['chart-start', 'chart-mid', 'map-storm', 'map-confiscation', 'chart-lookahead-2', 'chart-lookahead-3', 'chart-lookahead-4', 'chart-readonly', 'chart-sail', 'chart-docking', 'chart-market2', 'chart-late', 'chart-board7-readonly', 'chart-boss-selected']) {
+for (const screen of ['chart-start', 'chart-mid', 'map-storm', 'map-confiscation', 'chart-lookahead-2', 'chart-lookahead-3', 'chart-lookahead-4', 'chart-readonly', 'chart-sail', 'chart-docking', 'chart-market2', 'chart-loading', 'chart-late', 'chart-board7-readonly', 'chart-boss-selected']) {
   for (const [size, width, height] of [['desktop', 1024, 768], ['mobile', 390, 844]]) cases.push([`${screen}-${size}`, width, height, screen, 'roman']);
 }
 for (const theme of ['azulejo', 'jetset', 'space', 'muertos']) cases.push([`k2b-port-${theme}`, 390, 844, 'port', theme]);
@@ -347,9 +347,9 @@ async function checkChartInteractions(width) {
       const t = performance.now(), p = u.sailTo(id); u.finishSailingSoon(180); await p;
       const fast = performance.now() - t;
       u.hideMap();
-      const paused = u.chart.root.classList.contains('chart-paused') && !u.chart.motion;
+      const paused = u.chart.root.classList.contains('chart-paused') && !u.chart.motion && !u.chart.fog.frame;
       u.showMap(window.preview.scenes.find(s => s.id === 'chart-start').view);
-      const resumed = !u.chart.root.classList.contains('chart-paused');
+      const resumed = !u.chart.root.classList.contains('chart-paused') && (!u.chart.fog.ok || (!!u.chart.fog.frame && !!u.chart.root.querySelector('.voyage-fog-bank .voyage-fog-volume')));
       return { cut, fast, paused, resumed };
     });
     assert.equal(motion.cut && motion.paused && motion.resumed, true);
@@ -514,6 +514,7 @@ async function checkLive() {
       console.log(`live-${mode}: ${JSON.stringify(result)}`);
     } finally { await page.close(); }
   }
-  assert.ok(times.animated - times.baseline <= 300, `Prepared animation overhead ${times.animated - times.baseline}ms exceeds 300ms`);
+  // The boat sails its whole lane (2.3s) even when the deal is ready.
+  assert.ok(times.animated - times.baseline <= 2600, `Prepared animation overhead ${times.animated - times.baseline}ms exceeds the 2.3s sail`);
   console.log('live-prepared-overhead', (times.animated - times.baseline).toFixed(0), 'ms');
 }

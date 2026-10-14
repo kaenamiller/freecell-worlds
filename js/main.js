@@ -13,7 +13,7 @@ import { settings, saveSettings, load, save } from './store.js';
 import { stats, recordStart, recordWin, recordLoss, resetStats, dailyDealNumber, todayKey } from './stats.js';
 import { ui } from './ui.js';
 import { voyageUI } from './voyage/ui.js';
-import { createRun, loadRun, saveRun, runView, boardPlan, upcomingPlans, startBoard, spendUndo, winBoard, pickCharm, loseRun, scoringContext } from './voyage/run.js';
+import { createRun, loadRun, saveRun, runView, boardPlan, upcomingPlans, laterPlans, startBoard, spendUndo, winBoard, pickCharm, loseRun, scoringContext } from './voyage/run.js';
 import { BoardEffects, CHARMS } from './voyage/charms.js';
 import { buyBoon, buySticker, upgradeBoon, buyUndo, sellBoon, rerollPort, leavePort, portService } from './voyage/port.js';
 import { findNode } from './voyage/map.js';
@@ -655,7 +655,7 @@ function setFreeCellCount(n) {
 
 let themeGen = 0;
 
-async function applyTheme(id, { persist = true, gen } = {}) {
+async function applyTheme(id, { persist = true, gen, css = true } = {}) {
   const theme = THEMES[id];
   const art = await loadThemeAssets(theme);
   if (gen != null && gen !== themeGen) return;
@@ -668,7 +668,9 @@ async function applyTheme(id, { persist = true, gen } = {}) {
     saveSettings();
   }
 
-  ui.applyThemeCss(theme);
+  // Boot paints the chrome only once the loader is about to reveal the title.
+  // Applying it here would restyle the loading screen as soon as the art arrives.
+  if (css) ui.applyThemeCss(theme);
   setCardTheme(theme, art, { fourColor: settings.fourColor, highContrast: settings.highContrast });
   applyLights(theme.scene);
   post.setTheme(theme.scene);
@@ -1923,10 +1925,27 @@ function setHover(id) {
 
 let markTipAt = null;
 
+// Rules that bind a whole column draw a lane under it (table.js); these explain each kind.
+const LANE_TIPS = {
+  sealed: { name: 'Sealed column', text: 'No card can be placed here. Move every card off this column to break the seal.' },
+  noexit: { name: 'No Exit', text: 'The bottom card of this column can only leave to its foundation.' },
+  open: { name: 'Pincushion', text: 'This column takes any card on top, whatever its rank or colour.' },
+};
+const lanePlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -SURFACE_Y), lanePoint = new THREE.Vector3();
+
+function laneTipAt(clientX, clientY) {
+  setPointer({ clientX, clientY });
+  raycaster.setFromCamera(pointer, camera);
+  const p = raycaster.ray.intersectPlane(lanePlane, lanePoint);
+  const lane = p && layer?.laneAt?.(p.x, p.z);
+  return lane ? LANE_TIPS[lane.kind] : null;
+}
+
 function syncMarkTip(clientX, clientY, hit) {
   const group = hit && cardGroups.get(hit.object.userData.cardId);
   const style = group?.userData.mark;
-  const tip = !group || group.userData.concealed ? null
+  const tip = !group ? laneTipAt(clientX, clientY)
+    : group.userData.concealed ? null
     : group.userData.mods?.length && modHit(hit.uv, !!style) ? vy.effects?.modTip(group.userData.cardId)
     : style && !String(style).startsWith('sticker-') && markSigilHit(hit.uv) ? vy.effects?.markTip(group.userData.cardId, style)
     : null;
@@ -2799,7 +2818,10 @@ function voyagePrepareAhead() {
   const plans = upcomingPlans(r);
   const idx = r.status === 'map' || r.status === 'port' ? r.results.length : r.results.length + (r.status === 'board' ? 1 : 0);
   const exclude = vyUsedDeals().concat(r.current ? [r.current.deal] : []);
-  prepareDeals(plans.map((p) => ({ ...p, idx: p.idx ?? idx })), { seed: r.seed, exclude }).catch((e) => console.warn('[voyage] prepare', e));
+  prepareDeals(plans.map((p) => ({ ...p, idx: p.idx ?? idx })), { seed: r.seed, exclude })
+    // Then the tables after those, so their slow checks are done before they are picked.
+    .then(() => vy.run === r && prepareDeals(laterPlans(r), { seed: r.seed, exclude }))
+    .catch((e) => console.warn('[voyage] prepare', e));
   for (const t of new Set(plans.map((p) => p.theme))) {
     loadThemeAssets(THEMES[t]);
     audio.preloadTheme(t);
@@ -2877,21 +2899,22 @@ async function voyagePickNode(nodeId) {
   const node = findNode(r.map, nodeId);
   if (!node || !runView(r).map.flat().some(n => n.id === nodeId && n.state === 'available')) return;
   voyageUI.setPreparing(true);
-  const sailing = voyageUI.sailTo?.(nodeId) || Promise.resolve();
+  // The boat always sails the whole lane. If the table is still being dealt when
+  // it arrives, a loading screen says so instead of leaving the chart still.
+  const dealt = dealFor({ ...boardPlan(r, node.theme, { nodeId }) }, { seed: r.seed, exclude: vyUsedDeals() });
+  let ready = false;
+  dealt.then(() => { ready = true; }, () => {});
   let pick;
   try {
-    [pick] = await Promise.all([
-      dealFor({ ...boardPlan(r, node.theme, { nodeId }) }, { seed: r.seed, exclude: vyUsedDeals() }).then(ready => {
-        voyageUI.finishSailingSoon?.(180);
-        return ready;
-      }),
-      sailing,
-    ]);
+    await (voyageUI.sailTo?.(nodeId) || Promise.resolve());
+    if (!ready) voyageUI.showLoading?.('Preparing board…');
+    pick = await dealt;
   } catch (error) {
     voyageUI.chart?.cancel();
     ui.toast('⚓', 'Course unavailable', error.message);
     return;
   } finally {
+    voyageUI.hideLoading?.();
     voyageUI.setPreparing(false);
   }
   if (vy.run !== r || r.status !== 'map') return;
@@ -3895,7 +3918,7 @@ async function boot() {
   audio.theme = currentTheme.id;
   audio.unlock(); // creates a suspended context so buffers can be decoded
   await Promise.all([
-    applyTheme(currentTheme.id).then(() => ui.setLoading(0.55, 'Tuning the sound…')),
+    applyTheme(currentTheme.id, { css: false }).then(() => ui.setLoading(0.55, 'Tuning the sound…')),
     audio.preload(SHARED_SOUNDS, (p) => ui.setLoading(0.55 + p * 0.4)),
   ]);
   ui.setLoading(0.97, 'Shuffling…');
@@ -3907,6 +3930,7 @@ async function boot() {
   syncShadows();
   if (perf.tier === 'low') renderer.render(scene, camera);
   else post.render(0);
+  ui.applyThemeCss(currentTheme);
   ui.showTitle();
   voyageRefreshTitle();
   loop();
