@@ -2,7 +2,9 @@
 
 Players can sign in with Google or with an email and password. A signed-in player's stats, settings, current deal, Voyage run and tutorial progress save to their account and sync across devices. Playing without an account works exactly as before.
 
-## How it fits together
+Infrastructure, configuration, deploys and costs: see [server-infrastructure.md](server-infrastructure.md).
+
+
 
 | Piece | Where | What it does |
 | --- | --- | --- |
