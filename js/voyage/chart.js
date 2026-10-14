@@ -1,5 +1,7 @@
 // Painted Voyage sea chart. This module owns chart geometry, SVG routes/fog,
 // island rendering, and the short sailing/docking beats. It has no run state.
+import { FogVolume } from './fog.js';
+
 const SVG = 'http://www.w3.org/2000/svg';
 const MOBILE = '(max-width: 800px) and (orientation: portrait)';
 
@@ -184,6 +186,7 @@ export class VoyageChart {
     this.media.addEventListener?.('change', this.resize);
     this.panX = 0;
     this.didDrag = false;
+    this.fog = new FogVolume();
     this.bindPan();
   }
 
@@ -375,6 +378,8 @@ export class VoyageChart {
       <div class="voyage-fog-caption">${futureRows ? `${futureRows} uncharted ${futureRows === 1 ? 'table' : 'tables'}` : current?.final ? 'Final table reached' : 'The finale lies ahead'}</div>
     </div>`;
     this.root.classList.remove('chart-paused');
+    const volume = this.fog.attach(this.root.querySelector('.voyage-fog-bank'), { width, height, edge, portrait: this.portrait, seed: hash(view.seed ?? '') });
+    this.root.querySelector('.voyage-chart-world').classList.toggle('fog-volume', volume);
     this.root.dataset.orientation = this.portrait ? 'portrait' : 'landscape';
     this.setPan(this.panX);
     if (newView && !this.portrait) {
@@ -448,8 +453,9 @@ export class VoyageChart {
     }
     path.remove();
     this.root.classList.add('is-sailing');
+    this.fog.parting(true);
     island?.classList.add('sail-target');
-    const duration = preview ? 4000 : 1450;
+    const duration = preview ? 4000 : 2300;
     let resolve;
     const finished = new Promise((done) => { resolve = done; });
     const animation = boat.animate(frames, { duration, easing: 'cubic-bezier(.55,.05,.35,.98)', fill: 'forwards' });
@@ -466,6 +472,7 @@ export class VoyageChart {
       boat.style.setProperty('--chart-x', `${target.x / width * 100}%`);
       boat.style.setProperty('--chart-y', `${target.y / height * 100}%`);
       this.root.classList.remove('is-sailing');
+      this.fog.parting(false);
       island?.classList.remove('sail-target');
       this.motion = null;
       resolve();
@@ -533,11 +540,13 @@ export class VoyageChart {
   pause() {
     this.cancel();
     cancelAnimationFrame(this.resizeFrame); this.resizeFrame = 0;
+    this.fog.stop();
     this.root.classList.add('chart-paused');
   }
   resume() {
     this.motion?.animation?.play();
     this.motion?.wakeAnimation?.play();
     this.root.classList.remove('chart-paused');
+    this.fog.start();
   }
 }

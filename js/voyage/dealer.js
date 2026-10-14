@@ -178,6 +178,7 @@ async function pump() {
       // does not: a paused or long animation must never strand Set course.
       while (isBusy() && !queue[0]?.priority) await sleep(250);
       const job = queue.shift();
+      queued.delete(job.memo);
       const t0 = performance.now();
       try {
         job.done(await runJob(job.msg));
@@ -198,10 +199,38 @@ async function pump() {
   }
 }
 
+// Solver results are reused: the plans for one table (one per charm the player
+// might pick) usually try the same candidate deals under the same rules.
+const verified = new Map();
+const VERIFY_MEMO = 4000;
+
 // Solver check of one deal under `rules`. Resolves { solvable: true|false|null }.
 export function verify(deal, rules, { timeLimitMs = 6000, key = null } = {}) {
+  const memo = `${deal}|${timeLimitMs}|${rulesKey(rules)}`;
+  const known = verified.get(memo);
+  if (known) {
+    // Still queued: whichever plan the player picks, its check jumps the queue.
+    const job = queued.get(memo);
+    if (job && key != null) {
+      job.keys.add(key);
+      if (urgent.has(key)) promote(key);
+    }
+    return known;
+  }
+  const pending = queueVerify(deal, rules, { timeLimitMs, key, memo }).then((result) => {
+    if (result.error) verified.delete(memo); // a worker failure is not an answer
+    return result;
+  });
+  verified.set(memo, pending);
+  if (verified.size > VERIFY_MEMO) verified.delete(verified.keys().next().value);
+  return pending;
+}
+const queued = new Map(); // memo -> job still waiting in the queue
+
+function queueVerify(deal, rules, { timeLimitMs, key, memo }) {
   return new Promise((done) => {
-    const job = { msg: { deal, rules, options: { timeLimitMs } }, done, key, priority: urgent.has(key) };
+    const job = { msg: { deal, rules, options: { timeLimitMs } }, done, keys: new Set([key]), memo, priority: urgent.has(key) };
+    queued.set(memo, job);
     if (job.priority) queue.splice(queue.findIndex((j) => !j.priority) >>> 0, 0, job);
     else queue.push(job);
     pump();
@@ -212,7 +241,7 @@ export function verify(deal, rules, { timeLimitMs = 6000, key = null } = {}) {
 const urgent = new Set();
 function promote(key) {
   urgent.add(key);
-  const mine = queue.filter((j) => j.key === key), rest = queue.filter((j) => j.key !== key);
+  const mine = queue.filter((j) => j.keys.has(key)), rest = queue.filter((j) => !j.keys.has(key));
   for (const j of mine) j.priority = true;
   queue = [...mine, ...rest];
 }

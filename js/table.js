@@ -266,7 +266,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     } else if (type === 'pip') {
       ctx.fillStyle = label === 'red' ? '#efb1b1' : '#d0d9e1';
       ctx.font = '120px serif'; ctx.fillText(label === 'red' ? '♦' : '♠', 192, 128);
-    } else if (type === 'limit' || type === 'maxrank' || type === 'emptycolor' || type === 'stack' || type === 'spurcap' || type === 'loop') {
+    } else if (type === 'limit' || type === 'maxrank' || type === 'emptycolor' || type === 'stack' || type === 'spurcap') {
       ctx.fillStyle = 'rgba(230,235,239,.75)'; ctx.font = 'bold 92px serif'; ctx.fillText(label, 192, 128);
     } else {
       ctx.fillStyle = 'rgba(230,235,239,.65)'; ctx.font = 'bold 104px serif'; ctx.fillText(label + '+', 192, 128);
@@ -275,7 +275,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     const mat = track(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: .85 }));
     const g = new THREE.Group();
     const pieces = type === 'seal' || type === 'frost' ? 3 : 1;
-    const small = ['pip', 'limit', 'gate', 'stack', 'emptycolor', 'spurcap', 'loop'].includes(type);
+    const small = ['pip', 'limit', 'gate', 'stack', 'emptycolor', 'spurcap'].includes(type);
     const width = small ? (type === 'gate' ? .52 : .34) : CARD.W * .92;
     const height = type === 'seal' ? .23 : small ? .24 : CARD.H * .9;
     for (let i = 0; i < pieces; i++) {
@@ -311,7 +311,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
   function setRules(game) {
     if (!game) return;
     const st = game.state, r = rulesForState(st, game.rules);
-    for (const item of ruleMarkers.values()) if (['limit', 'gate', 'maxrank', 'emptycolor', 'stack', 'spurcap', 'wet', 'shutter', 'loop'].includes(item.type)) { item.active = false; item.group.visible = false; }
+    for (const item of ruleMarkers.values()) if (['limit', 'gate', 'maxrank', 'emptycolor', 'stack', 'spurcap', 'wet', 'shutter'].includes(item.type)) { item.active = false; item.group.visible = false; }
     if (st.spur) {
       if (!spurSlot) { spurSlot = addSlot(L.SPUR_X ?? 4.75, L.SPUR_Z ?? -1, foundMats[st.spur.suit]); spurSlot.name = 'voyage-spur-slot'; }
       spurSlot.visible = true;
@@ -344,9 +344,6 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     for (const [key, item] of ruleMarkers) if (item.type === 'pip' && !key.endsWith(':' + r.cellColors?.[Number(key.split(':')[1])])) item.group.visible = false;
     for (let c = 0; c < st.tableau.length; c++) {
       if (r.emptyCure && cardsHome(st) < r.emptyCure && !st.tableau[c].length) showMarker(marker(`wet:${c}`, 'wet'), true, L.colX(c), L.SURFACE_Y + .016, L.TABLEAU_Z);
-      if (r.noExitCols & (1 << c)) showMarker(marker(`loop:${c}`, 'loop', '↻'), true, L.colX(c) + CARD.W * .4, L.SURFACE_Y + .018, L.TABLEAU_Z - CARD.H * .46);
-      const sealed = !!(st.sealed & (1 << c)), sealKey = `seal:${c}`;
-      if (sealed || ruleMarkers.has(sealKey)) showMarker(marker(sealKey, 'seal'), sealed, L.colX(c), L.SURFACE_Y + CARD.D + .025, L.TABLEAU_Z - CARD.H * .4);
       const rankKey = `rank:${c}:${r.emptyMinRank}`;
       if (r.emptyMinRank) {
         const label = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][r.emptyMinRank] || String(r.emptyMinRank);
@@ -359,6 +356,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
       if (r.emptyColors[c]) showMarker(marker(`emptycolor:${c}:${r.emptyColors[c]}`, 'emptycolor', r.emptyColors[c] === 'red' ? '♦' : '♠'), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .018, L.TABLEAU_Z + CARD.H * .35);
     }
     for (const [key, item] of ruleMarkers) if (item.type === 'rank' && !key.endsWith(':' + r.emptyMinRank)) item.group.visible = false;
+    setLanes(st, r);
     if (r.gate) {
       const remaining = Math.max(0, r.gate.after - (cardsHome(st) - suitHomeCount(st, r.gate.suit)));
       if (remaining) showMarker(marker(`gate:${r.gate.suit}:${remaining}`, 'gate', String(remaining)), true,
@@ -398,6 +396,133 @@ export function buildTableLayer(theme, art, L, opts = {}) {
         mesh.rotation.z = (i - 1) * age * 1.3;
       });
       if (age >= .6) { item.group.visible = false; item.release = null; }
+    }
+  });
+
+  // --- column lanes: rules that bind a whole column paint a band under its cards ----
+  // One shader serves every kind; `pattern` picks the motif, so a new column rule only
+  // needs an entry here and a tooltip in main.js. Lanes sit just above the felt so the
+  // cards cover them and the band shows above the top card and below the last.
+  const LANE_KINDS = {
+    sealed: { color: 0xb9c3cf, pattern: 0, glyph: 'chain' },
+    noexit: { color: 0xb894ff, pattern: 1, glyph: '↻' },
+    open: { color: 0xa6dc6c, pattern: 2, glyph: '✦' },
+  };
+  const LANE_TOP = L.TABLEAU_Z - CARD.H / 2 - .2, LANE_BOTTOM = cz + SH / 2 - .62, LANE_W = CARD.W * 1.14;
+  const lanes = new Map();
+  let laneMaterial = null;
+  function laneCrest(kind) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 128;
+    const ctx = canvas.getContext('2d'), color = '#' + new THREE.Color(LANE_KINDS[kind].color).getHexString();
+    ctx.fillStyle = 'rgba(16,18,24,.82)'; ctx.strokeStyle = color; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(64, 64, 52, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (LANE_KINDS[kind].glyph === 'chain') {
+      // Drawn links rather than an emoji so every platform shows the same seal.
+      ctx.lineWidth = 7;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath(); ctx.ellipse(36 + i * 28, 64 + (i % 2 ? 9 : -9), 17, 10, i % 2 ? .6 : -.6, 0, Math.PI * 2); ctx.stroke();
+      }
+    } else {
+      ctx.fillStyle = color; ctx.font = 'bold 70px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(LANE_KINDS[kind].glyph, 64, 68);
+    }
+    return track(new THREE.CanvasTexture(canvas));
+  }
+  function lane(c, kind) {
+    const key = `${c}:${kind}`;
+    if (lanes.has(key)) return lanes.get(key);
+    laneMaterial ??= track(new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+      fragmentShader: `varying vec2 vUv; uniform float uTime; uniform vec3 uColor; uniform float uAlpha, uPattern, uFlash, uAspect;
+        void main(){
+          vec2 p = vec2(vUv.x, (1.0 - vUv.y) * uAspect);
+          float dx = min(p.x, 1.0 - p.x), dy = min(p.y, uAspect - p.y);
+          float d = min(dx, dy);
+          float rim = smoothstep(.07, 0.0, d) * smoothstep(-.01, .02, d);
+          float fill = .16 * smoothstep(0.0, .05, d);
+          float motif = 0.0;
+          if (uPattern < .5) {
+            // Chain links running down both edges, linked by faint diagonal bars.
+            float row = floor(p.y * 3.2), side = step(.5, p.x);
+            vec2 q = vec2((dx - .13) * 3.2, fract(p.y * 3.2) - .5);
+            vec2 squash = mod(row + side, 2.0) < .5 ? vec2(2.2, 1.0) : vec2(1.0, 1.0);
+            float link = abs(length(q * squash) - .34);
+            float bars = smoothstep(.06, 0.0, abs(fract((p.x + p.y) * 2.4) - .5) - .43);
+            motif = smoothstep(.09, .02, link) * .8 + bars * .16;
+          } else if (uPattern < 1.5) {
+            // Rings drifting slowly upward: cards here circle back rather than leave.
+            vec2 q = vec2(p.x - .5, fract(p.y * 1.4 + uTime * .05) - .5);
+            motif = smoothstep(.04, 0.0, abs(length(q) - .3)) * .45;
+          } else {
+            // Running stitches down both edges.
+            float stitch = step(.5, fract(p.y * 7.0 - uTime * .12));
+            motif = stitch * smoothstep(.025, 0.0, abs(dx - .1)) * .8;
+          }
+          float pulse = .85 + .15 * sin(uTime * 1.6);
+          float a = (fill + motif * .55 + rim * .9 * pulse) * uAlpha + uFlash * smoothstep(.2, 0.0, d) * .8;
+          gl_FragColor = vec4(mix(uColor, vec3(1.0), uFlash * .6), a);
+        }`,
+      transparent: true, depthWrite: false,
+    }));
+    const mat = track(laneMaterial.clone());
+    mat.uniforms = { uTime: laneMaterial.uniforms.uTime, uColor: { value: new THREE.Color(LANE_KINDS[kind].color) },
+      uAlpha: { value: HC ? 1 : .8 }, uPattern: { value: LANE_KINDS[kind].pattern }, uFlash: { value: 0 },
+      uAspect: { value: (LANE_BOTTOM - LANE_TOP) / LANE_W } };
+    const band = new THREE.Mesh(track(new THREE.PlaneGeometry(LANE_W, LANE_BOTTOM - LANE_TOP)), mat);
+    band.rotation.x = -Math.PI / 2; band.renderOrder = 2;
+    const crestMat = track(new THREE.MeshBasicMaterial({ map: laneCrest(kind), transparent: true, depthWrite: false }));
+    const crest = new THREE.Mesh(track(new THREE.PlaneGeometry(.3, .3)), crestMat);
+    crest.rotation.x = -Math.PI / 2; crest.renderOrder = 3;
+    // Both ends carry the crest: the top one stays clear of the first card, the bottom
+    // one marks the column's foot when it is short.
+    const crestTop = crest.clone();
+    crestTop.scale.setScalar(.6);
+    crest.position.set(0, .001, (LANE_BOTTOM - LANE_TOP) / 2 - .22);
+    crestTop.position.set(0, .001, -(LANE_BOTTOM - LANE_TOP) / 2 + .1);
+    const g = new THREE.Group();
+    g.add(band, crest, crestTop);
+    g.position.set(L.colX(c), L.SURFACE_Y + .005, (LANE_TOP + LANE_BOTTOM) / 2);
+    g.visible = false; g.name = `voyage-lane-${kind}-${c}`;
+    group.add(g);
+    const item = { group: g, mat, crestMat, kind, col: c, active: false, release: null };
+    lanes.set(key, item);
+    return item;
+  }
+  function setLane(c, kind, active) {
+    if (!active && !lanes.has(`${c}:${kind}`)) return;
+    const item = lane(c, kind);
+    if (item.active && !active) item.release = ruleTime;
+    if (active) { item.release = null; item.mat.uniforms.uFlash.value = 0; item.mat.uniforms.uAlpha.value = HC ? 1 : .8; item.crestMat.opacity = 1; }
+    item.active = active;
+    item.group.visible = active || item.release !== null;
+  }
+  function setLanes(st, r) {
+    for (let c = 0; c < 8; c++) {
+      const live = c < st.tableau.length;
+      setLane(c, 'sealed', live && !!(st.sealed & (1 << c)));
+      setLane(c, 'noexit', live && !!(r.noExitCols & (1 << c)));
+      setLane(c, 'open', live && !!(r.openCols & (1 << c)));
+    }
+  }
+  // Active lane under a table-surface point, for hover tooltips.
+  function laneAt(x, z) {
+    if (z < LANE_TOP || z > LANE_BOTTOM) return null;
+    for (const item of lanes.values()) if (item.active && Math.abs(x - L.colX(item.col)) <= LANE_W / 2) return { kind: item.kind, col: item.col };
+    return null;
+  }
+  updaters.push((dt, t) => {
+    if (laneMaterial) laneMaterial.uniforms.uTime.value = t;
+    for (const item of lanes.values()) {
+      if (item.active) { item.mat.uniforms.uAlpha.value = (HC ? 1 : .8) * (t < tellUntil ? 1.4 : 1); continue; }
+      if (item.release === null) continue;
+      // Breaking a lane flares it bright, then lets it fade into the felt.
+      const age = t - item.release, k = Math.max(0, 1 - age / .7);
+      item.mat.uniforms.uFlash.value = Math.max(0, 1 - age / .25);
+      item.mat.uniforms.uAlpha.value = (HC ? 1 : .8) * k;
+      item.crestMat.opacity = k;
+      if (age >= .7) { item.group.visible = false; item.release = null; }
     }
   });
 
@@ -708,6 +833,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     setRules,
     flashBossTell,
     setFog,
+    laneAt,
     update(dt, t) {
       for (const u of updaters) u(dt, t);
     },
