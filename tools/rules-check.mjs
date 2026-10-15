@@ -233,6 +233,7 @@ group('freeCards, bounded cells, closing capacity and occupied closing cells', (
 group('empty maximum, empty colours, always-counting columns and suit-mask capacity', () => {
   const r = { emptyMaxRank: 5 };
   assert(canStackOn([], 5, r)); assert(!canStackOn([], 6, r));
+  assert(!canStackOn([], 13, r)); assert(canStackOn([], 13, { ...r, emptyKings: true })); assert(!canStackOn([], 12, { ...r, emptyKings: true }));
   assert.equal(maxMoveSize(state([[7]]), false, r), 5);
   assert.equal(maxMoveSize(state([[7]]), false, { ...r, emptyAlwaysCounts: true }), 5 * 128);
   const st = state([[8, 7, 6], [22]], [10, 11, 12, 13]);
@@ -335,7 +336,7 @@ group('levels, stickers, post-composition synergy and boss confiscation', () => 
   const b = composeBoard({ ...args, boss: 'test.confiscate' }); assert.equal(b.confiscated, 'test.late');
   assert(!b.active.some((a) => a.id === 'test.late')); assert.deepEqual(args.boons, ['test.level', 'test.late']);
   const snapshot = baseRules(); snapshot.rankShift[7] = 1; snapshot.wildCards.push(7); assert.deepEqual(baseRules().rankShift, {}); assert.deepEqual(baseRules().wildCards, []);
-  for (const [key, value] of Object.entries({ wildCards: [7], anchorCards: [7], freeCards: [7], buildUp: 2, suitRunFree: 1, cellLimits: [{ maxRank: 5 }], emptyMaxRank: 5, cellClose: { at: [16] }, gate: { suit: 0, after: 6 }, dealSkew: 'slope', phase: { at: 26, rules: { foundationSpread: 3 } }, rankShift: { 7: 1 }, emptyAlwaysCounts: true, cellStack: 2, pinned: { cards: [7], until: 12 }, maxEmpty: 2, colorSpread: 3, emptyColors: ['red'], barrenCards: [7], cellExitWild: true, openCols: 1 })) assert.notEqual(rulesKey({ ...baseRules(), [key]: value }), 'fc4', key);
+  for (const [key, value] of Object.entries({ wildCards: [7], anchorCards: [7], freeCards: [7], buildUp: 2, suitBuildUp: 1, suitRunFree: 1, cellLimits: [{ maxRank: 5 }], emptyMaxRank: 5, cellClose: { at: [16] }, gate: { suit: 0, after: 6 }, dealSkew: 'slope', phase: { at: 26, rules: { foundationSpread: 3 } }, rankShift: { 7: 1 }, emptyAlwaysCounts: true, cellStack: 2, pinned: { cards: [7], until: 12 }, maxEmpty: 2, colorSpread: 3, emptyColors: ['red'], barrenCards: [7], cellExitWild: true, openCols: 1 })) assert.notEqual(rulesKey({ ...baseRules(), [key]: value }), 'fc4', key);
   for (const [key, value] of Object.entries({ cellLimits: [{ minRank: 5 }], emptyMaxRank: 5, cellClose: { at: [16] }, gate: { suit: 0, after: 6 }, dealSkew: 'slope', phase: { at: 26, rules: {} }, cellStack: 2, pinned: { cards: [7], until: 12 }, maxEmpty: 2, colorSpread: 3, emptyColors: ['red'], barrenCards: [7] })) assert(hasRestrictions({ ...baseRules(), [key]: value }), key);
   assert.equal(rulesKey(compileRules({ wildCards: [7, 6] })), rulesKey({ wildCards: [6, 7] }));
 });
@@ -520,7 +521,7 @@ defineCharm({
 
 // Every generated move is legal to the player and every move is reversible.
 const agreementRules = [baseRules(), { wildRanks: bit(5) }, { suitBuild: 1 }, { barren: { suits: 1, ranks: 16382 } }, { noCellRanks: bit(13) }, { noCellCards: [20, 52] }, { cellColors: ['red', 'black', null, 'red'] }, { sealedCols: [0, 2] }, { cellThaw: { frozen: 2, at: [8, 20] } }, { emptyMinRank: 9 }, { maxHeight: 7 }, { foundationSpread: 3 }, { moveBonus: -2 }, { emptyFactor: 1 }, { foundationReturn: true, startHome: 2 },
-  { wildCards: [6, 20] }, { anchorCards: [6, 20] }, { freeCards: [6, 20], noCellRanks: bit(6), oneWayCellRanks: bit(7) }, { buildUp: 6 }, { suitBuild: 1, suitRunFree: 1, emptyFactor: 1 },
+  { wildCards: [6, 20] }, { anchorCards: [6, 20] }, { freeCards: [6, 20], noCellRanks: bit(6), oneWayCellRanks: bit(7) }, { buildUp: 6 }, { suitBuild: 1, suitRunFree: 1, emptyFactor: 1 }, { suitBuild: 9, suitBuildUp: 9, suitRunFree: 15 },
   { cellLimits: [{ maxRank: 5 }, { minRank: 9 }, { minRank: 3, maxRank: 8 }] }, { emptyMaxRank: 7 }, { cellClose: { at: [2, 6, 12] } }, { gate: { suit: 0, after: 6 } }, { dealSkew: 'slope' },
   { phase: { at: 3, rules: { noCellRanks: bit(13), emptyFactor: 1, moveBonus: -1, emptyMaxRank: 7, oneWayCellRanks: bit(6), gate: { suit: 0, after: 6 } } } }, { rankShift: { 6: 1, 20: -1 } },
   { emptyMinRank: 7, emptyAlwaysCounts: true }, { cellStack: 3 }, { pinned: { cards: [6, 20], until: 12 } }, { maxEmpty: 2 }, { colorSpread: 3 }, { emptyColors: ['red', 'black', null, 'red'] }, { barrenCards: [6, 20] }, { cellExitWild: true }, { openCols: 5 },

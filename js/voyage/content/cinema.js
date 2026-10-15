@@ -38,8 +38,8 @@ defineCharm({
 });
 defineCharm({
   id: 'cinema.projectionist', kind: 'boon', theme: 'cinema', name: 'Projectionist', icon: '📽️', family: 'ability', ease: .25,
-  text: 'Each exhausted ability recharges once per board when at least 26 cards are home.',
-  upgrade: 'Each exhausted ability recharges once per board when at least 20 cards are home.',
+  text: 'Once 26 cards are home, each ability you\'ve used up gets one use back.',
+  upgrade: 'Once 20 cards are home, each ability you\'ve used up gets one use back.',
   on: { foundation(ctx) {
     if (cardsHome(ctx.api.state) < (ctx.level === 2 ? 20 : 26)) return;
     const used = (ctx.memo.recharged ??= {});
@@ -63,7 +63,7 @@ defineCharm({
 const castRanks = (strength) => strength <= 2 ? [12] : strength <= 4 ? [11, 12] : strength <= 6 ? [10, 11, 12] : [9, 10, 11, 12];
 defineCharm({
   id: 'cinema.challenge', kind: 'challenge', theme: 'cinema', name: 'Typecast', icon: '🎭', tags: ['STACK'],
-  text: (s) => `${s <= 2 ? 'Queens' : s <= 4 ? 'Queens and Jacks' : s <= 6 ? 'Queens, Jacks and 10s' : '9s through Queens'} may only be placed on a card of their own colour one rank higher.`,
+  text: (s) => `${s <= 2 ? 'Queens' : s <= 4 ? 'Jacks and Queens' : s <= 6 ? '10s, Jacks and Queens' : '9s through Queens'} stack on the same colour instead of the opposite colour (e.g. a red Queen goes on a red King).`,
   // Measured −0.95 for Queens; larger masks measured ~0 at short budget (noise). Kept monotonic.
   ease: (ctx) => ctx.strength <= 2 ? -.95 : ctx.strength <= 4 ? -1.2 : ctx.strength <= 6 ? -1.45 : -1.7,
   rules(r, ctx) { r.sameColorRanks = (r.sameColorRanks || 0) | rankMask(castRanks(ctx.strength)); },

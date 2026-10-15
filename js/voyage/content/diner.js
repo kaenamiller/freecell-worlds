@@ -85,8 +85,8 @@ defineCharm({
   tags: ['CELLS'],
   text: (s) => {
     const k = plateStackCells(s);
-    if (k === 4) return 'Free cells stack like plates: only the last card in can come out — all 4 cells.';
-    return `Free cells stack like plates: only the last card in can come out — ${k} cells.`;
+    if (k === 4) return 'Your free cells stack like plates: they fill left to right, and only the last card put in can come out.';
+    return `Your first ${k} free cells stack like plates: they fill left to right, and only the last card put in can come out.`;
   },
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {

@@ -16,11 +16,11 @@ defineCharm({
   icon: '⚒️',
   family: 'suit',
   text: 'Spades may also be built down in suit.',
-  upgrade: 'Spades may also be built down in suit, and runs of Spades move as one piece.',
-  ease: 0.15,
+  upgrade: 'Spades may also be built down or up in suit.',
+  ease: 0.2,
   rules(r, ctx) {
     r.suitBuild = (r.suitBuild || 0) | suitMask(3);
-    if (ctx.level >= 2) r.suitRunFree = (r.suitRunFree || 0) | suitMask(3);
+    if (ctx.level >= 2) r.suitBuildUp = (r.suitBuildUp || 0) | suitMask(3);
   },
   setup(_board, ctx) { ctx.api.mark(cardsOfRanks(ALL_RANKS, [3]), 'wild'); },
 });
@@ -53,7 +53,7 @@ defineCharm({
   name: 'Ingot',
   icon: '🧱',
   family: 'coin',
-  text: 'Each King sent home while another suit is still below 7 pays 2 coins.',
+  text: '+2 coins for each King you send home while another foundation is still below 7.',
   upgrade: 'Each such King pays 3 coins.',
   score(sb, ctx) {
     const pay = ctx.level >= 2 ? 3 : 2;
@@ -80,7 +80,7 @@ defineCharm({
   icon: '🌡️',
   tags: ['SCORE'],
   pressure: true,
-  text: (s) => `${1 + s} hot cards; once moved, each must reach its foundation within 10 moves or cost 40 points.`,
+  text: (s) => `${1 + s} cards are hot: once you move one, send it home within 10 moves or lose 40 points.`,
   setup(board, ctx) {
     const pool = board.state.tableau.flat();
     const n = 1 + ctx.strength;

@@ -21,3 +21,6 @@ Thumbs.db
 
 # Dev screenshots
 tools/screenshots/
+
+# Python bytecode
+__pycache__/

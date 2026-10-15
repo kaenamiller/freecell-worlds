@@ -11,8 +11,8 @@ const eligible = ({ api }, st, card) => !api.concealed.includes(card) && !!sourc
 
 defineCharm({
   id: 'arctic.aurora', kind: 'boon', theme: 'arctic', name: 'Aurora', icon: '🌌', family: 'foundation', ease: .4,
-  text: 'Once per board, send an exposed card at least 2 above its foundation home as the base of a fifth pile and finish its suit on two piles.',
-  upgrade: 'Twice per board, send an exposed card at least 2 above its foundation home as the base of a fifth pile and finish its suit on two piles.',
+  text: 'Once per board, send an exposed card home early (at least 2 ranks ahead of its foundation) to start a fifth pile. Its suit then finishes on both piles: the missing lower cards go on the original pile, higher cards on the new one.',
+  upgrade: 'Twice per board.',
   ability: {
     uses: (ctx) => ctx.level === 2 ? 2 : 1, label: 'Plant a fifth foundation',
     available: (ctx) => !!ctx.api.state && [...ctx.api.state.free, ...ctx.api.state.tableau.map((col) => col.at(-1))].some((card) => card && eligible(ctx, ctx.api.state, card)),

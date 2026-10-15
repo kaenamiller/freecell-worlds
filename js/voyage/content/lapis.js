@@ -86,7 +86,9 @@ defineCharm({
   tags: ['COLUMN'],
   text: (s) => {
     const n = s <= 3 ? 1 : 2;
-    return `${n} column${n > 1 ? 's' : ''} start sealed until emptied.`;
+    return n > 1
+      ? `${n} columns are sealed: nothing can be placed on them until you empty them.`
+      : '1 column is sealed: nothing can be placed on it until you empty it.';
   },
   ease: 0,
   rules(r, ctx) {

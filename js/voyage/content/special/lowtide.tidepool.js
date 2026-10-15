@@ -21,8 +21,8 @@ registerCustomMove('lowtide.tidepool', {
 defineCharm({
   id: 'lowtide.tidepool', kind: 'boon', theme: 'lowtide', name: 'Tide Pool', icon: '🦀', ease: 0.3,
   family: 'ability',
-  upgrade: 'Twice per board, wash a free-cell card under the bottom of any column.',
-  text: 'Once per board, wash a free-cell card under the bottom of any column.',
+  upgrade: 'Twice per board, tuck a free-cell card underneath any column, as its deepest-buried card.',
+  text: 'Once per board, tuck a free-cell card underneath any column, as its deepest-buried card.',
   ability: {
     uses: ({ level }) => level === 2 ? 2 : 1, label: 'Wash a card under a column',
     available: (ctx) => !!ctx.api.state?.free.some(Boolean),

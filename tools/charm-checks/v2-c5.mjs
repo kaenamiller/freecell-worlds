@@ -27,7 +27,8 @@ export async function check(h) {
   assert.equal(sterlingL1.buildUp, kit.suitMask(1));
   const sterlingL2 = baseRules();
   CHARMS['mint.sterling'].rules(sterlingL2, rulesCtx('mint.sterling', 1, 2));
-  assert.equal(sterlingL2.buildUp, kit.suitMask(1, 2));
+  assert.equal(sterlingL2.buildUp, kit.suitMask(1));
+  assert.equal(sterlingL2.suitBuild, kit.suitMask(1));
 
   const fullHouse = baseRules();
   CHARMS['prizelights.challenge'].rules(fullHouse, rulesCtx('prizelights.challenge', 3));

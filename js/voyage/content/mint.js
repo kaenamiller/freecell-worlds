@@ -13,15 +13,14 @@ defineCharm({
   icon: '🪙',
   family: 'suit',
   text: 'Diamonds may also be built up: a Diamond on a black card one rank lower.',
-  upgrade: 'Diamonds and Hearts.',
+  upgrade: '…and Diamonds may also be built down in suit.',
   ease: 0.2,
   rules(r, ctx) {
-    const mask = ctx.level === 2 ? suitMask(1, 2) : suitMask(1);
-    r.buildUp = (r.buildUp || 0) | mask;
+    r.buildUp = (r.buildUp || 0) | suitMask(1);
+    if (ctx.level === 2) r.suitBuild = (r.suitBuild || 0) | suitMask(1);
   },
   setup(_board, ctx) {
-    const suits = ctx.level === 2 ? [1, 2] : [1];
-    ctx.api.mark(cardsOfRanks(ALL_RANKS, suits), 'wild');
+    ctx.api.mark(cardsOfRanks(ALL_RANKS, [1]), 'wild');
   },
 });
 
@@ -67,7 +66,7 @@ defineCharm({
   tags: ['FOUND'],
   text: (s) => {
     const need = gateAfter(s);
-    return `One suit can't go home until ${need} cards of other suits are home.`;
+    return `One suit (shown on the badge) can't go home until ${need} cards of the other suits are home.`;
   },
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {

@@ -21,8 +21,8 @@ registerCustomMove('backrooms.noclip', {
 
 defineCharm({
   id: 'backrooms.hum', kind: 'boon', theme: 'backrooms', name: 'Fluorescent Hum', icon: '💡', family: 'cells', ease: .2,
-  text: 'While all active free cells are full, you can move 2 more cards at once.',
-  upgrade: 'While all active free cells are full, you can move 3 more cards at once.',
+  text: 'While every usable free cell is full, you can move 2 more cards at once.',
+  upgrade: 'While every usable free cell is full, you can move 3 more cards at once.',
   rules(r, ctx) { r.fullCellsBonus = (r.fullCellsBonus || 0) + (ctx.level === 2 ? 3 : 2); },
 });
 defineCharm({
@@ -58,7 +58,7 @@ defineCharm({
 });
 defineCharm({
   id: 'backrooms.challenge', kind: 'challenge', theme: 'backrooms', name: 'No Exit', icon: '🔁', tags: ['COLUMN'],
-  text: (s) => `The last card in ${s <= 2 ? 2 : s <= 4 ? 4 : 8} columns can only leave to its foundation.`,
+  text: (s) => `${s <= 4 ? `${s <= 2 ? 2 : 4} columns` : 'Columns'} can only be emptied by sending the last card home: it can't move anywhere else.`,
   ease: (ctx) => ctx.strength <= 2 ? 0 : ctx.strength <= 4 ? -.94 : -1.71,
   rules(r, ctx) {
     const cols = ctx.rng.shuffle([0, 1, 2, 3, 4, 5, 6, 7]).slice(0, ctx.strength <= 2 ? 2 : ctx.strength <= 4 ? 4 : 8);

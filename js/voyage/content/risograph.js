@@ -90,8 +90,8 @@ defineCharm({
   icon: '🟥',
   tags: ['STACK'],
   text: (s) => (s <= 3
-    ? 'Nothing can be placed onto even cards ranked 2 through 6.'
-    : 'Nothing can be placed onto any even-ranked card.'),
+    ? 'Nothing can be placed onto a 2, 4 or 6.'
+    : 'Nothing can be placed onto a 2, 4, 6, 8, 10 or Queen.'),
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {
     r.barren = { suits: 15, ranks: evenBarrenRanks(ctx.strength) };

@@ -114,7 +114,9 @@ defineCharm({
   text: (s) => {
     const n = pinCount(s);
     const until = pinUntil(s);
-    return `${n} buried card${n === 1 ? '' : 's'} stay pinned until ${until} cards are home.`;
+    return n === 1
+      ? `1 buried card is pinned: it can't move until ${until} cards are home.`
+      : `${n} buried cards are pinned: they can't move until ${until} cards are home.`;
   },
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {

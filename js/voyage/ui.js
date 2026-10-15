@@ -91,6 +91,12 @@ export const voyageUI = {
 
   init(handlers = {}) {
     this.handlers = handlers;
+    // Keep the status pill clear of the dock as the charm tray grows or wraps.
+    const dock = $('voyage-dock');
+    if (dock) new ResizeObserver(() => {
+      const h = dock.hidden ? 0 : dock.offsetHeight;
+      document.documentElement.style[h ? 'setProperty' : 'removeProperty']('--voyage-dock-h', `${h}px`);
+    }).observe(dock);
     this.chart = new VoyageChart($('voyage-chart'), {
       theme,
       islandUrl: chartIsland,

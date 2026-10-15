@@ -256,7 +256,7 @@ Removed outright (D-tier / anti-play): `deco.highroller` (High Roller), `risogra
 | key | Name | Fam | Level 1 | Level 2 | Impl | |
 | --- | --- | --- | --- | --- | --- | --- |
 | zipline | Zip Line 🪢 | ability | (unchanged) | Twice per board. | existing module | K C |
-| cameratrap | Camera Trap 📷 | vision | Once per board, check whether this position can still be won. | Twice per board. | `api.solvable()` → notify | R S |
+| cameratrap | Camera Trap 📷 | vision | Once per board, find how many moves back the last winnable position was. (Now `deepsea.sonar`.) | Once per board, rewind there without spending undos. | `api.sonar()` → notify / `api.rewind(n, {free})` | R S |
 | mistnet | Mist Net 🕸️ | columns | A column holding a single card still counts as empty for move capacity. | Up to two cards. | `shallowCols` | R S |
 | challenge | Leeches 🪱 | — | Each undo you spend costs ⌈s/2⌉ coins. | | `sb.undosUsed` → `sb.addCoins`; `pressure: true` | R S |
 
@@ -386,7 +386,7 @@ Removed outright (D-tier / anti-play): `deco.highroller` (High Roller), `risogra
 | thread | Red Thread 🧵 | suit | A run of a single suit moves as one piece, however long. | …and Hearts may also be built down in suit. | `suitRunFree` = 15 | R S |
 | button → **pincushion** | Pincushion 📍 | columns | Each board, one random column takes any card on top, whatever its rank or colour. | Two columns. | `openCols` (rng); setup glyph via mark on the column's top? (table visual from K1 if provided) | N S |
 | ribbon | Ribbon 🎀 | sticker | Ports offer a tailor: move one of your stickers to another card, free once per visit. | Every move is free. | `portServices` | R S |
-| challenge | Short Thread 🪡 | — | Empty columns only accept sequences headed by a card ranked 10 (s1–2), 8 (s3–4), 6 (s5–6) or 5 (s7) or lower. | | `emptyMaxRank`; tags COLUMN; rule | R S |
+| challenge | Short Thread 🪡 | — | Empty columns only accept a King, or a sequence headed by a card ranked 10 (s1–2), 8 (s3–4), 6 (s5–6) or 5 (s7) or lower. | | `emptyMaxRank` + `emptyKings`; tags COLUMN; rule | R S |
 
 ### Risograph Royalty (`risograph`)
 | key | Name | Fam | Level 1 | Level 2 | Impl | |

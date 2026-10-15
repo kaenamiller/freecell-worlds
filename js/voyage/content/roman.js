@@ -75,10 +75,10 @@ defineCharm({
   icon: '📜',
   tags: ['CELLS'],
   text: (s) => {
-    if (s <= 2) return 'Court cards can\'t enter free cells: Kings only.';
-    if (s <= 4) return 'Court cards can\'t enter free cells: Kings and Queens.';
-    if (s <= 6) return 'Court cards can\'t enter free cells: Kings, Queens and Jacks.';
-    return 'Court cards can\'t enter free cells: Kings, Queens, Jacks and Tens.';
+    if (s <= 2) return 'Kings can\'t go into free cells.';
+    if (s <= 4) return 'Kings and Queens can\'t go into free cells.';
+    if (s <= 6) return 'Jacks, Queens and Kings can\'t go into free cells.';
+    return 'Tens through Kings can\'t go into free cells.';
   },
   ease: (ctx) => -0.12 * ctx.strength,
   rules(r, ctx) {

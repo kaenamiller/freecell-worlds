@@ -72,13 +72,15 @@ defineCharm({
   tags: ['COLUMN'],
   text: (s) => {
     const at = phaseAt(s);
-    return `Until ${at} cards are home, empty columns don't help you move sequences; after that they triple it but only take cards ranked 6 or lower.`;
+    return `Until ${at} cards are home, empty columns don't raise your move capacity. After that, empty columns triple it, but only take a 6 or lower.`;
   },
-  ease: (ctx) => -0.1 * ctx.strength,
+  // Measured (charm-calibrate, 150 deals) −0.65 @34, −0.67/−1.02 @26, −1.92/−1.65 @20; most of
+  // the cost is the early phase where empty columns give no capacity.
+  ease: (ctx) => { const at = phaseAt(ctx.strength); return at >= 34 ? -0.65 : at >= 26 ? -1 : -1.7; },
   rules(r, ctx) {
     r.phase = {
       at: phaseAt(ctx.strength),
-      rules: { emptyFactor: 3, emptyMaxRank: 6 },
+      rules: { emptyFactor: 3, emptyMaxRank: 6, emptyAlwaysCounts: true },
     };
     r.emptyFactor = 1;
   },

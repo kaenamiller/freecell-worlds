@@ -28,7 +28,7 @@ defineCharm({
   name: 'Regulars',
   icon: '🪑',
   family: 'coin',
-  text: '+2 coins for each consecutive 2★+ board right before this one (up to +10).',
+  text: 'Each board pays +2 coins for every 2★-or-better board in a row just before it (up to +10).',
   upgrade: '+3 (up to +15).',
   score(sb, ctx) {
     let streak = 0;

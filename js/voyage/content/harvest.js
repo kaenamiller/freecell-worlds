@@ -20,7 +20,7 @@ defineCharm({
   name: 'Root Cellar',
   icon: '🥔',
   family: 'ability',
-  text: 'Ability uses you didn\'t spend when a board ends become +1 undo each (up to 2).',
+  text: 'When a board ends, each ability use you didn\'t spend turns into 1 undo (up to 2).',
   upgrade: 'Up to 3.',
   on: {
     win(ctx) {
@@ -81,7 +81,7 @@ defineCharm({
   icon: '🍏',
   tags: ['SCORE'],
   pressure: true,
-  text: (s) => `Each card sent home on its own (not in a chain of 2+) costs ${2 + s} points.`,
+  text: (s) => `Send cards home at least 2 in a row: each card that goes home by itself costs ${2 + s} points.`,
   ease: (ctx) => -0.05 * ctx.strength,
   score(sb, ctx) {
     const solo = chainsOf(sb.history).filter((chain) => chain.length === 1).length;

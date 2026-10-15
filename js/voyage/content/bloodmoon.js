@@ -47,7 +47,7 @@ defineCharm({
   icon: '🚪',
   tags: ['CELLS'],
   text: (s) => (s <= 2
-    ? `Each free-cell placement costs ${10 * s} points.`
+    ? `Each card you put into a free cell costs ${10 * s} points.`
     : 'One fewer free cell.'),
   ease: (ctx) => (ctx.strength <= 2 ? -0.05 * ctx.strength : 0),
   rules(r, ctx) {

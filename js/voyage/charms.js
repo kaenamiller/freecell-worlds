@@ -17,14 +17,19 @@
 // offers(n,ctx), thresholds(arr,ctx), starCap(ctx) affect choices/stars.
 // onPick(run,ctx) is once per chosen boon; run is mutable here only.
 // ability: { uses: number | (ctx)=>number, label, use(ctx): boolean | Promise<boolean>,
-// available?(ctx): boolean (pure predicate), when?:'start' }. false/cancel consumes
-// nothing. when:'start' closes permanently on the first manual move, including X.
+// available?(ctx): boolean (pure predicate), when?:'start', stuck?: 'hold'|'rescue'|'none'
+// or (ctx)=>that }. false/cancel consumes nothing. when:'start' closes permanently on the first
+// manual move, including X. stuck says what an unused charge does to dead-end detection:
+// 'hold' (default) pauses it, since the charge may change the position; 'rescue' lets the
+// warning show but keeps the run alive (it only pulls back, e.g. a free rewind); 'none' ignores it.
 // abilityBonus: number | (ctx)=>number grants extra uses to EVERY active ability.
 // ctx: id, kind, strength, level (1|2), family(name), coins (read), seed, rng,
 // stickers (fixed board snapshot), memo (board), runMemo (run.charmMemo[id]),
 // run (read-only boardIdx [zero-based], results, boons [ids], undos, coins), api.
 // Reserved charm memo._runtime holds badge, marks, visibility, abilityUses/grants.
 // Board memo reserves _undoGrants, _undoWindow/Used, _manualPlayed and _stickers.
+// sonar(): Promise<{steps, entries}|{steps:null}|null> finds the nearest earlier winnable position
+// (steps = player moves back, entries = history entries to rewind); rewind(n,{free:true}) is undo-free.
 // api (scoped to this charm; effects saved automatically):
 // addUndos(n), spendUndos(n), notify(text), badge(text), mark(cardIds,style),
 // unmark(cardIds), conceal(cardIds), reveal(cardIds), hint(): Promise<boolean>,
@@ -316,7 +321,15 @@ export class BoardEffects {
     return { label: c.ability.label || c.name, uses, available: uses > 0 && !this.using && atStart && (!c.ability.available || !!c.ability.available(ctx)) };
   }
 
-  hasAvailableAbility() { return this.active.some((a) => this.abilityState(a.id)?.available); }
+  // purpose 'lose': could an unused charge still save a dead end? 'warn': should it hold the warning?
+  hasAvailableAbility(purpose = 'lose') {
+    return this.active.some((a, i) => {
+      if (!this.abilityState(a.id)?.available) return false;
+      const { stuck = 'hold' } = CHARMS[a.id].ability;
+      const role = typeof stuck === 'function' ? stuck(this.ctxs[i]) : stuck;
+      return role === 'hold' || (role === 'rescue' && purpose === 'lose');
+    });
+  }
 
   abilityUses() {
     return Object.freeze(Object.fromEntries(this.ctxs.filter((ctx) => CHARMS[ctx.id].ability).map((ctx) => [ctx.id, count(ctx.memo._runtime.abilityUses)])));

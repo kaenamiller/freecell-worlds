@@ -38,8 +38,8 @@ defineCharm({
   name: 'Misting System',
   icon: '💧',
   family: 'cells',
-  text: 'Your first free-cell placements each board grant +1 undo each, one per cells-family boon you hold (this one included).',
-  upgrade: '+1 to that count.',
+  text: 'Each board, the first few cards you put into free cells give +1 undo each: one card per cells-family boon you hold (this one included).',
+  upgrade: 'One more card counts.',
   on: {
     freecell(ctx) {
       const cap = ctx.family('cells') + (ctx.level >= 2 ? 1 : 0);
@@ -74,7 +74,7 @@ defineCharm({
   name: 'Root Bound',
   icon: '🪴',
   tags: ['CELLS'],
-  text: (s) => `${s <= 2 ? 'Twos' : `Cards ranked 2 to ${1 + Math.ceil(s / 2)}`} that enter a free cell take root: they can only leave to their foundation.`,
+  text: (s) => `${['', '', '2s', '2s and 3s', '2s through 4s', '2s through 5s'][1 + Math.ceil(s / 2)]} that go into a free cell take root: they can only leave by going home.`,
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {
     for (let k = 2; k <= 1 + Math.ceil(ctx.strength / 2); k++) r.oneWayCellRanks = (r.oneWayCellRanks || 0) | (1 << k);

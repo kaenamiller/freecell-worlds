@@ -58,8 +58,8 @@ defineCharm({
   text: (s) => {
     const [lo, hi] = TOWER[s];
     return lo === hi
-      ? `Nothing can be placed on one suit's ${rankName(lo)}s.`
-      : `Nothing can be placed on one suit's ${rankName(lo)}s through ${rankName(hi)}s.`;
+      ? `Nothing can be placed on the ${rankName(lo)}s of one suit (marked).`
+      : `Nothing can be placed on the ${rankName(lo)}s through ${rankName(hi)}s of one suit (marked).`;
   },
   ease: (ctx) => -0.07 * ctx.strength,
   rules(r, ctx) {

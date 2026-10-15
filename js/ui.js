@@ -41,6 +41,7 @@ export const ui = {
   init() {
     const E = this.els;
     E.status = $('#status');
+    E.statusText = $('#status-text');
     E.solver = $('#solver-badge');
     E.win = $('#win-overlay');
     E.dealInput = $('#deal-input');
@@ -49,6 +50,7 @@ export const ui = {
     E.statusBar = $('#status-bar');
     E.loader = $('#loader');
     E.fade = $('#fade');
+    $('#status-close').addEventListener('click', () => this.clearStatus());
 
     this.mountDevTools();
     this.buildThemeUI();
@@ -293,7 +295,7 @@ export const ui = {
     $('#timer').textContent = fmtTime(sec);
   },
   setStatus(text, kind = '') {
-    this.els.status.textContent = text;
+    this.els.statusText.textContent = text;
     this.els.status.className = 'status ' + kind;
     this.els.statusBar.classList.remove('hidden');
   },

@@ -27,9 +27,9 @@ defineCharm({
   tags: ['SCORE'],
   pressure: true,
   text: (s) => {
-    if (s <= 2) return 'Some undos cost double: every 3rd undo costs an extra.';
-    if (s <= 5) return 'Some undos cost double: every 2nd undo costs an extra.';
-    return 'Every undo costs an extra undo.';
+    if (s <= 2) return 'Every 3rd undo costs 2 undos instead of 1.';
+    if (s <= 5) return 'Every 2nd undo costs 2 undos instead of 1.';
+    return 'Every undo costs 2 undos instead of 1.';
   },
   on: {
     undo(ctx, ev) {

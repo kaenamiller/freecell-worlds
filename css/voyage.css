@@ -24,7 +24,8 @@ body[data-mode='voyage'] #btn-undo { min-width: 70px; }
 #voyage-dock > * { pointer-events: auto; min-width: 0; }
 .voyage-dock-left { display: flex; align-items: center; gap: 12px; padding: 6px 10px; border-radius: calc(var(--radius) + 2px); background: var(--panel); border: 1px solid var(--border); backdrop-filter: blur(12px); }
 .voyage-hud-buttons { padding: 6px; border-radius: calc(var(--radius) + 2px); background: var(--panel); border: 1px solid var(--border); backdrop-filter: blur(12px); }
-body[data-mode='voyage'] #status-bar { bottom: calc(22px + var(--safe-bottom)); }
+/* The pill sits above the dock (charm tray + buttons); --voyage-dock-h is measured in voyage/ui.js. */
+body[data-mode='voyage'] #status-bar { bottom: calc(var(--voyage-dock-h, calc(14px + var(--safe-bottom))) + 8px); }
 #voyage-hud { display: flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0; justify-content: center; }
 .voyage-hud-metric { display: flex; flex-direction: column; align-items: center; justify-content: center; height: var(--hud-h); flex: none; min-width: 0; padding: 4px 11px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--border); backdrop-filter: blur(12px); }
 .voyage-hud-metric[data-tip-name], .voyage-capacity[data-tip-name], .voyage-empty-charms[data-tip-name], .voyage-override-chip[data-tip-name] { cursor: help; }
@@ -630,9 +631,6 @@ body.voyage-reduced-motion #voyage-intro, body.voyage-reduced-motion .voyage-int
 .voyage-tell-flash { position: fixed; top: 145px; left: 50%; transform: translateX(-50%); z-index: 90; width: max-content; max-width: calc(100vw - 24px); padding: 12px 20px; border-radius: 14px; border: 2px solid var(--accent); background: var(--panel-solid); color: var(--text); box-shadow: 0 0 25px var(--accent); text-align: center; pointer-events: none; }
 .voyage-tell-glow { outline: 2px solid var(--accent); border-radius: 9px; box-shadow: 0 0 18px var(--accent); }
 @media (max-width: 700px) { .voyage-dock-left { gap: 6px; padding: 4px 6px; max-width: 62vw; overflow-x: auto; } }
-@media (max-width: 820px), (max-height: 520px) {
-  body[data-mode='voyage'] #status-bar { bottom: calc(72px + var(--safe-bottom)); }
-}
 
 /* Voyage v2: the harbour uses the table's existing paper, ink and accent. */
 .voyage-purse { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 800; }

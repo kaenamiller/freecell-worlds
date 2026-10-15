@@ -10,15 +10,14 @@ defineCharm({
   icon: '🌼',
   family: 'suit',
   text: 'Hearts may also be built down in suit.',
-  upgrade: 'Hearts and Diamonds.',
+  upgrade: 'Hearts may also be built down or up in suit.',
   ease: 0.2,
   rules(r, ctx) {
-    const suits = ctx.level >= 2 ? [1, 2] : [2];
-    r.suitBuild = (r.suitBuild || 0) | suitMask(...suits);
+    r.suitBuild = (r.suitBuild || 0) | suitMask(2);
+    if (ctx.level >= 2) r.suitBuildUp = (r.suitBuildUp || 0) | suitMask(2);
   },
   setup(_board, ctx) {
-    const suits = ctx.level >= 2 ? [1, 2] : [2];
-    ctx.api.mark(cardsOfRanks(ALL_RANKS, suits), 'wild');
+    ctx.api.mark(cardsOfRanks(ALL_RANKS, [2]), 'wild');
   },
 });
 

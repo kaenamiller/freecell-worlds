@@ -75,9 +75,9 @@ defineCharm({
   tags: ['CELLS'],
   text: (s) => {
     const at = cellCloseAt(s);
-    if (at.length === 1) return `Empty free cells close once ${at[0]} cards are home.`;
+    if (at.length === 1) return `Once ${at[0]} cards are home, your last free cell closes as soon as it's empty.`;
     const list = at.slice(0, -1).join(', ') + ' and ' + at.at(-1);
-    return `Empty free cells close at ${list} cards home.`;
+    return `Each time ${list} cards are home, another free cell closes as soon as it's empty.`;
   },
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {

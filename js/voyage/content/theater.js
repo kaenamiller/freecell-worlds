@@ -50,7 +50,7 @@ defineCharm({
   icon: '📜',
   tags: ['SCORE'],
   pressure: true,
-  text: (s) => `Finish suits in the dealt order; each suit completed out of turn costs ${25 * s} points.`,
+  text: (s) => `Complete the suits in the order shown on the badge; each suit you complete out of order costs ${25 * s} points.`,
   setup(board, ctx) {
     ctx.memo.order ??= ctx.rng.shuffle([0, 1, 2, 3]);
     ctx.api.badge(ctx.memo.order.map((s) => SUIT_MARKS[s]).join('→'));

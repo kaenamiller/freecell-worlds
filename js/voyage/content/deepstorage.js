@@ -54,7 +54,9 @@ defineCharm({
   tags: ['VIS'],
   text: (s) => {
     const n = 1 + Math.floor(s / 2);
-    return `${n} column${n === 1 ? '' : 's'} ${n === 1 ? 'is' : 'are'} face-down below its top card until uncovered.`;
+    return n === 1
+      ? '1 column starts face-down except for its top card; cards turn up as you uncover them.'
+      : `${n} columns start face-down except for their top card; cards turn up as you uncover them.`;
   },
   ease: (ctx) => -0.05 * ctx.strength,
   setup(board, ctx) {

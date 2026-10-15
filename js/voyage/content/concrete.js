@@ -47,7 +47,7 @@ defineCharm({
   icon: '⏱️',
   tags: ['SCORE'],
   pressure: true,
-  text: (s) => `Every 24 moves in a row without sending a card home costs ${10 * s} points.`,
+  text: (s) => `Each time you make 24 moves without sending a card home, lose ${10 * s} points.`,
   score(sb, ctx) {
     const cost = 10 * ctx.strength;
     let penalty = 0;

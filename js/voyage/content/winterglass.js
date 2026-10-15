@@ -57,9 +57,10 @@ defineCharm({
   icon: '❄️',
   tags: ['COLUMN'],
   text: (s) => {
-    if (s <= 2) return 'Empty columns only accept sequences headed by a set colour: 2 columns.';
-    if (s <= 4) return 'Empty columns only accept sequences headed by a set colour: 4 columns.';
-    return 'Empty columns only accept sequences headed by a set colour: all 8, alternating red/black.';
+    const rest = 'only accepts a card (or run starting with one) of the colour marked on it. Empty columns don\'t raise your move capacity.';
+    if (s <= 2) return `2 columns are frosted: once empty, each ${rest}`;
+    if (s <= 4) return `4 columns are frosted: once empty, each ${rest}`;
+    return `Every column is frosted, alternating red and black: once empty, each ${rest}`;
   },
   ease: (ctx) => -0.1 * ctx.strength,
   rules(r, ctx) {
