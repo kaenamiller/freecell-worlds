@@ -1,0 +1,19 @@
+# Staging game only. Worker with static assets, no API code.
+# freecellworlds.com and www.freecellworlds.com stay grey-clouded to GitHub Pages.
+# This file's only route is staging.freecellworlds.com, so deploy must not touch them.
+#
+# The upload is web/public, built by tools/prepare-pages.mjs. That script copies an
+# allowlist (index.html, css, js, vendor, assets, the legal pages, sw.js, …) and
+# leaves out server/, docs/, tools/, assets-src/, and every other non-site path.
+name = "freecell-worlds-web-staging"
+account_id = "489793938d73b69a961a8b3795cc1f11"
+compatibility_date = "2026-10-01"
+workers_dev = false
+preview_urls = false
+
+routes = [{ pattern = "staging.freecellworlds.com", custom_domain = true }]
+
+[assets]
+directory = "./public"
+html_handling = "auto-trailing-slash"
+not_found_handling = "none"

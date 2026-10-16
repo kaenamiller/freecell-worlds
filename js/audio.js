@@ -16,6 +16,7 @@ export class AudioEngine {
     this.loading = new Map();
     this.last = new Map();
     this.theme = null;
+    this.custom = new Map(); // custom theme id -> { soundsLike, music } (js/custom-themes.js)
     this.ambience = null; // { src, gain }
     this.music = null;
     this.chain = 0;
@@ -59,12 +60,13 @@ export class AudioEngine {
     this.ambBus.gain.setTargetAtTime(settings.ambience * 0.7, t, 0.05);
   }
 
-  async load(name, dir = SFX_DIR) {
+  async load(name, dir = SFX_DIR, url = null) {
     if (this.buffers.has(name)) return this.buffers.get(name);
     if (this.loading.has(name)) return this.loading.get(name);
     const p = (async () => {
       try {
-        const res = await fetch(`${dir}${name}.mp3`);
+        // Custom theme music comes from the account API, which needs the session cookie.
+        const res = await fetch(url || `${dir}${name}.mp3`, url ? { credentials: 'include' } : undefined);
         if (!res.ok) throw new Error(res.status);
         const data = await res.arrayBuffer();
         // decodeAudioData needs a context; create a suspended one early if required.
@@ -166,7 +168,7 @@ export class AudioEngine {
     this.play('hint', { vol: 0.7 });
   }
   ui() {
-    if (this.theme) this.play(`${this.theme}_ui`, { vol: 0.8, jitter: 0.03 });
+    if (this.theme) this.play(`${this.sfxTheme(this.theme)}_ui`, { vol: 0.8, jitter: 0.03 });
   }
 
   // Rising pentatonic chime; consecutive foundation moves climb the ladder.
@@ -175,21 +177,38 @@ export class AudioEngine {
     this.chain = now - this.chainTime < 2200 ? Math.min(this.chain + 1, LADDER.length - 1) : 0;
     this.chainTime = now;
     const semis = LADDER[this.chain];
-    this.play(`${this.theme}_chime`, { vol: 0.75, rate: Math.pow(2, semis / 12), jitter: 0, pan });
+    this.play(`${this.sfxTheme(this.theme)}_chime`, { vol: 0.75, rate: Math.pow(2, semis / 12), jitter: 0, pan });
   }
 
   win() {
-    this.play(`${this.theme}_win`, { vol: 1, jitter: 0 });
+    this.play(`${this.sfxTheme(this.theme)}_win`, { vol: 1, jitter: 0 });
   }
 
   // --- themes: ambience + music ------------------------------------------------
+  // A custom theme borrows a built-in table's UI sounds and ambience, and plays its own
+  // generated track (or that table's music if it has none).
+  registerTheme(id, { soundsLike, music }) {
+    this.custom.set(id, { soundsLike, music });
+  }
+
+  sfxTheme(theme) {
+    return this.custom.get(theme)?.soundsLike || theme;
+  }
+
+  async loadMusic(theme) {
+    const c = this.custom.get(theme);
+    // Built-in tables keep their own track. Recursing here loops forever.
+    if (!c) return this.load(theme, MUSIC_DIR);
+    return (c.music && (await this.load(`music:${theme}`, MUSIC_DIR, c.music))) || this.load(c.soundsLike, MUSIC_DIR);
+  }
+
   async setTheme(theme) {
     this.theme = theme;
     // Warm the theme's one-shots; loops are fetched when audio starts.
     await Promise.all([
-      this.load(`${theme}_ui`),
-      this.load(`${theme}_chime`),
-      this.load(`${theme}_win`),
+      this.load(`${this.sfxTheme(theme)}_ui`),
+      this.load(`${this.sfxTheme(theme)}_chime`),
+      this.load(`${this.sfxTheme(theme)}_win`),
     ]);
     if (this.ctx && this.started) this.startThemeLoops(theme);
   }
@@ -197,18 +216,18 @@ export class AudioEngine {
   // Fetch a theme's sounds ahead of time (Voyage preloads the tables the player may visit next).
   preloadTheme(theme) {
     return Promise.all([
-      this.load(`${theme}_ui`),
-      this.load(`${theme}_chime`),
-      this.load(`${theme}_win`),
-      this.load(`${theme}_ambience`),
-      this.load(theme, MUSIC_DIR),
+      this.load(`${this.sfxTheme(theme)}_ui`),
+      this.load(`${this.sfxTheme(theme)}_chime`),
+      this.load(`${this.sfxTheme(theme)}_win`),
+      this.load(`${this.sfxTheme(theme)}_ambience`),
+      this.loadMusic(theme),
     ]).catch(() => {});
   }
 
   async startThemeLoops(theme) {
     const [amb, mus] = await Promise.all([
-      this.load(`${theme}_ambience`),
-      this.load(theme, MUSIC_DIR),
+      this.load(`${this.sfxTheme(theme)}_ambience`),
+      this.loadMusic(theme),
     ]);
     if (this.theme !== theme) return; // switched again while loading
     this.crossfade('ambience', amb, this.ambBus, 1.0, 2.0);

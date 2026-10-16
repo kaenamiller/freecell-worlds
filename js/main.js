@@ -10,6 +10,8 @@ import { buildTableLayer } from './table.js';
 import { THEMES, loadThemeAssets, randomThemeId } from './themes.js';
 import { audio, SHARED_SOUNDS } from './audio.js';
 import { settings, saveSettings, load, save } from './store.js';
+import { initAccount } from './account.js';
+import { initCustomThemes } from './custom-themes.js';
 import { stats, recordStart, recordWin, recordLoss, resetStats, dailyDealNumber, todayKey } from './stats.js';
 import { ui } from './ui.js';
 import { voyageUI } from './voyage/ui.js';
@@ -3673,7 +3675,7 @@ ui.handlers = {
       if (settings.autoFoundation) scheduleAuto(200);
       else autoTok++;
     }
-    if (k === 'fourColor' || k === 'highContrast') applyTheme(currentTheme.id);
+    if (k === 'fourColor' || k === 'highContrast') applyTheme(currentTheme.id, { persist: !!THEMES[settings.theme] });
     if (k === 'reducedMotion') motion.reduced = settings.reducedMotion;
   },
 };
@@ -3960,7 +3962,8 @@ async function boot() {
   audio.theme = currentTheme.id;
   audio.unlock(); // creates a suspended context so buffers can be decoded
   await Promise.all([
-    applyTheme(currentTheme.id, { css: false }).then(() => ui.setLoading(0.55, 'Tuning the sound…')),
+    // A saved custom theme isn't loaded until the account answers; keep it saved meanwhile.
+    applyTheme(currentTheme.id, { css: false, persist: !!THEMES[settings.theme] }).then(() => ui.setLoading(0.55, 'Tuning the sound…')),
     audio.preload(SHARED_SOUNDS, (p) => ui.setLoading(0.55 + p * 0.4)),
   ]);
   ui.setLoading(0.97, 'Shuffling…');
@@ -3978,6 +3981,43 @@ async function boot() {
   loop();
   ui.setLoading(1, 'Ready');
   setTimeout(() => ui.hideLoader(), 250);
+  // After the first theme has loaded, so settings pulled from an account can't race it.
+  const customThemes = initCustomThemes({
+    ui,
+    audio,
+    chooseTable: (id) => {
+      ui.closeModals();
+      ui.handlers.theme(id);
+    },
+    openAccount: () => account.open(),
+    themesChanged: customThemesChanged,
+  });
+  const account = initAccount({ ui, onRemote: accountDataArrived, canReplaceSession: () => document.body.classList.contains('title-open'), onUser: (u) => customThemes.setUser(u) });
+}
+
+// A player's own themes arrived (sign-in) or went away (sign-out). The saved table may be
+// one of them: it falls back to a built-in table at startup until the account loads.
+function customThemesChanged() {
+  if (!THEMES[currentTheme.id]) return switchTheme(THEMES[settings.theme] ? settings.theme : 'roman', { persist: false, sound: false });
+  if (settings.theme !== currentTheme.id && THEMES[settings.theme] && !settings.autoRandomTheme) restoreClassicTheme();
+}
+
+// Saves pulled from the player's account were written to the live objects in store.js;
+// bring the running game and the visible screens up to date.
+function accountDataArrived(keys) {
+  if (keys.includes('settings')) {
+    ui.refreshSettingsInputs();
+    for (const k of ['quality', 'reducedMotion', 'autoFoundation', 'fourColor']) ui.handlers.settings(k);
+  }
+  if (keys.includes('stats') || keys.includes('voyageStats')) {
+    ui.renderStats();
+    voyageUI.renderStats(voyageStats);
+  }
+  if (document.body.classList.contains('title-open')) {
+    ui.refreshDaily();
+    document.getElementById('btn-play-label').textContent = ui.handlers.hasResume() ? 'Continue' : 'Play';
+    voyageRefreshTitle();
+  }
 }
 
 boot().catch((err) => {

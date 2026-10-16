@@ -11,6 +11,7 @@ assets-src/
 
 # CI build output
 _site/
+web/public/
 
 # OS / editor
 .DS_Store

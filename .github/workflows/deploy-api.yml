@@ -1,0 +1,260 @@
+# Staging API deploys when server/ or this workflow changes on main or player-accounts.
+# The staging game (freecell-worlds-web-staging) deploys when site files change.
+# Production API deploys only from a manual run, after the GitHub environment
+# "production" approves it. This workflow never deploys the production site:
+# freecellworlds.com and www stay on GitHub Pages.
+#
+# Required reviewers are a GitHub setting, not a workflow key. Before the first
+# production run: Settings → Environments → production → Required reviewers.
+# Leave the "staging" environment without reviewers so pushes deploy on their own.
+#
+# Environment secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+# TURNSTILE_SECRET_KEY, GOOGLE_CLIENT_SECRET, and RESEND_API_KEY are uploaded on
+# API deploy when those GitHub environment secrets are set (missing or changed).
+# Values are not printed. BETTER_AUTH_SECRET is generated only when the worker
+# does not have one.
+#
+# Token: Workers Scripts (Edit / Workers Scripts Write), D1, R2, Account Settings
+# Read, Workers Routes, DNS, and Zone Read. Creating or updating a Workflow
+# accepts Workers Scripts Write; Cloudflare does not offer a separate Workflows
+# permission. Creating a Worker that does not exist yet needs Workers Admin at
+# the Workers product scope when the token uses the new Workers roles. Legacy
+# Workers Scripts Edit still includes create until that permission is removed.
+#
+# First-run order for the API: D1 migrations do not need the Worker. `wrangler
+# secret list` fails until the Worker exists, so a missing Worker is an empty
+# secret list and missing secrets go with `wrangler deploy --secrets-file`.
+# BETTER_AUTH_SECRET already on the Worker is not replaced.
+#
+# The site upload is web/public from tools/prepare-pages.mjs. That allowlist
+# omits server/, docs/, tools/, assets-src/, and every other non-site path.
+# web/wrangler.toml routes only staging.freecellworlds.com.
+
+name: Deploy API
+
+on:
+  push:
+    branches: [main, player-accounts]
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy-api.yml'
+      - 'index.html'
+      - 'sw.js'
+      - 'manifest.webmanifest'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - '.nojekyll'
+      - 'css/**'
+      - 'js/**'
+      - 'vendor/**'
+      - 'assets/**'
+      - 'terms/**'
+      - 'privacy/**'
+      - 'refunds/**'
+      - 'contact/**'
+      - 'web/**'
+      - 'tools/prepare-pages.mjs'
+      - 'tools/ci-deploy-targets.mjs'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment to deploy
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-${{ github.event.inputs.target || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    name: Choose deploys
+    if: github.event_name == 'push' || github.event.inputs.target == 'staging'
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.plan.outputs.api }}
+      web: ${{ steps.plan.outputs.web }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Plan
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMITS_JSON: ${{ toJson(github.event.commits) }}
+        run: node tools/ci-deploy-targets.mjs
+
+  staging:
+    name: Deploy staging
+    needs: changes
+    if: needs.changes.result == 'success' && needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://api-staging.freecellworlds.com
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Apply staging D1 migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          command: d1 migrations apply freecell-worlds-staging --remote --env staging
+
+      - name: Prepare deploy secrets
+        id: secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: node scripts/prepare-deploy-secrets.mjs --env=staging
+
+      - name: Deploy staging Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          command: deploy --env staging${{ steps.secrets.outputs.secrets_arg }}
+
+      - name: Remove secrets file
+        if: always()
+        run: rm -f /tmp/fcw-deploy-secrets.json
+
+      - name: Tail staging logs for the Resend check
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set +e
+          timeout 240 npx wrangler tail --env staging --format json
+          echo "tail finished ($?)"
+
+  web-staging:
+    name: Deploy staging site
+    needs: changes
+    if: needs.changes.result == 'success' && needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.freecellworlds.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        working-directory: server
+        run: npm ci
+
+      - name: Prepare site
+        env:
+          SITE_OUT: web/public
+          PAGES_CACHE_VERSION: freecell-worlds-staging-${{ github.run_number }}-${{ github.sha }}
+        run: node tools/prepare-pages.mjs
+
+      - name: Refuse non-site files
+        run: |
+          set -euo pipefail
+          for path in server docs tools assets-src .github node_modules; do
+            if [ -e "web/public/$path" ]; then
+              echo "refusing to upload $path"
+              exit 1
+            fi
+          done
+          test -f web/public/index.html
+          test -f web/public/js/account.js
+          test -f web/public/sw.js
+
+      - name: Deploy staging site
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          command: deploy --config ../web/wrangler.toml
+
+  production:
+    name: Deploy production
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://api.freecellworlds.com
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Apply production D1 migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          command: d1 migrations apply freecell-worlds --remote --env=""
+
+      - name: Prepare deploy secrets
+        id: secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: node scripts/prepare-deploy-secrets.mjs --env=
+
+      - name: Deploy production Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          command: deploy --env=""${{ steps.secrets.outputs.secrets_arg }}
+
+      - name: Remove secrets file
+        if: always()
+        run: rm -f /tmp/fcw-deploy-secrets.json
