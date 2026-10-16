@@ -12,6 +12,7 @@ export async function sendEmail(env, { to, subject, text, html }) {
     body: JSON.stringify({ from: env.EMAIL_FROM, to, subject, text, html }),
   });
   if (!res.ok) console.error(`[email] Resend ${res.status}: ${await res.text()}`);
+  else console.log(`[email] Resend ${res.status}`);
 }
 
 const escape = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
