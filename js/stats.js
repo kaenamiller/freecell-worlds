@@ -1,5 +1,5 @@
 // Player statistics, daily challenge and achievements (persisted in localStorage).
-import { load, save } from './store.js';
+import { load, save, track } from './store.js';
 
 const blank = {
   played: 0,
@@ -14,7 +14,7 @@ const blank = {
   achievements: {},
 };
 
-export const stats = load('stats', blank);
+export const stats = track('stats', load('stats', blank), blank);
 const persist = () => save('stats', stats);
 
 export function resetStats() {

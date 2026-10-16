@@ -1,9 +1,12 @@
-// Copy only the static files GitHub Pages should serve and stamp the SW cache id.
-import { access, cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+// Copy only the static files the site should serve and stamp the SW cache id.
+// Everything else (server/, docs/, tools/, assets-src/, …) stays out of the upload.
+// SITE_OUT overrides the output directory (GitHub Pages uses _site; the staging
+// Worker uses web/public).
+import { access, cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const root = process.cwd();
-const out = join(root, '_site');
+const out = join(root, process.env.SITE_OUT || '_site');
 const version =
   process.env.PAGES_CACHE_VERSION ||
   `freecellworlds-local-${Date.now().toString(36)}`;
@@ -29,6 +32,7 @@ const paths = [
   // so the 5.8 MB tools/boss-calibration.json no longer ships.
 ];
 
+await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 for (const p of paths) {
   await cp(join(root, p), join(out, p), { recursive: true });
@@ -60,4 +64,4 @@ if (missing.length) {
   );
 }
 
-console.log(`Prepared _site/ with service worker cache id ${version}`);
+console.log(`Prepared ${out} with service worker cache id ${version}`);

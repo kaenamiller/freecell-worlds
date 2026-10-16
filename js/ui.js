@@ -535,6 +535,13 @@ export const ui = {
     this.setMuteIcon(settings.muted);
   },
 
+  // Re-read every control after settings arrive from the player's account.
+  refreshSettingsInputs() {
+    for (const [id, key] of [['#set-master', 'master'], ['#set-sfx', 'sfx'], ['#set-music', 'music'], ['#set-ambience', 'ambience'], ['#set-quality', 'quality']]) $(id).value = settings[key];
+    for (const [id, key] of [['#set-autofound', 'autoFoundation'], ['#set-random-theme', 'autoRandomTheme'], ['#set-fourcolor', 'fourColor'], ['#set-contrast', 'highContrast'], ['#set-tap-peek', 'tapToPeek'], ['#set-reduced', 'reducedMotion'], ['#set-cursor-light', 'cursorLight']]) $(id).checked = !!settings[key];
+    this.setMuteIcon(settings.muted);
+  },
+
   setPerfReadout(text) {
     $('#perf-readout').textContent = text;
   },
