@@ -72,6 +72,20 @@ function spadeStemPath(ctx) {
   ctx.closePath();
 }
 
+// Spade: a smaller inverted heart sitting high, with a flared stem dropping below its lobes.
+function spadePath(ctx) {
+  ctx.save();
+  ctx.translate(0, -0.12);
+  ctx.scale(0.86, -0.82);
+  heartPath(ctx);
+  ctx.restore();
+  ctx.moveTo(-0.05, -0.06);
+  ctx.bezierCurveTo(-0.04, 0.3, -0.12, 0.42, -0.22, 0.5);
+  ctx.lineTo(0.22, 0.5);
+  ctx.bezierCurveTo(0.12, 0.42, 0.04, 0.3, 0.05, -0.06);
+  ctx.closePath();
+}
+
 function clubPath(ctx) {
   ctx.moveTo(0.19, -0.2);
   ctx.arc(0, -0.2, 0.19, 0, Math.PI * 2, false);
@@ -93,11 +107,7 @@ function suitPath(ctx, suit) {
     ctx.lineTo(-0.35, 0);
     ctx.closePath();
   } else if (suit === 3) {
-    ctx.save();
-    ctx.scale(1, -1);
-    heartPath(ctx);
-    ctx.restore();
-    spadeStemPath(ctx);
+    spadePath(ctx);
   } else {
     clubPath(ctx);
   }
