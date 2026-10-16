@@ -146,38 +146,116 @@ jobs:
         if: always()
         run: rm -f /tmp/fcw-deploy-secrets.json
 
-  resend-tail:
-    name: Tail staging email
+  # One-shot: read persisted staging logs for the Resend send. Remove this job
+  # once that line is captured. It does not deploy anything.
+  resend-logs:
+    name: Read staging email logs
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
       name: staging
-    defaults:
-      run:
-        working-directory: server
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: server/package-lock.json
 
-      - name: Install
-        run: npm ci
-
-      - name: Tail staging logs for the Resend check
+      - name: Query persisted staging email logs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          set +e
-          timeout 540 npx wrangler tail --env staging --format json
-          echo "tail finished ($?)"
+          node --input-type=module <<'EOF'
+          const account = process.env.CLOUDFLARE_ACCOUNT_ID;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          if (!account || !token) {
+            console.log('RESULT: missing Cloudflare credentials in the job environment');
+            process.exit(0);
+          }
 
+          const redact = (value) => String(value)
+            .replace(/https?:\/\/\S+/gi, '[url]')
+            .replace(/\bre_[A-Za-z0-9]+\b/g, '[redacted]')
+            .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]');
+
+          const messageOf = (event) => {
+            const meta = event?.$metadata || {};
+            const raw = meta.message ?? meta.error ?? event?.source?.message ?? event?.source;
+            if (Array.isArray(raw)) return raw.map((part) => (typeof part === 'string' ? part : JSON.stringify(part))).join(' ');
+            if (raw && typeof raw === 'object') return JSON.stringify(raw);
+            return raw == null ? '' : String(raw);
+          };
+
+          const lineOf = (event) => {
+            const meta = event?.$metadata || {};
+            let path = '';
+            if (typeof meta.url === 'string') {
+              try { path = new URL(meta.url).pathname; } catch { path = ''; }
+            }
+            const when = meta.timestamp || event?.timestamp || '';
+            return `${when} path=${path || '-'} ${redact(messageOf(event)).slice(0, 500)}`;
+          };
+
+          async function query(label, parameters, view = 'events') {
+            const now = Date.now();
+            const body = {
+              view,
+              limit: 40,
+              timeframe: { from: now - 12 * 60 * 60 * 1000, to: now },
+              parameters,
+            };
+            const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/workers/observability/telemetry/query`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+            const text = await res.text();
+            let json = null;
+            try { json = JSON.parse(text); } catch { /* printed below */ }
+            console.log(`\n== ${label} http ${res.status} ==`);
+            if (!json) {
+              console.log(redact(text).slice(0, 800));
+              return null;
+            }
+            if (json.success === false) {
+              console.log(redact(JSON.stringify(json.errors || json)).slice(0, 1200));
+              return json;
+            }
+            const result = json.result || {};
+            const events = result.events?.events || [];
+            console.log(`run=${result.run?.status || 'none'} count=${result.events?.count ?? events.length}`);
+            if (events[0]) console.log(`meta keys: ${Object.keys(events[0].$metadata || {}).join(',')}`);
+            for (const event of events) console.log(lineOf(event));
+            return json;
+          }
+
+          const service = {
+            key: '$metadata.service',
+            operation: 'eq',
+            type: 'string',
+            value: 'freecell-worlds-api-staging',
+          };
+          const email = {
+            key: '$metadata.message',
+            operation: 'includes',
+            type: 'string',
+            value: '[email]',
+          };
+          await query('email messages', {
+            datasets: ['cloudflare-workers'],
+            filterCombination: 'and',
+            filters: [service, email],
+            limit: 40,
+          });
+          await query('needle Resend', {
+            datasets: ['cloudflare-workers'],
+            filterCombination: 'and',
+            filters: [service],
+            needle: { value: '[email] Resend', isRegex: false, matchCase: false },
+            limit: 40,
+          });
+          console.log('\nRESULT: query finished');
+          EOF
   web-staging:
     name: Deploy staging site
     needs: changes
