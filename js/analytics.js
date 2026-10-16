@@ -24,7 +24,10 @@ const DEBUG = (() => {
   }
 })();
 const ALLOWED = DEBUG || (!LOCAL && !navigator.webdriver);
-const API = (DEBUG && LOCAL && query.get('analytics_api')) || ANALYTICS.api;
+// First-party ingest is live on the staging API. Production stays quiet until its
+// own API is deployed, and Google Analytics stays off while gaMeasurementId is empty.
+const STAGING_API = location.hostname === 'staging.freecellworlds.com' ? 'https://api-staging.freecellworlds.com' : '';
+const API = (DEBUG && LOCAL && query.get('analytics_api')) || ANALYTICS.api || STAGING_API;
 const GA_ID = ANALYTICS.gaMeasurementId;
 
 // Consent Mode region defaults: GA4 also treats these as denied until the player accepts.
