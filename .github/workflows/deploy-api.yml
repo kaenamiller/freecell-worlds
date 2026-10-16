@@ -152,7 +152,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set +e
-          timeout 240 npx wrangler tail --env staging --format json
+          timeout 420 npx wrangler tail --env staging --format json
           echo "tail finished ($?)"
 
   web-staging:
