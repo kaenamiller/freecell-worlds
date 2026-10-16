@@ -1,5 +1,6 @@
 // Prompts for every generated image. One entry per file: assets-src/art/<theme>/<id>.png
 import { expansionArtManifest } from './expansion-content.mjs';
+import { objectCourtManifest } from './court-object-content.mjs';
 const NO_TEXT = ' Absolutely no text, letters, numbers, writing, logos, watermarks or UI.';
 
 export const STYLE = {
@@ -311,5 +312,10 @@ export function manifest() {
       });
     }
   }
-  return out;
+  const objectCourts = new Map(objectCourtManifest().map((item) => [`${item.theme}/${item.id}`, item]));
+  const existing = new Set(out.map((item) => `${item.theme}/${item.id}`));
+  return [
+    ...out.map((item) => objectCourts.get(`${item.theme}/${item.id}`) || item),
+    ...[...objectCourts.entries()].filter(([key]) => !existing.has(key)).map(([, item]) => item),
+  ];
 }

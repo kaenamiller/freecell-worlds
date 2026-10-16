@@ -1,0 +1,23 @@
+<!doctype html><html><meta charset="utf-8"><title>Object court render verification</title><script type="importmap">{"imports":{"three":"/vendor/three.module.js"}}</script><body><script type="module">
+import {THEMES} from '/js/themes.js';
+import {setCardTheme,cardFaceTexture} from '/js/textures.js';
+const load=url=>new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(Error('Failed image '+url));im.src=url;});
+window.renderCourtSet=async(theme,side)=>{
+ const source=side==='before'?'/docs/previews/object-courts/before/':'/assets/art/';
+ const art={};await Promise.all([...'jqk'].map(async r=>{art['court_'+r]=await load(source+theme+'/court_'+r+'.webp');}));
+ const th={...THEMES[theme],card:{...THEMES[theme].card}};
+ if(side==='before')delete th.card.courtFit;
+ const output={};let checks=0;
+ for(const mode of [{},{fourColor:true},{highContrast:true}]){
+  setCardTheme(th,art,mode);
+  for(let suit=0;suit<4;suit++)for(let rank=11;rank<=13;rank++){
+   const tex=cardFaceTexture(suit*13+rank),canvas=tex.image;
+   if(canvas.width!==512||canvas.height!==716)throw Error('Invalid card dimensions');
+   const pixel=canvas.getContext('2d').getImageData(256,220,1,1).data;
+   if(pixel[3]!==255)throw Error('Missing opaque court image');checks++;
+   if(suit===0&&!mode.fourColor&&!mode.highContrast)output['jqk'[rank-11]]=canvas.toDataURL('image/webp',0.9);
+  }
+ }
+ return {output,checks};
+};
+</script></body></html>

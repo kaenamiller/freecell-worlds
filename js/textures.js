@@ -244,7 +244,18 @@ function drawCourt(ctx, id, suit, rank, color) {
       ctx.beginPath();
       ctx.rect(x, y, w, hh);
       ctx.clip();
-      ctx.drawImage(img, 0, sy, sw, srcH, x, y, w, hh);
+      if (th.courtFit === 'contain') {
+        // Extend the artwork's quiet corner color into the side gutters, then
+        // fit the whole subject. Portrait cropping would cut off object bases,
+        // wings, tools and other essential parts of the new court illustrations.
+        ctx.drawImage(img, 0, 0, 1, 1, x, y, w, hh);
+        const sh = img.naturalHeight || img.height;
+        const scale = Math.min(w / sw, hh / sh);
+        const dw = sw * scale, dh = sh * scale;
+        ctx.drawImage(img, x + (w - dw) / 2, y + (hh - dh) / 2, dw, dh);
+      } else {
+        ctx.drawImage(img, 0, sy, sw, srcH, x, y, w, hh);
+      }
       // Suit-coloured wash to tell the four versions apart.
       if (th.courtWash > 0) {
         ctx.globalCompositeOperation = 'soft-light';

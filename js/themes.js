@@ -2,6 +2,7 @@
 // ambient effects and the art files each theme loads.
 
 import { EXPANSION_THEMES, EXPANSION_THEME_ORDER } from './theme-expansion.js';
+import { OBJECT_COURT_THEME_IDS } from './object-court-themes.js';
 
 const ART = './assets/art/';
 
@@ -957,6 +958,8 @@ export const THEMES = {
     confetti: [0xf2dc59, 0xff8175, 0x466dcc, 0xf7f3e8, 0x20252e], art: artFor('concrete'),
   },
 };
+
+for (const id of OBJECT_COURT_THEME_IDS) THEMES[id].card.courtFit = 'contain';
 
 export const THEME_ORDER = ['roman', 'cyber', 'aero', 'zen', 'forest', 'deco', 'muertos', 'azulejo', 'jetset', 'riverboat', 'carvings', 'pinecone', 'winterglass', 'concrete', ...EXPANSION_THEME_ORDER];
 

@@ -24,3 +24,6 @@ tools/screenshots/
 
 # Python bytecode
 __pycache__/
+
+# Full-resolution court proposals stay local; installed WebPs live in assets/art.
+docs/previews/object-courts/originals/

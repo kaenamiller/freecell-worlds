@@ -1,9 +1,9 @@
 // Service worker: precache the app shell, runtime-cache art/audio (cache-first),
 // and keep code files network-first so updates arrive. Bump VERSION to invalidate.
-const VERSION = 'freecell-worlds-v32-brand';
+const VERSION = 'freecell-worlds-v34-court-selections';
 const SHELL = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
-  './js/main.js', './js/rules.js', './js/card.js', './js/animation.js', './js/textures.js', './js/themes.js', './js/theme-expansion.js',
+  './js/main.js', './js/rules.js', './js/card.js', './js/animation.js', './js/textures.js', './js/themes.js', './js/theme-expansion.js', './js/object-court-themes.js',
   './js/table.js', './js/post.js', './js/fx.js', './js/audio.js', './js/ui.js', './js/fullscreen.js', './js/stats.js', './js/store.js',
   './js/solver.worker.js', './vendor/three.module.js',
   './css/voyage.css', './js/voyage/ui.js', './js/voyage/chart.js', './js/voyage/fog.js', './js/voyage/run.js', './js/voyage/map.js', './js/voyage/charms.js',
