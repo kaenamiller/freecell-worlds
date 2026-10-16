@@ -26,7 +26,7 @@ npm run serve        # http://localhost:8080  (any static server works)
 | **Concrete Playground** | charcoal blacktop + coral/cobalt/yellow paint, streetwear poster court | sparse sunset motes | spray-can clicks, mellow instrumental hip-hop, distant city + basketball |
 | **Lamplight Library** | smoked oak + oxblood leather, engraved bookplate archive staff | lamplit motes | brass bell, felt piano + cello, rain on library windows |
 | **Glasshouse Conservatory** | jade paint + verdigris iron, botanical watercolor gardeners | sparse pollen-colored motes | porcelain/harp notes, harp + piano, rain on glass |
-| **Saffron Court** | sunlit cedar + indigo textiles and pierced brass, artisan gouache court | warm motes | tea-cup chimes, plucked strings, quiet courtyard fountain |
+| **Saffron Court** | sunbaked amber cedar + saffron linen and golden brass, golden-hour artisan gouache court | warm motes | tea-cup chimes, plucked strings, quiet courtyard fountain |
 | **Amber Harvest** | cider-brown pine + copper, agricultural-poster orchard workers | autumn-colored petals | copper bell, acoustic guitar + bass, orchard breeze |
 | **Carnival Nocturne** | indigo canvas + candy-striped rails, fairground-poster court | golden motes | small bell, gentle carousel organ, quiet midway machinery |
 | **Turquoise Canyon** | terracotta stone + turquoise inlay, artisan gouache court | sparse mineral-colored motes | stone chime, nylon guitar + strings, desert breeze |

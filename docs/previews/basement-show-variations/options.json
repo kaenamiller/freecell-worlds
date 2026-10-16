@@ -1,0 +1,17 @@
+[
+  {
+    "id": "xerox-collage",
+    "name": "1. Rough Xerox",
+    "description": "More torn-paper layers, dirty toner and an angular cut-and-paste silhouette."
+  },
+  {
+    "id": "stencil-ink",
+    "name": "2. Stencil & Ink",
+    "description": "Cleaner shapes and harder contrast, with ragged stencil edges and dry-brush marks."
+  },
+  {
+    "id": "basement-contact-sheet",
+    "name": "3. Basement Gig Photo",
+    "description": "A candid gig-photo feel, printed through heavy grain and newspaper halftones."
+  }
+]

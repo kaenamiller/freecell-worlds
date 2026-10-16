@@ -1,0 +1,17 @@
+[
+  {
+    "id": "sunbaked-courtyard",
+    "name": "Sunbaked Courtyard",
+    "description": "Ochre plaster, amber brass, and long golden shadows. The closest evolution of the current courtyard."
+  },
+  {
+    "id": "terracotta-terrace",
+    "name": "Terracotta Terrace",
+    "description": "Clay red, apricot light, and heat haze over rooftops. The warmest, most architectural direction."
+  },
+  {
+    "id": "saffron-market",
+    "name": "Saffron Market",
+    "description": "Burnt-orange textiles, spice gold, and sunlight through awnings. A richer, more tactile market courtyard."
+  }
+]

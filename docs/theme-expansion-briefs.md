@@ -6,7 +6,7 @@ The game now has **52 active themes**. The ten final additions and their product
 
 Approved expansion brief · October 11, 2026 · Includes the additional Frontier Saloon direction below.
 
-Daytime revision: Night Train is now **Daylight Express** (the internal `nighttrain` ID stays stable for saved settings), joined by daytime Saffron Court and Cherry Counter. Their heroes, backdrops, reflection environments, table textures and thumbnails use natural late-morning daylight; runtime lighting is cooler and brighter with lighter vignette treatment. Hero card fans explicitly carry each theme’s illustrated card backs.
+Earlier daytime revision (Saffron Court is superseded by the Sunbaked Courtyard direction below): Night Train is now **Daylight Express** (the internal `nighttrain` ID stays stable for saved settings), joined by daytime Saffron Court and Cherry Counter. Their heroes, backdrops, reflection environments, table textures and thumbnails use natural late-morning daylight; runtime lighting is cooler and brighter with lighter vignette treatment. Hero card fans explicitly carry each theme’s illustrated card backs.
 
 Hero variety revision: seven hero images regenerated with Gemini, with matching thumbnails. Library features an elderly scholar; Night Train a male conductor; Frontier Saloon a rugged silver-moustached older cowboy with a Sam Elliott style presence. Conservatory, Carnival, Canyon, and Low Tide feature plants, objects, or scenery without people. The other four heroes retain their existing art. The seven revised themes use a rightward hero crop on narrow title screens to keep their subjects visible.
 
@@ -100,19 +100,19 @@ These are visual and audio briefs. Voyage challenges and rewards should receive 
 
 ## 4. Saffron Court
 
-*Pierced brass, indigo cloth, and tea going cold.*
+*Sunbaked arches, golden brass and tea in the summer heat.*
 
-**Concept and setting.** A sheltered courtyard in bright late-morning daylight, with a small adjoining textile and spice market. Merge the riad's calm architecture with the souk's cloth, lanterns, and treasures. Keep one coherent courtyard rather than filling the image with every market prop: cedar screens, a shallow fountain, and a few pierced lamps do most of the work.
+**Concept and setting.** The approved Sunbaked Courtyard direction: an intimate North African courtyard in hot late-afternoon golden hour, ochre plaster and horseshoe arches, carved cedar screens, folded saffron linen and a tiny fountain reflecting liquid gold. Low sun, long burnt-sienna shadows, pale apricot sky, suspended dust and heat haze convey summer heat.
 
-**Table and palette.** Medium-brown warm cedar with a narrow brass inlay, indigo cloth at the perimeter, and saffron cushions beyond the table. Colors: indigo `#26334D`, saffron `#D6A33D`, terracotta `#A9604A`, aged brass `#B78D50`, tea cream `#F3E6CB`. Geometric mosaic may appear on walls or the rail, but the playing surface should stay wood and textile to distinguish it from Azulejo.
+**Table and palette.** Matte medium-dark amber-brown cedar, narrow antique-brass geometric inlay and burnt-sienna linen around the perimeter. Saffron gold, copper, ochre, burnt sienna and tea cream replace the previous indigo palette. Keep the central playing surface uniformly quiet and evenly lit; no patterned sun patches or shadows across the cards.
 
-**Cards and courts.** Cream faces, dark indigo and crimson suits, fine geometric borders. Backs: a symmetric pierced-lantern pattern with an indigo field and saffron accents. Jack: a textile merchant; queen: a courtyard host; king: an experienced brass artisan. Ink-and-gouache portraits of individual people, with pattern concentrated on collars and borders. Cinzel is an existing-font option; Marcellus was proposed as an alternative.
+**Cards and courts.** Cream faces, warm dark-brown and brick-red suits, Cinzel indices. Backs: a brass lantern medallion, mirrored arches and warm ornamental geometry on deep amber brown. Jack: a young textile merchant; queen: the dark-haired courtyard host in the hero's saffron blouse; king: an older brass artisan. Fine ink-and-gouache portraits with golden rim light, warm reflected light and plain burnt-umber backgrounds.
 
-**Light and motion.** Sunlit cream plaster and fountain water, pale-blue sky fill, cool comfortable awning shade, and unlit decorative brass lanterns. Keep patterned shadows out of the playing surface.
+**Light and motion.** Golden sunlight and warm ochre bounce, amber fill and golden motes. Lanterns remain unlit. The sun is still above the horizon; no night lighting or cool blue shade.
 
-**Sound and hero.** Soft plucked strings, restrained hand percussion, a small fountain, cloth rustle, and tiny tea-cup or brass taps. Hero: courtyard host, unlit lantern, tea tray, cloth, and an indigo-and-brass patterned card fan on the right; shaded cedar screen on the left.
+**Sound and hero.** Existing plucked strings, hand percussion, quiet fountain, cloth rustle and tea-cup or brass taps. Retain the selected Sunbaked Courtyard hero and card back exactly. The host pours tea on the right; warm shaded architecture leaves room for the title at the left.
 
-**Review focus.** Choose a courtyard with a market at its edge. This preserves Riad at Dusk's stillness while retaining Lantern Souk's warm textile identity.
+**Production.** Nano Banana 2.1 via the Gemini generator. Remaining art uses the approved hero as a style and lighting reference. Full-resolution sources and exact prompts are retained in `docs/previews/saffron-sunbaked-set/`.
 
 ## 5. Amber Harvest
 

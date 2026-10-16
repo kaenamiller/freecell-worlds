@@ -1,4 +1,4 @@
-// usage: node tools/gen-art.mjs [filter] [--force] [--out-dir=assets-src/art] [--manifest=preview.json]
+// usage: node tools/gen-art.mjs [filter] [--force] [--out-dir=assets-src/art] [--manifest=preview.json] [--reference=style.png]
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { need, save, pool, retry } from './lib.mjs';
@@ -13,13 +13,15 @@ const themes = args.find((a) => a.startsWith('--themes='))?.slice(9).split(',');
 const assets = args.find((a) => a.startsWith('--assets='))?.slice(9).split(',');
 const outDir = args.find((a) => a.startsWith('--out-dir='))?.slice(10) || 'assets-src/art';
 const manifestPath = args.find((a) => a.startsWith('--manifest='))?.slice(11);
+const referencePath = args.find((a) => a.startsWith('--reference='))?.slice(12);
+const reference = referencePath ? { inlineData: { mimeType: referencePath.endsWith('.webp') ? 'image/webp' : referencePath.endsWith('.jpg') || referencePath.endsWith('.jpeg') ? 'image/jpeg' : 'image/png', data: readFileSync(referencePath).toString('base64') } } : null;
 const key = need('GEMINI_API_KEY');
 
 async function gen(item) {
   const out = join(outDir, item.theme, `${item.id}.png`);
   if (!force && existsSync(out)) return console.log('skip', out);
   const body = {
-    contents: [{ parts: [{ text: item.prompt }] }],
+    contents: [{ parts: [...(reference ? [reference, { text: 'Use the attached image only as a reference for palette, illustration style, materials and lighting. Generate the separate asset requested below; do not copy its composition, people or objects unless the prompt asks for them.' }] : []), { text: item.prompt }] }],
     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: item.aspect, imageSize: item.size } },
   };
   await retry(async () => {

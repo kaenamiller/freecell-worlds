@@ -26,11 +26,11 @@ const WORLDS = [
     exposure: 1.08, vignette: 0.2,
   },
   {
-    id: 'saffron', name: 'Saffron Court', tagline: 'Sunlit plaster, saffron cloth and tea in the shade.',
-    font: 'Cinzel', bg: '#494031', panel: '#514637', accent: '#f0cd80', secondary: '#acd7cf',
-    paper: ['#fff3da', '#ebddbe'], ink: '#24314a', red: '#ae3042', rail: '#26334d', inlay: '#b78d50',
-    detail: 'wood', roughness: 0.83, key: '#fff1d2', fill: '#d2e6ed', ambient: '#edd8a5', count: 22,
-    exposure: 1.08, vignette: 0.2,
+    id: 'saffron', name: 'Saffron Court', tagline: 'Sunbaked arches, golden brass and tea in the summer heat.',
+    font: 'Cinzel', bg: '#49301e', panel: '#563923', accent: '#edb951', secondary: '#d58c45',
+    paper: ['#fff3da', '#ebddbe'], ink: '#3b291b', red: '#a83d29', rail: '#7b4429', inlay: '#ba8b3b',
+    detail: 'wood', roughness: 0.83, key: '#ffdc9a', fill: '#e3b77e', ambient: '#edbd72', count: 22,
+    exposure: 1.04, vignette: 0.2,
   },
   {
     id: 'harvest', name: 'Amber Harvest', tagline: 'Barnwood, cider light and the last warm leaves.',
