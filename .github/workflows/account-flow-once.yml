@@ -1,0 +1,160 @@
+# One-shot staging check for password reset and account deletion.
+# This file is not in deploy-api.yml's path filter, so pushing it does not redeploy.
+# Delete it after the check. Tokens are sealed with a public key and are not printed.
+
+name: Account flow once
+
+on:
+  push:
+    branches: [player-accounts]
+    paths:
+      - '.github/workflows/account-flow-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  counts:
+    name: Count staging rows
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Poll account rows and seal tokens
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'EOF'
+          import { spawnSync } from 'node:child_process';
+          import { publicEncrypt, constants } from 'node:crypto';
+
+          const pub = `-----BEGIN PUBLIC KEY-----
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq919hfBrPPKgzVMomzLh
+          oNs0RJrj3RXWNnYnfqoRL10omIixhsdGYNz/ss1tpKd6cNB9aqQg7HNlCEdjHBPv
+          ZdZxKrNU4c2BqLPE4gddW8y/w9oX0jMOVaklY1mp8cIr/CDcbV8GpkaxC69JI9X2
+          2nN1qWtFt9gJQrQECInUb6SWwUJsCStbu2mW3KEHUe+P7hKNylE9vtWZ3YE2swvy
+          48QcT9diGAO4dCe2dziqAckdhN2gjoKg/LK/5eeL13adKZkuyNY3wZiB7ZhCvNNv
+          0c3N5HMNfZnEG7RwwiXpINVmat9LrtsnuorqI78wNLVQtSrGAP/d6G+zKdnVzxmc
+          jQIDAQAB
+          -----END PUBLIC KEY-----`.replace(/^          /gm, '');
+
+          const email = 'opsdoug+staging3@mail.grokbot.com';
+          const seen = new Set();
+          let userId = '';
+
+          function d1(sql) {
+            const r = spawnSync('npx', ['wrangler', 'd1', 'execute', 'freecell-worlds-staging', '--remote', '--env', 'staging', '--json', '--command', sql], { encoding: 'utf8' });
+            if (r.status !== 0) {
+              const err = String(r.stderr || '').replace(/https?:\/\/\S+/g, '[url]').slice(0, 300);
+              console.log(`d1_fail ${r.status} ${err}`);
+              return [];
+            }
+            const start = r.stdout.indexOf('[');
+            const end = r.stdout.lastIndexOf(']');
+            if (start < 0 || end < start) {
+              console.log('d1_parse_fail');
+              return [];
+            }
+            const parsed = JSON.parse(r.stdout.slice(start, end + 1));
+            return parsed[0]?.results || [];
+          }
+
+          function seal(label, secret) {
+            const key = `${label}:${secret}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+            const buf = publicEncrypt({ key: pub, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, Buffer.from(secret));
+            console.log(`sealed ${label} ${buf.toString('base64')}`);
+          }
+
+          const fk = d1('PRAGMA foreign_keys');
+          console.log(`foreign_keys ${JSON.stringify(fk)}`);
+
+          const deadline = Date.now() + 18 * 60 * 1000;
+          while (Date.now() < deadline) {
+            const stamp = new Date().toISOString();
+            if (!userId) {
+              const found = d1(`SELECT id FROM "user" WHERE email = '${email}'`);
+              if (found[0]?.id && /^[0-9a-f-]{36}$/i.test(found[0].id)) userId = found[0].id;
+            }
+            const id = userId || '00000000-0000-0000-0000-000000000000';
+            const counts = d1(`SELECT
+              (SELECT COUNT(*) FROM "user" WHERE id = '${id}') AS users,
+              (SELECT emailVerified FROM "user" WHERE id = '${id}') AS verified,
+              (SELECT COUNT(*) FROM session WHERE userId = '${id}') AS sessions,
+              (SELECT COUNT(*) FROM account WHERE userId = '${id}') AS accounts,
+              (SELECT COUNT(*) FROM save_slot WHERE user_id = '${id}') AS saves,
+              (SELECT COUNT(*) FROM token_ledger WHERE user_id = '${id}') AS ledger,
+              (SELECT COUNT(*) FROM custom_theme WHERE user_id = '${id}') AS themes,
+              (SELECT COUNT(*) FROM verification WHERE value = '${id}') AS verifications`);
+            const row = counts[0] || {};
+            console.log(`counts ${stamp} users=${row.users ?? 'na'} verified=${row.verified ?? 'na'} sessions=${row.sessions ?? 'na'} accounts=${row.accounts ?? 'na'} saves=${row.saves ?? 'na'} ledger=${row.ledger ?? 'na'} themes=${row.themes ?? 'na'} verifications=${row.verifications ?? 'na'}`);
+            const tokens = d1(`SELECT identifier FROM verification WHERE value = '${id}' AND (identifier LIKE 'reset-password:%' OR identifier LIKE 'delete-account-%')`);
+            for (const token of tokens) {
+              const identifier = String(token.identifier || '');
+              if (identifier.startsWith('reset-password:')) seal('reset', identifier.slice('reset-password:'.length));
+              else if (identifier.startsWith('delete-account-')) seal('delete', identifier.slice('delete-account-'.length));
+            }
+            await new Promise((resolve) => setTimeout(resolve, 20000));
+          }
+          console.log('poll done');
+          EOF
+
+  tail:
+    name: Tail staging email
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Tail staging logs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set +e
+          echo "tail starting $(date -u +%H:%M:%S)"
+          timeout 1200 npx wrangler tail --env staging --format json | node --input-type=module -e '
+          import readline from "node:readline";
+          const rl = readline.createInterface({ input: process.stdin });
+          const redact = (s) => String(s)
+            .replace(/reset-password\/[A-Za-z0-9_-]+/g, "reset-password/[redacted]")
+            .replace(/([?&]token=)[^&\s"\\]+/g, "$1[redacted]")
+            .replace(/delete-account-[A-Za-z0-9]+/g, "delete-account-[redacted]")
+            .replace(/\bre_[A-Za-z0-9]+\b/g, "[redacted]")
+            .replace(/https?:\/\/\S+/g, "[url]");
+          for await (const line of rl) console.log(redact(line));
+          '
+          echo "tail finished ($?) $(date -u +%H:%M:%S)"
