@@ -91,7 +91,7 @@ Locally, emails are printed to the wrangler log instead of sent, and Turnstile u
 
 ## Staging
 
-`api-staging.freecellworlds.com` uses D1 `freecell-worlds-staging` (migrations already applied) and R2 `freecell-worlds-theme-assets-staging`. Theme generation is mocked (`GEN_MOCK=1`). The session cookie is `__Secure-fcw-staging.session_token`, host-only, so it does not collide with production's `__Secure-fcw.session_token` on `Domain=freecellworlds.com`. The game at `staging.freecellworlds.com` calls this API and uses the same Turnstile site key as production; localhost still calls `:8787` with the test site key. Until Resend is configured, open `npx wrangler tail --env staging` to read the confirmation link. Sign-up on staging also needs `TURNSTILE_SECRET_KEY` on the staging worker, because the real widget does not match the always-pass test secret.
+`api-staging.freecellworlds.com` uses D1 `freecell-worlds-staging` (migrations already applied) and R2 `freecell-worlds-theme-assets-staging`. Theme generation is mocked (`GEN_MOCK=1`). The session cookie is `__Secure-fcw-staging.session_token`, host-only, so it does not collide with production's `__Secure-fcw.session_token` on `Domain=freecellworlds.com`. The game is the static-assets Worker `freecell-worlds-web-staging` at `staging.freecellworlds.com` (deploys from `player-accounts` and `main`). That page calls this API and uses the same Turnstile site key as production. Localhost still calls `:8787` with the test site key. Until Resend is configured, open `npx wrangler tail --env staging` to read the confirmation link.
 
 ## Later
 
