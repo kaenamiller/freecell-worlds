@@ -50,6 +50,7 @@ defineCharm({
       if (used.includes(card)) return;
       used.push(card); // Persisted, deliberately not refunded by undo/return/reset.
       ctx.api.addUndos(1);
+      ctx.api.track?.('lucky');
     },
   },
 });

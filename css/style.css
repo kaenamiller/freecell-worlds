@@ -561,6 +561,21 @@ html.is-installed .fs-toggle { display: none !important; }
 #fs-hint-title { margin: 0 0 6px; font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
 .fs-hint strong { color: var(--text); font-weight: 700; }
 .fs-hint .btn { margin-top: 12px; padding: 8px 12px; font-size: 11px; }
+/* Analytics consent (js/consent.js). Accept and Decline carry equal weight on purpose. */
+.consent-banner {
+  position: fixed; z-index: 72; left: calc(12px + env(safe-area-inset-left, 0px)); bottom: calc(12px + var(--safe-bottom));
+  width: min(360px, calc(100vw - 24px)); margin: 0; padding: 14px 16px 12px;
+  background: var(--panel-solid); color: var(--text);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55), 0 0 28px var(--glow);
+}
+.consent-banner[hidden] { display: none !important; }
+/* Wide screens: keep clear of the title's Stats/Settings and legal links on the left. */
+@media (min-width: 700px) { .consent-banner { left: auto; right: calc(12px + env(safe-area-inset-right, 0px)); } }
+.consent-banner p { margin: 0; font: 13px/1.45 system-ui, sans-serif; color: var(--muted); }
+#consent-title { margin: 0 0 6px; font-family: var(--font-ui); font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.consent-banner a, .row.check small a { color: var(--accent); }
+.consent-actions { display: flex; gap: 8px; margin-top: 12px; }
+.consent-actions .btn { flex: 1; justify-content: center; padding: 8px 12px; font-size: 11px; }
 @media (max-height: 520px) and (orientation: landscape) {
   #title-screen > .fs-toggle { top: calc(6px + var(--safe-top)); right: calc(6px + env(safe-area-inset-right, 0px)); }
   .title-stage { padding-right: calc(50px + env(safe-area-inset-right, 0px)); }

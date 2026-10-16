@@ -106,6 +106,10 @@ The free-cell count is `state.free.length` throughout `js/rules.js`, and the tab
 
 Each table has three boons and one scaling challenge. Boss designs are in `docs/voyage/boss-challenges.md`.
 
+## Analytics
+
+`track(name, params)` in `js/analytics.js` sends each event to GA4 and to our own first-party store. Every event and param is defined once in `js/analytics-schema.js`. `js/consent.js` decides the collection mode: full, anonymous (EEA/UK/CH before the player accepts, or with Global Privacy Control), or off (Settings → Privacy). Both destinations are set in `js/analytics-config.js` and stay inert while empty. Nothing is collected on localhost or under automated browsers. To see events, open `?analytics=debug`: they're logged to the console and `window.__fcwAnalytics`. On localhost, `&analytics_region=eu|us` and `&analytics_api=<url>` are also accepted. `node tools/analytics-check.mjs` plays the game against a stand-in endpoint and checks what arrives. Plans: [docs/analytics-plan.md](docs/analytics-plan.md), [docs/first-party-analytics-plan.md](docs/first-party-analytics-plan.md).
+
 ## Random themes
 
 The home screen features three randomly selected themes per launch alongside Random theme. **All themes** opens the full, scrollable picker, also available from the in-game Themes button, with four tiles per row (two on narrow screens).

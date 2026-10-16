@@ -77,6 +77,7 @@ export const defaultSettings = {
   reducedMotion: false,
   cursorLight: true,
   tapToPeek: false,
+  shareData: true, // Settings → Privacy; see js/consent.js
 };
 
 export const settings = track('settings', load('settings', defaultSettings), defaultSettings);
