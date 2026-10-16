@@ -87,5 +87,16 @@ jobs:
             const buf = publicEncrypt({ key: pub, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, Buffer.from(secret));
             console.log(`sealed ${label} ${buf.toString('base64')}`);
           }
+          const orphans = d1(`SELECT
+            (SELECT COUNT(*) FROM "user" WHERE email = '${email}') AS staging4,
+            (SELECT COUNT(*) FROM session s LEFT JOIN "user" u ON u.id = s.userId WHERE u.id IS NULL) AS sessions,
+            (SELECT COUNT(*) FROM account a LEFT JOIN "user" u ON u.id = a.userId WHERE u.id IS NULL) AS accounts,
+            (SELECT COUNT(*) FROM save_slot s LEFT JOIN "user" u ON u.id = s.user_id WHERE u.id IS NULL) AS saves,
+            (SELECT COUNT(*) FROM token_ledger t LEFT JOIN "user" u ON u.id = t.user_id WHERE u.id IS NULL) AS ledger,
+            (SELECT COUNT(*) FROM custom_theme t LEFT JOIN "user" u ON u.id = t.user_id WHERE u.id IS NULL) AS themes,
+            (SELECT COUNT(*) FROM verification v LEFT JOIN "user" u ON u.id = v.value WHERE u.id IS NULL) AS verifications,
+            (SELECT COUNT(*) FROM event e LEFT JOIN "user" u ON u.id = e.player_id WHERE e.player_id IS NOT NULL AND u.id IS NULL) AS events`);
+          const o = orphans[0] || {};
+          console.log(`orphans staging4=${o.staging4 ?? 'na'} sessions=${o.sessions ?? 'na'} accounts=${o.accounts ?? 'na'} saves=${o.saves ?? 'na'} ledger=${o.ledger ?? 'na'} themes=${o.themes ?? 'na'} verifications=${o.verifications ?? 'na'} events=${o.events ?? 'na'}`);
           console.log('snap done');
           EOF
