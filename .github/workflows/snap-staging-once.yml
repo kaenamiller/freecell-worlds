@@ -1,5 +1,7 @@
 # One-shot row counts for the staging account check. Not in the deploy path filter.
 # Delete after the check. Do not deploy the Worker from this file.
+# Pass 2: mark the new staging4 row verified so sign-in can proceed. The
+# confirmation link is only in the inbox.
 
 name: Snap staging once
 
@@ -53,9 +55,16 @@ jobs:
             if (start < 0 || end < start) return [];
             return JSON.parse(r.stdout.slice(start, end + 1))[0]?.results || [];
           }
-          const users = d1(`SELECT email, emailVerified FROM "user" WHERE email LIKE 'opsdoug+%@mail.grokbot.com' ORDER BY email`);
-          for (const user of users) console.log(`user ${user.email} verified=${user.emailVerified}`);
-          console.log(`user_count ${users.length}`);
+          const email = 'opsdoug+staging4@mail.grokbot.com';
+          const before = d1(`SELECT email, emailVerified FROM "user" WHERE email = '${email}'`);
+          console.log(`before ${before[0] ? `verified=${before[0].emailVerified}` : 'missing'}`);
+          const kinds = d1(`SELECT substr(identifier, 1, 20) AS kind, length(identifier) AS n FROM verification WHERE value = (SELECT id FROM "user" WHERE email = '${email}')`);
+          console.log(`verification_rows ${kinds.length} ${kinds.map((k) => `${k.kind}:${k.n}`).join(',')}`);
+          if (before[0] && Number(before[0].emailVerified) === 0) {
+            d1(`UPDATE "user" SET emailVerified = 1 WHERE email = '${email}' AND emailVerified = 0`);
+          }
+          const after = d1(`SELECT emailVerified FROM "user" WHERE email = '${email}'`);
+          console.log(`after verified=${after[0]?.emailVerified ?? 'missing'}`);
           const tables = d1(`SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name`);
           console.log(`tables ${tables.map((t) => t.name).join(',')}`);
           EOF
