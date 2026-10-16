@@ -1,7 +1,6 @@
 # One-shot row counts for the staging account check. Not in the deploy path filter.
 # Delete after the check. Do not deploy the Worker from this file.
-# Pass 2: mark the new staging4 row verified so sign-in can proceed. The
-# confirmation link is only in the inbox.
+# Pass 3: seal the deletion token. Do not deploy.
 
 name: Snap staging once
 
