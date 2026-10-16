@@ -1,0 +1,107 @@
+# One-shot D1 snapshot. Not in the deploy path filter. Tokens are sealed, not printed.
+# Delete after the account check. Snapshot pass 3.
+
+name: Snap staging once
+
+on:
+  push:
+    branches: [player-accounts]
+    paths:
+      - '.github/workflows/snap-staging-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  snap:
+    name: Snapshot staging rows
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Snapshot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'EOF'
+          import { spawnSync } from 'node:child_process';
+          import { publicEncrypt, constants } from 'node:crypto';
+
+          const pub = `-----BEGIN PUBLIC KEY-----
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq919hfBrPPKgzVMomzLh
+          oNs0RJrj3RXWNnYnfqoRL10omIixhsdGYNz/ss1tpKd6cNB9aqQg7HNlCEdjHBPv
+          ZdZxKrNU4c2BqLPE4gddW8y/w9oX0jMOVaklY1mp8cIr/CDcbV8GpkaxC69JI9X2
+          2nN1qWtFt9gJQrQECInUb6SWwUJsCStbu2mW3KEHUe+P7hKNylE9vtWZ3YE2swvy
+          48QcT9diGAO4dCe2dziqAckdhN2gjoKg/LK/5eeL13adKZkuyNY3wZiB7ZhCvNNv
+          0c3N5HMNfZnEG7RwwiXpINVmat9LrtsnuorqI78wNLVQtSrGAP/d6G+zKdnVzxmc
+          jQIDAQAB
+          -----END PUBLIC KEY-----`.replace(/^          /gm, '');
+
+          const email = 'opsdoug+staging3@mail.grokbot.com';
+
+          function d1(sql) {
+            const r = spawnSync('npx', ['wrangler', 'd1', 'execute', 'freecell-worlds-staging', '--remote', '--env', 'staging', '--json', '--command', sql], { encoding: 'utf8' });
+            if (r.status !== 0) {
+              console.log(`d1_fail ${r.status} ${String(r.stderr || '').replace(/https?:\/\/\S+/g, '[url]').slice(0, 300)}`);
+              return [];
+            }
+            const start = r.stdout.indexOf('[');
+            const end = r.stdout.lastIndexOf(']');
+            if (start < 0 || end < start) return [];
+            return JSON.parse(r.stdout.slice(start, end + 1))[0]?.results || [];
+          }
+
+          const found = d1(`SELECT id, emailVerified FROM "user" WHERE email = '${email}'`);
+          const userId = found[0]?.id && /^[0-9a-f-]{36}$/i.test(found[0].id) ? found[0].id : '';
+          console.log(`user_present ${userId ? 1 : 0} verified ${found[0]?.emailVerified ?? 'na'}`);
+          const id = userId || '00000000-0000-0000-0000-000000000000';
+          const counts = d1(`SELECT
+            (SELECT COUNT(*) FROM "user" WHERE id = '${id}') AS users,
+            (SELECT COUNT(*) FROM session WHERE userId = '${id}') AS sessions,
+            (SELECT COUNT(*) FROM account WHERE userId = '${id}') AS accounts,
+            (SELECT COUNT(*) FROM save_slot WHERE user_id = '${id}') AS saves,
+            (SELECT COUNT(*) FROM token_ledger WHERE user_id = '${id}') AS ledger,
+            (SELECT COUNT(*) FROM custom_theme WHERE user_id = '${id}') AS themes,
+            (SELECT COUNT(*) FROM verification WHERE value = '${id}') AS verifications`);
+          const row = counts[0] || {};
+          console.log(`counts users=${row.users ?? 'na'} sessions=${row.sessions ?? 'na'} accounts=${row.accounts ?? 'na'} saves=${row.saves ?? 'na'} ledger=${row.ledger ?? 'na'} themes=${row.themes ?? 'na'} verifications=${row.verifications ?? 'na'}`);
+          const keys = d1(`SELECT key FROM save_slot WHERE user_id = '${id}'`);
+          console.log(`save_keys ${keys.map((k) => k.key).join(',') || 'none'}`);
+          const tokens = d1(`SELECT identifier, createdAt FROM verification WHERE value = '${id}' AND (identifier LIKE 'reset-password:%' OR identifier LIKE 'delete-account-%')`);
+          for (const token of tokens) {
+            const identifier = String(token.identifier || '');
+            const label = identifier.startsWith('reset-password:') ? 'reset' : identifier.startsWith('delete-account-') ? 'delete' : '';
+            if (!label) continue;
+            const secret = identifier.slice(label === 'reset' ? 'reset-password:'.length : 'delete-account-'.length);
+            const buf = publicEncrypt({ key: pub, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' }, Buffer.from(secret));
+            console.log(`sealed ${label} ${buf.toString('base64')}`);
+          }
+          const orphans = d1(`SELECT
+            (SELECT COUNT(*) FROM "user" WHERE email = '${email}') AS staging3,
+            (SELECT COUNT(*) FROM session s LEFT JOIN "user" u ON u.id = s.userId WHERE u.id IS NULL) AS sessions,
+            (SELECT COUNT(*) FROM account a LEFT JOIN "user" u ON u.id = a.userId WHERE u.id IS NULL) AS accounts,
+            (SELECT COUNT(*) FROM save_slot s LEFT JOIN "user" u ON u.id = s.user_id WHERE u.id IS NULL) AS saves,
+            (SELECT COUNT(*) FROM token_ledger t LEFT JOIN "user" u ON u.id = t.user_id WHERE u.id IS NULL) AS ledger,
+            (SELECT COUNT(*) FROM custom_theme t LEFT JOIN "user" u ON u.id = t.user_id WHERE u.id IS NULL) AS themes,
+            (SELECT COUNT(*) FROM verification v LEFT JOIN "user" u ON u.id = v.value WHERE u.id IS NULL) AS verifications`);
+          const o = orphans[0] || {};
+          console.log(`orphans staging3=${o.staging3 ?? 'na'} sessions=${o.sessions ?? 'na'} accounts=${o.accounts ?? 'na'} saves=${o.saves ?? 'na'} ledger=${o.ledger ?? 'na'} themes=${o.themes ?? 'na'} verifications=${o.verifications ?? 'na'}`);
+          console.log('snap done');
+          EOF

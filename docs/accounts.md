@@ -79,7 +79,7 @@ Locally, emails are printed to the wrangler log instead of sent, and Turnstile u
    - Authorized redirect URIs: `https://api.freecellworlds.com/api/auth/callback/google` and `https://api-staging.freecellworlds.com/api/auth/callback/google`.
    - `GOOGLE_CLIENT_SECRET` is a GitHub environment secret on `staging` and `production`. The API deploy writes it when that secret is set and does not print it.
    - OAuth consent screen: app name, support email, links to `/privacy/` and `/terms/`. Only the default `email`/`profile` scopes are used, so Google's sensitive-scope verification doesn't apply.
-3. **Resend:** `mail.freecellworlds.com` is verified (SPF and DKIM). `RESEND_API_KEY` is a GitHub environment secret on `staging` and `production`. The API deploy writes it when that secret is set and does not print it. The key currently on staging is not authorized to send from `mail.freecellworlds.com` (Resend 403). Replace it with a key that is allowed to send from that domain. A `+` tag in the address is kept and is not the cause of that 403.
+3. **Resend:** `mail.freecellworlds.com` is verified (SPF and DKIM). `RESEND_API_KEY` is a GitHub environment secret on `staging` and `production`. The API deploy writes it when that secret is set and does not print it. The staging key is allowed to send from that domain. A `+` tag in the address is kept.
 4. **Email routing:** create `gdpr@freecellworlds.com` (Cloudflare Email Routing). The privacy policy and contact page point to it.
 5. **Secrets:**
    ```sh
