@@ -59,7 +59,7 @@ defineCharm({
   name: 'Woad',
   icon: '🫐',
   family: 'wild',
-  text: 'Each board, one random extra rank is wild for every wild-family boon you hold (this one included).',
+  text: 'Each board, one random rank becomes wild for every wild-family boon you hold (this one included).',
   upgrade: 'Each board, two random extra ranks per wild-family boon you hold (this one included).',
   ease: 0.2,
   rules(r, ctx) {
@@ -87,7 +87,7 @@ defineCharm({
   tags: ['CELLS'],
   text: (s) => {
     const n = 2 + Math.floor(s / 2);
-    return `The deepest card of ${n} columns can't enter a free cell.`;
+    return `In ${n} columns, the deepest-buried card (marked) can't go into a free cell.`;
   },
   ease: (ctx) => -0.07 * ctx.strength,
   rules() {},

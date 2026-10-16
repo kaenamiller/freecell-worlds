@@ -88,9 +88,9 @@ defineCharm({
   tags: ['COLUMN'],
   text: (s) => {
     const min = 6 + s;
-    if (min >= 13) return 'Empty columns only accept sequences headed by a King.';
+    if (min >= 13) return 'Only a King (or a run starting with one) can go into an empty column. Empty columns don\'t raise your move capacity.';
     const names = ['', 'Ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King'];
-    return `Empty columns only accept sequences headed by ${names[min]} or higher.`;
+    return `Only a ${names[min]} or higher (or a run starting with one) can go into an empty column. Empty columns don't raise your move capacity.`;
   },
   ease: (ctx) => -0.12 * ctx.strength,
   rules(r, ctx) {

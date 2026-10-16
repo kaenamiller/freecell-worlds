@@ -82,6 +82,7 @@ export function stubAPI(game, { picks = [], run = null, memo = {}, solveResult =
       return value;
     },
     rewind(n) { while (n-- && game.history.length) game.undo(); return true; },
+    async sonar() { calls.push(['sonar']); return solveResult === true ? { steps: 0, entries: 0 } : { steps: null }; },
   };
   return api;
 }

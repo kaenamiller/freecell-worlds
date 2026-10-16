@@ -96,7 +96,7 @@ defineCharm({
   icon: '🪙',
   tags: ['SCORE'],
   pressure: true,
-  text: (s) => `Pay ${2 + s} coins at the start; each chain of 5+ cards home before 40 are home wins back 3 (twice at most).`,
+  text: (s) => `Pay ${2 + s} coins when the board starts. Win back 3 coins each time you send 5+ cards home in a row before 40 are home (up to twice).`,
   ease: (ctx) => -0.04 * ctx.strength,
   on: {
     start(ctx) {

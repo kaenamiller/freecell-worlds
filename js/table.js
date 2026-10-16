@@ -351,7 +351,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
       }
       if (r.emptyMaxRank) {
         const rank = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][r.emptyMaxRank] || String(r.emptyMaxRank);
-        showMarker(marker(`maxrank:${c}:${r.emptyMaxRank}`, 'maxrank', '≤' + rank), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .014, L.TABLEAU_Z);
+        showMarker(marker(`maxrank:${c}:${r.emptyMaxRank}:${r.emptyKings ? 'K' : ''}`, 'maxrank', '≤' + rank + (r.emptyKings ? ' +K' : '')), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .014, L.TABLEAU_Z);
       }
       if (r.emptyColors[c]) showMarker(marker(`emptycolor:${c}:${r.emptyColors[c]}`, 'emptycolor', r.emptyColors[c] === 'red' ? '♦' : '♠'), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .018, L.TABLEAU_Z + CARD.H * .35);
     }

@@ -1,6 +1,6 @@
 // Service worker: precache the app shell, runtime-cache art/audio (cache-first),
 // and keep code files network-first so updates arrive. Bump VERSION to invalidate.
-const VERSION = 'freecell-worlds-v25-custom-themes';
+const VERSION = 'freecell-worlds-v26-accounts';
 const SHELL = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/rules.js', './js/card.js', './js/animation.js', './js/textures.js', './js/themes.js', './js/theme-expansion.js',
@@ -174,7 +174,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   const isAsset = /\/assets\//.test(req.url) || /\/vendor\//.test(req.url);
   if (isAsset) {
-    // Cache-first: generated art/audio never changes under the same name.
+    // Cache-first: bump VERSION when replacing generated art/audio at the same path.
     e.respondWith(
       caches.match(req).then(
         (hit) =>

@@ -23,7 +23,7 @@ defineCharm({
   name: 'Fossil Record',
   icon: '🦴',
   family: 'coin',
-  text: '+2 coins for each of the four 7-card columns you empty before 30 cards are home.',
+  text: '+2 coins for each of the four starting 7-card columns you empty before 30 cards are home.',
   upgrade: '+4.',
   score(sb, ctx) {
     if (!sb.initial) return;
@@ -67,7 +67,7 @@ defineCharm({
   tags: ['SCORE'],
   text: (s) => {
     const n = 1 + s;
-    return `${n} fragile card${n === 1 ? '' : 's'}; −25 each time one moves again after its first move (except to its foundation), at most twice per card.`;
+    return `${n} cards are fragile: the first move is free, but each later move costs 25 points (up to twice per card). Sending one home is always free.`;
   },
   setup(board, ctx) {
     const need = 1 + ctx.strength;

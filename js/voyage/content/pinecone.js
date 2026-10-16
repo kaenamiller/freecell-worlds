@@ -156,7 +156,7 @@ defineCharm({
   icon: '🍂',
   tags: ['SCORE'],
   pressure: true,
-  text: (s) => `After your ${10 - s}th free-cell placement, each one costs 2 coins.`,
+  text: (s) => `You can put ${10 - s} cards into free cells for free; each card after that costs 2 coins.`,
   score(sb, ctx) {
     const allowance = 10 - ctx.strength;
     let placed = 0;

@@ -75,7 +75,7 @@ defineCharm({
   tags: ['COLUMN'],
   text: (s) => {
     const cols = dealSkewFor(s);
-    return `The deal is uneven: columns of ${cols.join('-')}.`;
+    return `The deal is lopsided: columns are dealt ${cols.join('-')} cards deep.`;
   },
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {

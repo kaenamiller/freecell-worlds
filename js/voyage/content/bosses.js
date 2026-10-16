@@ -132,7 +132,7 @@ defineCharm({
   name: 'Kings\' Throne',
   icon: '🪑',
   tags: ['COLUMN', 'MOVE'],
-  text: 'Empty columns accept only Kings, and don\'t help you move sequences.',
+  text: 'Only a King (or a run starting with one) can go into an empty column. Empty columns don\'t raise your move capacity.',
   tell: 'Kings claim empty columns',
   ease: -2.29,
   rules(r) {
@@ -179,7 +179,7 @@ defineCharm({
   name: 'Lockstep',
   icon: '⛓️',
   tags: ['FOUND'],
-  text: 'No foundation may climb more than 3 above the lowest.',
+  text: 'No foundation may get more than 3 cards ahead of the lowest foundation.',
   tell: 'Foundation ceiling: lowest +3',
   ease: -1.3, // K1 measured −0.16; −1.3 verified 6/8 finale deals vs 4/8.
   rules(r) {
@@ -198,7 +198,7 @@ defineCharm({
   name: 'Twin Tombs',
   icon: '⚱️',
   tags: ['COLUMN'],
-  text: 'Two columns are sealed until emptied.',
+  text: 'Two columns are sealed: nothing can be placed on them until you empty them.',
   tell: 'Empty both tombs',
   ease: -0.24,
   rules(r, ctx) {
@@ -214,7 +214,7 @@ defineCharm({
 
 defineCharm({
   id: 'boss.eclipse', kind: 'boss', name: 'Eclipse', icon: '🌘', tags: ['CELLS', 'FOUND'],
-  text: 'Before 26 cards are home, courts cannot enter cells; afterward, foundations stay within 3 of the lowest.',
+  text: 'Until 26 cards are home, Jacks, Queens and Kings can\'t go into free cells. After that, no foundation may get more than 3 cards ahead of the lowest.',
   tell: 'At 26 home: courts yield to lockstep', ease: -3.05,
   rules(r) {
     const noCellRanks = r.noCellRanks || 0;
@@ -251,7 +251,7 @@ defineCharm({
 
 defineCharm({
   id: 'boss.hightide', kind: 'boss', name: 'High Tide', icon: '🌊', tags: ['CELLS'],
-  text: 'One more empty free cell closes at 16, 28 and 40 cards home.',
+  text: 'Each time 16, 28 and 40 cards are home, another free cell closes as soon as it\'s empty.',
   tell: 'Cells close at 16 / 28 / 40', ease: -1.5,
   rules(r) { r.cellClose = { at: [...(r.cellClose?.at || []), 16, 28, 40].sort((a, b) => a - b) }; },
   boonRelation(_id, diff) {

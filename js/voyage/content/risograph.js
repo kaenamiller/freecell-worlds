@@ -5,7 +5,7 @@ import { cardName, cardsOfRanks, confirmStickerSwap, rankMask, ranksIn } from '.
 const STICKER_TYPES = ['wild', 'gold', 'lucky', 'key', 'fool'];
 
 function evenBarrenRanks(s) {
-  if (s <= 3) return rankMask(2, 3, 4, 5, 6);
+  if (s <= 3) return rankMask(2, 4, 6);
   const ranks = [];
   for (let rank = 2; rank <= 12; rank += 2) ranks.push(rank);
   return rankMask(...ranks);
@@ -90,8 +90,8 @@ defineCharm({
   icon: '🟥',
   tags: ['STACK'],
   text: (s) => (s <= 3
-    ? 'Nothing can be placed onto even cards ranked 2 through 6.'
-    : 'Nothing can be placed onto any even-ranked card.'),
+    ? 'Nothing can be placed onto a 2, 4 or 6.'
+    : 'Nothing can be placed onto a 2, 4, 6, 8, 10 or Queen.'),
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {
     r.barren = { suits: 15, ranks: evenBarrenRanks(ctx.strength) };

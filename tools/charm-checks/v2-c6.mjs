@@ -86,7 +86,9 @@ export async function check(h) {
   assert.equal(rulesOf('broadcast.challenge', 1).phase?.rules?.emptyFactor, 3);
 
   assert.equal(rulesOf('sewing.thread', 1).suitRunFree, 15);
-  assert.equal(rulesOf('sewing.thread', 1, 2).suitBuild & kit.suitMask(2), kit.suitMask(2));
+  assert.equal(rulesOf('sewing.thread', 1).moveBonus, 1);
+  assert.equal(rulesOf('sewing.thread', 1, 2, ['sewing.thread', 'forest.moss', 'forge.anvil']).moveBonus, 6);
+  assert.equal(rulesOf('sewing.thread', 1, 2).suitBuild, 0);
 
   const edition = CHARMS['risograph.edition'].coins(100, { level: 1, family: () => 2 });
   assert.equal(edition, 120, 'edition scales with coin family');

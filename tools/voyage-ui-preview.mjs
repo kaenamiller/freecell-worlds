@@ -283,7 +283,7 @@ async function showMarks() {
   await stickerArtReady;
   setCardTheme(THEMES[activeTheme]);
   const panel = document.createElement('section'); panel.id = 'preview-marks'; panel.className = 'panel';
-  panel.innerHTML = '<p class="voyage-kicker">Voyage · card stickers</p><h2>Small marks, lasting luck</h2><p>Charm seal above. Sticker sigil in the opposite corner.</p><div class="preview-mark-grid"></div>';
+  panel.innerHTML = '<p class="voyage-kicker">Voyage · card stickers</p><h2>Small marks, lasting luck</h2><p>Sticker first along the top edge, then ability tabs, then the charm seal.</p><div class="preview-mark-grid"></div>';
   document.body.append(panel); markGroups.length = 0;
   ['wild', 'fool', 'key', 'gold', 'lucky'].forEach((type, i) => {
     const group = buildCardMesh(i * 10 + 1, THEMES[activeTheme].card);

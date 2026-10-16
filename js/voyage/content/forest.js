@@ -69,15 +69,14 @@ defineCharm({
   icon: '🌱',
   family: 'suit',
   text: 'Clubs may also be built down in suit.',
-  upgrade: 'Clubs and Spades.',
+  upgrade: 'Clubs may also be built down or up in suit.',
   ease: 0.2,
   rules(r, ctx) {
-    const suits = ctx.level >= 2 ? [0, 3] : [0];
-    r.suitBuild = (r.suitBuild || 0) | suitMask(...suits);
+    r.suitBuild = (r.suitBuild || 0) | suitMask(0);
+    if (ctx.level >= 2) r.suitBuildUp = (r.suitBuildUp || 0) | suitMask(0);
   },
   setup(_board, ctx) {
-    const suits = ctx.level >= 2 ? [0, 3] : [0];
-    ctx.api.mark(cardsOfRanks(ALL_RANKS, suits), 'wild');
+    ctx.api.mark(cardsOfRanks(ALL_RANKS, [0]), 'wild');
   },
 });
 
@@ -90,7 +89,8 @@ defineCharm({
   tags: ['STACK'],
   text: (s) => {
     const min = Math.max(1, 14 - 2 * s);
-    const label = min >= 11 ? 'Jack' : min >= 10 ? 'Ten' : String(min);
+    if (min <= 1) return 'Nothing can be placed onto any Club.';
+    const label = min >= 11 ? 'Jack' : String(min);
     return `Nothing can be placed onto Clubs ranked ${label} or higher.`;
   },
   ease: (ctx) => -0.1 * ctx.strength,

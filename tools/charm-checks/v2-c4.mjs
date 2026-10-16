@@ -81,10 +81,13 @@ export async function check(h) {
   assert.equal(bellowsRules.cellThaw.at[0], 20);
   assert.equal(bellowsRules.cellClose.at[0], 50);
 
-  // forge.anvil L2 suitRunFree
+  // forge.anvil L2 builds Spades up in suit too
   const anvil = baseRules();
   CHARMS['forge.anvil'].rules(anvil, { level: 2 });
-  assert(anvil.suitRunFree & (1 << 3));
+  assert(anvil.suitBuild & (1 << 3));
+  assert(anvil.suitBuildUp & (1 << 3));
+  assert(Rules.canBuildOn(cardId(3, 6), cardId(3, 7), anvil), '7♠ goes up onto 6♠');
+  assert(!Rules.canBuildOn(cardId(3, 6), cardId(0, 7), anvil), 'build up stays in suit');
 
   // saloon.wanted (negative: home with no uncover step in history)
   const wantedId = cardId(1, 5);

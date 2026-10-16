@@ -39,7 +39,7 @@ defineCharm({
   name: 'Relief Pack',
   icon: '🎒',
   family: 'fortune',
-  text: "You're offered one more charm after each board (up to 3).",
+  text: 'After each board, you get one more charm to choose from (max 3).',
   upgrade: '…and ports stock one extra boon.',
   offers: (n) => n + 1,
   onPort(_run, ctx) {
@@ -55,7 +55,7 @@ defineCharm({
   icon: '🔥',
   tags: ['SCORE'],
   pressure: true,
-  text: (s) => `Every 5 moves over par cost ${1 + Math.ceil(s / 2)} coins.`,
+  text: (s) => `Lose ${1 + Math.ceil(s / 2)} coins for every 5 moves you take over par.`,
   score(sb, ctx) {
     const over = Math.max(0, sb.stat.moves - sb.par);
     const blocks = Math.floor(over / 5);

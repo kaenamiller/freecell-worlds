@@ -77,7 +77,11 @@ defineCharm({
   name: 'Jailhouse',
   icon: '🔒',
   tags: ['CELLS'],
-  text: (s) => `Cards ranked ${minJailRank(s)} and up in a free cell may only leave to their foundation.`,
+  text: (s) => {
+    const min = minJailRank(s);
+    const who = min <= 1 ? 'Any card' : min >= 12 ? 'Queens and Kings' : `${['', '', '2s', '', '4s', '', '6s', '', '8s', '', '10s'][min]} and higher`;
+    return `${who} put into a free cell ${min <= 1 ? 'is' : 'are'} jailed: ${min <= 1 ? 'it' : 'they'} can only leave by going home.`;
+  },
   ease: (ctx) => -0.09 * ctx.strength,
   rules(r, ctx) {
     const minRank = minJailRank(ctx.strength);

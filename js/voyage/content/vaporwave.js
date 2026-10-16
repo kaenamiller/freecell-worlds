@@ -56,7 +56,7 @@ defineCharm({
 });
 defineCharm({
   id: 'vaporwave.challenge', kind: 'challenge', theme: 'vaporwave', name: 'After Hours', icon: '🛍️', tags: ['CELLS'],
-  text: (s) => `While no column is empty, your last ${s <= 3 ? 'free cell is' : 'two free cells are'} shuttered.`,
+  text: (s) => `Your last ${s <= 3 ? 'free cell is' : 'two free cells are'} shuttered and can't be used unless you have an empty column.`,
   // Measured −1.37 (one shutter) and a noisy −0.31 (two); kept monotonic so stronger never deals harder.
   ease: (ctx) => ctx.strength <= 3 ? -1.37 : -1.6,
   rules(r, ctx) { r.cellsNeedEmpty = Math.max(r.cellsNeedEmpty || 0, ctx.strength <= 3 ? 1 : 2); },

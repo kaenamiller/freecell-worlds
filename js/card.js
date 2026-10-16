@@ -431,7 +431,7 @@ function paintStar(ctx) {
   });
 }
 
-// Same die-cut used in the sticker market. The lower-left corner is opposite the charm seal.
+// Same die-cut used in the sticker market, as a chip at the start of the top lane (see topLane).
 const STICKER_TYPES = ['wild', 'fool', 'key', 'gold', 'lucky'];
 const stickerArt = new Map();
 function loadStickerArt(type) {
@@ -445,9 +445,10 @@ function loadStickerArt(type) {
 }
 export const stickerArtReady = Promise.all(STICKER_TYPES.map((type) => loadStickerArt(type).ready));
 
-function paintStickerGlyph(ctx, type) {
+function paintStickerGlyph(ctx, type, x, y, size) {
   ctx.save();
-  ctx.translate(29, 329);
+  ctx.translate(x + size / 2, y + size / 2);
+  ctx.scale(size / 44, size / 44);
   ctx.fillStyle = 'rgba(255, 252, 237, .94)';
   ctx.strokeStyle = '#343029';
   ctx.lineWidth = 1.5;
@@ -476,13 +477,14 @@ function paintStickerGlyph(ctx, type) {
   ctx.stroke(); ctx.restore();
 }
 
-function paintSticker(ctx, type) {
+function paintSticker(ctx, type, size = STICKER_CHIP) {
+  const x = MOD_TAB.x0, y = MOD_TAB.y + (MOD_TAB.h - size) / 2;
   const { img } = loadStickerArt(type);
   if (img.complete && img.naturalWidth) {
-    ctx.drawImage(img, 6, 300, 56, 56);
+    ctx.drawImage(img, x, y, size, size);
     return;
   }
-  paintStickerGlyph(ctx, type);
+  paintStickerGlyph(ctx, type, x, y, size);
 }
 
 // Upper-right seal on the 256×360 mark texture (sigil chip, status disc, or honey seal).
@@ -516,15 +518,26 @@ function markTexture(style) {
   }
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
   markTextures.set(style, tex);
-  if (style.startsWith('sticker-')) {
-    const { img, ready } = loadStickerArt(style.slice(8));
-    if (!img.complete || !img.naturalWidth) ready.then(() => {
-      if (!img.naturalWidth) return;
-      ctx.clearRect(0, 0, c.width, c.height);
-      mark.paint(ctx);
-      tex.needsUpdate = true;
-    });
-  }
+  return tex;
+}
+
+const stickerTextures = new Map();
+function stickerTexture(style, size) {
+  const key = `${style}@${size}`;
+  if (stickerTextures.has(key)) return stickerTextures.get(key);
+  const type = style.slice(8);
+  const c = document.createElement('canvas'); c.width = MARK_FACE.w; c.height = MARK_FACE.h;
+  const ctx = c.getContext('2d');
+  paintSticker(ctx, type, size);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  stickerTextures.set(key, tex);
+  const { img, ready } = loadStickerArt(type);
+  if (!img.complete || !img.naturalWidth) ready.then(() => {
+    if (!img.naturalWidth) return;
+    ctx.clearRect(0, 0, c.width, c.height);
+    paintSticker(ctx, type, size);
+    tex.needsUpdate = true;
+  });
   return tex;
 }
 export function setCardMark(group, style = null) {
@@ -535,7 +548,7 @@ export function setCardMark(group, style = null) {
   const u = group.userData;
   const resealed = !!u.mark !== !!style;
   u.mark = style;
-  if (resealed && u.mods?.length) setCardMods(group, u.mods);
+  if (resealed) paintTopLane(u);
   if (style && !u.markMesh) {
     const mat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     u.markMesh = new THREE.Mesh(getShared().frontGeo, mat);
@@ -582,14 +595,11 @@ export function setCardSticker(group, type = null) {
     u.stickerMesh.position.y = CARD.D / 2 + 0.003;
     group.add(u.stickerMesh);
   }
-  if (u.stickerMesh) {
-    u.stickerMesh.visible = !!style && !u.concealed;
-    if (style) { u.stickerMesh.material.map = markTexture(style); u.stickerMesh.material.needsUpdate = true; }
-  }
+  paintTopLane(u);
 }
 // Ability modifications (Glaze, Redaction, Double Exposure…) are tabs along the top
 // edge, between the index and the seal, so they stay readable in a fanned column and
-// never compete with a challenge seal or a sticker. Several can stack on one card.
+// never compete with a challenge seal. Several can stack on one card, after the sticker.
 //   mod-wild            ignores colour (same diamond as the Wild seal and sticker)
 //   mod-anchor          anything may be placed on this card
 //   mod-rank-up-<r>     stacks as rank r (Glaze raised it)
@@ -597,13 +607,25 @@ export function setCardSticker(group, type = null) {
 // After the corner index (a "10" and its suit end near x≈118) and before the seal (from
 // x≈190), inside the top strip a fanned column still shows. A card with no seal also
 // gets the seal's corner.
-const MOD_TAB = { x0: 122, x1: 188, x1Open: 248, y: 6, h: 54 };
+const MOD_TAB = { x0: 122, x1: 188, x1Open: 248, y: 6, h: 54, gap: 5 };
+const STICKER_CHIP = 44;
+// The top lane holds the sticker first (it lasts the whole voyage), then the ability tabs.
+// A sealed card with tabs as well has only 66px, so the sticker shrinks to leave the tabs
+// 30px (40px for a rank tab, which carries a label).
+function topLane(sealed, stickered, mods = []) {
+  const x1 = sealed ? MOD_TAB.x1 : MOD_TAB.x1Open;
+  const need = !mods.length ? 0 : mods.some((style) => style.startsWith('mod-rank-')) ? 40 : 30;
+  const sticker = !stickered ? 0 : need
+    ? Math.min(STICKER_CHIP, x1 - MOD_TAB.x0 - MOD_TAB.gap - need) : STICKER_CHIP;
+  return { sticker, x0: MOD_TAB.x0 + (sticker && sticker + MOD_TAB.gap), x1 };
+}
 const RANK_LABEL = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
 export const isModStyle = (style) => /^mod-(wild|anchor|rank-(up|down)-([1-9]|1[0-3]))$/.test(String(style));
 
-export function modHit(uv, sealed = true) {
+export function modHit(uv, sealed = true, stickered = false, mods = ['mod-wild']) {
   if (!uv) return false;
-  const u0 = MOD_TAB.x0 / MARK_FACE.w, u1 = (sealed ? MOD_TAB.x1 : MOD_TAB.x1Open) / MARK_FACE.w;
+  const lane = topLane(sealed, stickered, mods);
+  const u0 = lane.x0 / MARK_FACE.w, u1 = lane.x1 / MARK_FACE.w;
   const v0 = 1 - (MOD_TAB.y + MOD_TAB.h + 8) / MARK_FACE.h, v1 = 1;
   return uv.x >= u0 && uv.x <= u1 && uv.y >= v0 && uv.y <= v1;
 }
@@ -650,16 +672,17 @@ function paintModTab(ctx, style, x, w) {
 }
 
 const modTextures = new Map();
-function modTexture(styles, sealed) {
-  const key = `${styles.join('|')}${sealed ? '#' : ''}`;
+function modTexture(styles, sealed, stickered) {
+  const key = `${styles.join('|')}${sealed ? '#' : ''}${stickered ? '*' : ''}`;
   if (modTextures.has(key)) return modTextures.get(key);
   const c = document.createElement('canvas'); c.width = MARK_FACE.w; c.height = MARK_FACE.h;
   const ctx = c.getContext('2d');
   // A rank tab carries a label, so it gets twice the width of an icon tab.
-  const gap = 5, span = (sealed ? MOD_TAB.x1 : MOD_TAB.x1Open) - MOD_TAB.x0;
+  const lane = topLane(sealed, stickered, styles);
+  const gap = MOD_TAB.gap, span = lane.x1 - lane.x0;
   const weight = (style) => style.startsWith('mod-rank-') ? 2 : 1;
   const unit = Math.min(44, (span - gap * (styles.length - 1)) / styles.reduce((n, style) => n + weight(style), 0));
-  let x = MOD_TAB.x0;
+  let x = lane.x0;
   for (const style of styles) { const w = unit * weight(style); paintModTab(ctx, style, x, w); x += w + gap; }
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
   modTextures.set(key, tex); return tex;
@@ -677,9 +700,19 @@ export function setCardMods(group, styles = []) {
     u.modMesh.position.y = CARD.D / 2 + 0.0035;
     group.add(u.modMesh);
   }
+  paintTopLane(u);
+}
+
+// The sticker and the tabs share the top lane, so a change to either (or to the seal) repaints both.
+function paintTopLane(u) {
+  const lane = topLane(!!u.mark, !!u.sticker, u.mods);
+  if (u.stickerMesh) {
+    u.stickerMesh.visible = !!u.sticker && !u.concealed;
+    if (u.sticker) { u.stickerMesh.material.map = stickerTexture(u.sticker, lane.sticker); u.stickerMesh.material.needsUpdate = true; }
+  }
   if (u.modMesh) {
-    u.modMesh.visible = next.length > 0 && !u.concealed;
-    if (next.length) { u.modMesh.material.map = modTexture(next, !!u.mark); u.modMesh.material.needsUpdate = true; }
+    u.modMesh.visible = !!u.mods?.length && !u.concealed;
+    if (u.mods?.length) { u.modMesh.material.map = modTexture(u.mods, !!u.mark, !!u.sticker); u.modMesh.material.needsUpdate = true; }
   }
 }
 export const addCardMod = (group, style) => setCardMods(group, [...(group.userData.mods || []), style]);

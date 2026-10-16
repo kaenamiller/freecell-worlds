@@ -80,7 +80,12 @@ defineCharm({
   name: 'Rigged Booth',
   icon: '🎯',
   tags: ['CELLS'],
-  text: (s) => `One suit's cards ranked ${minBlockedRank(s)} and up can't enter free cells.`,
+  text: (s) => {
+    const min = minBlockedRank(s);
+    if (min <= 1) return 'No card of one suit (shown on the badge) can go into a free cell.';
+    const ranks = min >= 12 ? 'Queen and King' : `${['', '', '2s', '', '4s', '', '6s', '', '8s', '', '10s'][min]} and higher`;
+    return `One suit's ${ranks} (shown on the badge) can't go into free cells.`;
+  },
   ease: (ctx) => -0.08 * ctx.strength,
   rules(r, ctx) {
     const minRank = minBlockedRank(ctx.strength);

@@ -44,7 +44,7 @@ defineCharm({
   icon: '⏰',
   tags: ['SCORE'],
   pressure: true,
-  text: (s) => `Each card that stays in a free cell longer than ${14 - s} moves costs 25 points.`,
+  text: (s) => `A card left in a free cell for more than ${14 - s} moves costs 25 points.`,
   ease: (ctx) => -0.05 * ctx.strength,
   score(sb, ctx) {
     const limit = 14 - ctx.strength;

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
-import { Game, cloneState, generateMoves, maxMoveSize, canStackOn, sequenceStart, randomDealNumber, safeFoundationMoves, legalFoundationMoves, canFinishWithFoundationOnly, cardsHome } from './rules.js';
+import { Game, cloneState, undoMove, generateMoves, maxMoveSize, canStackOn, sequenceStart, randomDealNumber, safeFoundationMoves, legalFoundationMoves, canFinishWithFoundationOnly, cardsHome } from './rules.js';
 import { buildCardMesh, applyCardStyle, setCardMark, setCardSticker, setCardMods, setCardConcealed, markSigilHit, modHit, cullCardFaces, CARD } from './card.js';
 import { setCardTheme } from './textures.js';
 import { Animator, Easing, CardMotion } from './animation.js';
@@ -1948,7 +1948,7 @@ function syncMarkTip(clientX, clientY, hit) {
   const style = group?.userData.mark;
   const tip = !group ? laneTipAt(clientX, clientY)
     : group.userData.concealed ? null
-    : group.userData.mods?.length && modHit(hit.uv, !!style) ? vy.effects?.modTip(group.userData.cardId)
+    : group.userData.mods?.length && modHit(hit.uv, !!style, !!group.userData.sticker, group.userData.mods) ? vy.effects?.modTip(group.userData.cardId)
     : style && !String(style).startsWith('sticker-') && markSigilHit(hit.uv) ? vy.effects?.markTip(group.userData.cardId, style)
     : null;
   if (!tip) voyageUI.hideMarkTip();
@@ -2218,12 +2218,13 @@ function solverOptions(extra = {}) {
   return extra;
 }
 
-function requestSolve(options = {}) {
+// options.state / options.rules solve a position other than the table's (Sonar's earlier positions).
+function requestSolve({ state = game.state, rules = game.rules, ...options } = {}) {
   const id = ++solveSeq;
   const merged = solverOptions(options);
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject });
-    worker.postMessage({ id, state: cloneState(game.state), rules: game.rules, options: merged });
+    worker.postMessage({ id, state: cloneState(state), rules, options: merged });
   });
 }
 
@@ -3047,6 +3048,37 @@ async function voyageSolvable() {
   finally { busy = false; }
 }
 
+// Sonar: step back one player move at a time (its auto-plays first) until the solver proves a
+// position winnable. Earlier positions are rebuilt on a copy, so the table is not touched.
+// Returns { steps, entries } (steps 0 = this position is still winnable), { steps: null } when
+// nothing within range was proven, or null when the board changed or the solver failed.
+async function voyageSonar({ maxSteps = 10, budgetMs = 15000 } = {}) {
+  if (!game || won || mode !== 'voyage' || !vy.boardLive || vy.run?.status !== 'board' || busy) return null;
+  const board = game, history = game.history.slice();
+  const stale = () => game !== board || mode !== 'voyage' || !vy.boardLive || history.length !== game.history.length || history.some((m, i) => m !== game.history[i]);
+  const st = cloneState(game.state), rules = structuredClone(game.rules), moves = structuredClone(history);
+  const deadline = performance.now() + budgetMs;
+  let at = moves.length;
+  busy = true; ui.setSolverBusy(true);
+  setStatus('Sonar sweeping…', 'warn');
+  try {
+    for (let steps = 0; ; steps++) {
+      const left = deadline - performance.now();
+      if (left < 250) return { steps: null };
+      const result = await requestSolve({ state: st, rules, timeLimitMs: Math.min(5000, left) });
+      if (stale()) return null;
+      if (result.solvable === true) return { steps, entries: moves.length - at };
+      const prev = moves.findLastIndex((m, i) => i < at && !m.auto);
+      if (steps >= maxSteps || prev < 0) return { steps: null };
+      while (at > prev) undoMove(st, moves[--at], rules);
+    }
+  } catch { return null; }
+  finally {
+    busy = false; ui.setSolverBusy(false);
+    ui.clearStatus(); vy.stuckWarned = false;
+  }
+}
+
 function voyageRuntimeAPI() {
   return {
     get state() { return game?.state; },
@@ -3101,6 +3133,7 @@ function voyageRuntimeAPI() {
     hint: () => doHint({ charm: true }),
     preview: voyagePreview,
     solvable: voyageSolvable,
+    sonar: voyageSonar,
     resetBoard: () => {
       if (!game || won || !vy.boardLive || vy.run?.status !== 'board' || !manualMoves()) return false;
       voyageClearPreview(); clearSelection(); autoTok++;
@@ -3163,14 +3196,14 @@ function voyageRuntimeAPI() {
     refresh: voyageRefresh,
     pick: voyagePickTarget,
     choose: voyageChoose,
-    rewind: (n) => {
+    rewind: (n, { free = false } = {}) => {
       if (!game || won || !vy.boardLive || vy.run?.status !== 'board') return false;
       n = Math.min(game.history.length, Math.max(0, Math.floor(n)));
-      if (!n || vy.run.undos <= 0) return false;
+      if (!n || (!free && vy.run.undos <= 0)) return false;
       voyageClearPreview(); clearSelection();
       autoTok++;
       while (n--) game.undo();
-      voyageUndone();
+      voyageUndone({ free });
       audio.undo(); afterMove({ noAuto: true }); return true;
     },
   };
@@ -3353,13 +3386,20 @@ function voyageClearStuckWarning() {
 
 function voyageStuckBlocked() {
   return mode !== 'voyage' || won || !vy.boardLive || vy.settingUp || !vy.run || vy.run.status !== 'board'
-    || !game || game.isWon() || busy || vy.effects?.using || vy.effects?.hasAvailableAbility() || game.override
+    || !game || game.isWon() || busy || vy.effects?.using || vy.effects?.hasAvailableAbility('warn') || game.override
     || (vy.run.current?.memo?._undoWindow && manualMoves() > 0);
 }
 
 function voyageWarnStuck(text) {
   vy.stuckWarned = true;
   setStatus(text, 'warn');
+}
+
+// A charm that only pulls back from the dead end (Sonar) keeps the run alive without hiding the warning.
+function voyageStuckRescue() {
+  if (!vy.effects?.hasAvailableAbility()) return false;
+  voyageWarnStuck('No way forward from here — use a charm, or abandon the board.');
+  return true;
 }
 
 async function voyageProveStuck(tok, { settle = true } = {}) {
@@ -3383,6 +3423,7 @@ async function voyageProveStuck(tok, { settle = true } = {}) {
     voyageWarnStuck('No way forward from here — undo, or abandon the board.');
     return;
   }
+  if (voyageStuckRescue()) return;
   const cancelled = vy.effects?.emit('stuck');
   if (vy.run?.status !== 'board') return; // Cliffhanger already entered the result flow.
   voyageRefresh();
@@ -3401,6 +3442,7 @@ async function voyageCheckStuck() {
     return;
   }
   if (plan === 'lose') {
+    if (voyageStuckRescue()) return;
     const cancelled = vy.effects?.emit('stuck');
     if (vy.run?.status !== 'board') return; // Cliffhanger already entered the result flow.
     voyageRefresh();

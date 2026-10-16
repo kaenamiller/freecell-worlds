@@ -1,0 +1,51 @@
+[
+  {
+    "theme": "honeyhouse",
+    "id": "board",
+    "aspect": "16:9",
+    "size": "2K",
+    "prompt": "Flat material texture map for a card-game playing surface, strict top-down orthographic view, filling the full frame edge to edge. Continuous deep warm amber-brown matte playing surface, fine quiet grain. Only the outermost narrow rim is coated with thick translucent golden honey, small rounded drips curling slightly inward at the corners. No striped border. Central eighty percent calm, uniformly medium-dark and entirely clear for cards. No large highlights or puddles in the center. This is a texture map, not a scene or a picture of a table in a room. No background or surrounding environment may appear at any edge. The central eighty percent must be uniformly medium-dark, flat, evenly lit and low contrast with no ornament, objects, light beams, hard shadows, medallions or cards. No perspective or visible table legs. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "backdrop",
+    "aspect": "16:9",
+    "size": "2K",
+    "prompt": "Wide cinematic atmospheric environment panorama for a premium solitaire game's blurred backdrop and reflection map, in a Honeybees living among thick dripping golden honey, rich translucent amber cascades, rounded hanging droplets, soft pale beeswax comb, caramel gold and warm brown shadows. Naturalist gouache with tactile glossy honey highlights, premium illustrated game art. Bees have natural fuzzy golden bodies, organic brown abdominal bands, delicate translucent wings and full antennae. Natural bee markings are welcome; never use black-and-yellow stripes as graphic decoration, borders, frames, diagonal bands, chevrons or hazard markings. No jars, construction motifs or lettering. An immersive macro honey sanctuary: thick luminous golden honey pouring over softly rounded pale wax comb ledges in glossy curtains, suspended droplets and amber pools. A few small natural honeybees hover near the margins and perch on dry wax. Honey remains the dominant environmental material. Warm backlight through syrup, rich caramel shadows, no machinery or people. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "hero",
+    "aspect": "16:9",
+    "size": "2K",
+    "prompt": "Premium solitaire-game key art, in a Honeybees living among thick dripping golden honey, rich translucent amber cascades, rounded hanging droplets, soft pale beeswax comb, caramel gold and warm brown shadows. Naturalist gouache with tactile glossy honey highlights, premium illustrated game art. Bees have natural fuzzy golden bodies, organic brown abdominal bands, delicate translucent wings and full antennae. Natural bee markings are welcome; never use black-and-yellow stripes as graphic decoration, borders, frames, diagonal bands, chevrons or hazard markings. No jars, construction motifs or lettering. Naturalist painterly gouache. On the RIGHT a beautiful queen honeybee with a fuzzy golden thorax, long naturally banded amber-and-brown abdomen, full translucent wings and antennae rests on pale wax comb overflowing with thick dripping golden honey. The bee is a clear featured subject, surrounded by luminous honey cascades. A fan of face-down playing cards rests on a dry wax ledge in front. Each card back has an illustrated bee medallion surrounded by mirrored flowing golden honey and soft wax edging, no graphic stripes. Entire fan, wings and antennae fully inside the frame. LEFT third quiet deep caramel shadow for title readability. Warm golden backlight. Any fanned playing cards must be face-down physical cards with fully illustrated backs matching this theme: A rich ornamental honey-and-bee card back with true 180-degree rotational symmetry. Two beautifully illustrated natural honeybees arranged head-to-head in a central oval amber medallion, one upright and one inverted, complete delicate spread wings, fuzzy golden thoraxes and naturally brown-banded amber abdomens. Thick flowing golden honey drips mirrored from top and bottom around the bees, softly rounded pale wax edging, subtle comb underneath, caramel amber field. Bees must be prominent, clearly recognizable and readable at small size. No diagonal striping, hard yellow-and-black outlines, hazard bands, chevrons, solid black framing, scenery, jars or letters. Apply that description to the printed decoration on each card, preserving the fan and scene perspective. Never show blank paper, empty cards or a generic unrelated card-back pattern. Strong readable right-side subject, quiet empty left third for title readability. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "back",
+    "aspect": "3:4",
+    "size": "2K",
+    "prompt": "Flat printed playing-card back design, point-symmetric through the center, straight-on orthographic full-bleed art filling the frame, in a Honeybees living among thick dripping golden honey, rich translucent amber cascades, rounded hanging droplets, soft pale beeswax comb, caramel gold and warm brown shadows. Naturalist gouache with tactile glossy honey highlights, premium illustrated game art. Bees have natural fuzzy golden bodies, organic brown abdominal bands, delicate translucent wings and full antennae. Natural bee markings are welcome; never use black-and-yellow stripes as graphic decoration, borders, frames, diagonal bands, chevrons or hazard markings. No jars, construction motifs or lettering. A rich ornamental honey-and-bee card back with true 180-degree rotational symmetry. Two beautifully illustrated natural honeybees arranged head-to-head in a central oval amber medallion, one upright and one inverted, complete delicate spread wings, fuzzy golden thoraxes and naturally brown-banded amber abdomens. Thick flowing golden honey drips mirrored from top and bottom around the bees, softly rounded pale wax edging, subtle comb underneath, caramel amber field. Bees must be prominent, clearly recognizable and readable at small size. No diagonal striping, hard yellow-and-black outlines, hazard bands, chevrons, solid black framing, scenery, jars or letters. No physical card edges, no table, perspective, cast shadows or rounded-card outline. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "court_j",
+    "aspect": "1:1",
+    "size": "2K",
+    "prompt": "Playing-card court portrait: a young worker honeybee, naturally fuzzy golden thorax and organically brown-banded amber abdomen, large expressive dark insect eyes, delicate translucent folded wings and full antennae, pollen dusting, a small rounded honey-droplet brooch and short honey-gold collar. Clearly a bee, not a human or a honey blob. original naturalist gouache bee portrait, honey gold, organic warm brown and wax cream, tactile fuzzy bee bodies contrasted with glossy translucent honey details, clear individual silhouette readable at small size, all antennae wings and crown safely within frame. No black-and-yellow graphic border, diagonal stripes, hazard markings, construction motifs, inner frame or card outline. Centered head-and-shoulders with generous safe margins: full head and all hair or headwear inside the middle seventy percent, torso visible, no hands or essential props at the extreme top or bottom. Strong silhouette readable at small size, a plain flat pale beeswax-cream background. Full-bleed illustration with no inner card frame or border. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "court_q",
+    "aspect": "1:1",
+    "size": "2K",
+    "prompt": "Playing-card court portrait: a regal queen honeybee in graceful three-quarter profile, long amber abdomen with natural soft brown bands, fuzzy golden thorax, expressive dark insect eyes, full antennae and delicate translucent wings, a small crown of rounded golden honey droplets and a flowing honey-gold mantle, resting against a little dripping pale wax comb. Clearly a bee, no human face. original naturalist gouache bee portrait, honey gold, organic warm brown and wax cream, tactile fuzzy bee bodies contrasted with glossy translucent honey details, clear individual silhouette readable at small size, all antennae wings and crown safely within frame. No black-and-yellow graphic border, diagonal stripes, hazard markings, construction motifs, inner frame or card outline. Centered head-and-shoulders with generous safe margins: full head and all hair or headwear inside the middle seventy percent, torso visible, no hands or essential props at the extreme top or bottom. Strong silhouette readable at small size, a plain flat pale beeswax-cream background. Full-bleed illustration with no inner card frame or border. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "court_k",
+    "aspect": "1:1",
+    "size": "2K",
+    "prompt": "Playing-card court portrait: a dignified broad stocky drone honeybee, very large expressive dark insect eyes, fuzzy golden thorax and broad naturally brown-banded amber abdomen, full antennae and delicate folded translucent wings, a rounded golden honey-droplet crown and rich honey-gold collar. Clearly a bee, no human face. original naturalist gouache bee portrait, honey gold, organic warm brown and wax cream, tactile fuzzy bee bodies contrasted with glossy translucent honey details, clear individual silhouette readable at small size, all antennae wings and crown safely within frame. No black-and-yellow graphic border, diagonal stripes, hazard markings, construction motifs, inner frame or card outline. Centered head-and-shoulders with generous safe margins: full head and all hair or headwear inside the middle seventy percent, torso visible, no hands or essential props at the extreme top or bottom. Strong silhouette readable at small size, a plain flat pale beeswax-cream background. Full-bleed illustration with no inner card frame or border. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  }
+]

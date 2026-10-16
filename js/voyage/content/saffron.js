@@ -10,7 +10,7 @@ defineCharm({
   name: 'Spice Blend',
   icon: '🌶️',
   family: 'coin',
-  text: '+3 coins each time all four foundations reach the same rank below Queen.',
+  text: '+3 coins each time all four foundations are level at the same rank (below Queen).',
   upgrade: '+5 coins.',
   score(sb, ctx) {
     const pay = ctx.level >= 2 ? 5 : 3;
@@ -46,7 +46,7 @@ defineCharm({
   name: 'Warp and Weft',
   icon: '🧶',
   tags: ['FOUND'],
-  text: (s) => `Red and black cards home must stay within ${Math.max(2, 9 - s)} of each other.`,
+  text: (s) => `The number of red cards and black cards on your foundations can never differ by more than ${Math.max(2, 9 - s)}.`,
   ease: (ctx) => -0.06 * ctx.strength,
   rules(r, ctx) {
     r.colorSpread = Math.max(2, 9 - ctx.strength);

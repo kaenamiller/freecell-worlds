@@ -35,8 +35,8 @@ defineCharm({
   name: 'Starfish',
   icon: '⭐',
   family: 'coin',
-  text: '+3 coins for each chain of 5+ cards home before 40 cards are home.',
-  upgrade: '+5 coins for each such chain.',
+  text: '+3 coins each time you send 5+ cards home in a row, before 40 cards are home.',
+  upgrade: '+5 coins each time.',
   score(sb, ctx) {
     const pay = ctx.level >= 2 ? 5 : 3;
     let homes = sb.initial?.found?.reduce((n, rank) => n + rank, 0) || 0;
@@ -56,7 +56,9 @@ defineCharm({
   name: 'Barnacles',
   icon: '🐚',
   tags: ['STACK'],
-  text: (s) => `Nothing can be placed on the Kings of ${barrenSuits(s)} suit${barrenSuits(s) > 1 ? 's' : ''}.`,
+  text: (s) => (barrenSuits(s) >= 4
+    ? 'Nothing can be placed on any King.'
+    : `Nothing can be placed on the King${barrenSuits(s) > 1 ? 's' : ''} of ${barrenSuits(s)} suit${barrenSuits(s) > 1 ? 's' : ''} (shown on the badge).`),
   ease: (ctx) => -Math.min(1, 0.12 * barrenSuits(ctx.strength)),
   rules(r, ctx) {
     const n = barrenSuits(ctx.strength);

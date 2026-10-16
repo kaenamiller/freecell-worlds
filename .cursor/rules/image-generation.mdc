@@ -1,0 +1,10 @@
+---
+description: Use Nano Banana 2.1 for every image generation in this repo
+alwaysApply: true
+---
+
+# Image generation
+
+Use **Nano Banana 2.1** (`gemini-nano-banana-2.1`) for every image. That is the checked-in default in `tools/gen-art.mjs`, `tools/gen-chart-art.mjs`, `tools/gen-charm-icons.mjs`, `tools/gen-locked-themes.mjs`, and `tools/gen-icon-samples.mjs`.
+
+Do not change that default, and do not call another image model, unless the user names a different model for that one job. `ART_MODEL` is only a one-command override.

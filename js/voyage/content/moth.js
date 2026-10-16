@@ -72,7 +72,7 @@ defineCharm({
   icon: '🌙',
   tags: ['VIS'],
   pressure: true,
-  text: (s) => `Every ${16 - s} moves, one random column goes dark below its top card until uncovered.`,
+  text: (s) => `Every ${16 - s} moves, a random column turns face-down except for its top card; cards turn up as you uncover them.`,
   ease: (ctx) => -0.05 * ctx.strength,
   on: {
     move(ctx, { manual }) {

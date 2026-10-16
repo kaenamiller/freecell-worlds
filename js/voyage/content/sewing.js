@@ -11,12 +11,12 @@ defineCharm({
   name: 'Red Thread',
   icon: '🧵',
   family: 'suit',
-  text: 'A run of a single suit moves as one piece, however long.',
-  upgrade: 'A run of a single suit moves as one piece, and Hearts may also be built down in suit.',
+  text: 'You can move 1 more card at once for each suit-family boon you hold (this one included). Runs of a single suit move as one piece, however long.',
+  upgrade: '2 more per boon.',
   ease: 0.2,
   rules(r, ctx) {
     r.suitRunFree = 15;
-    if (ctx.level === 2) r.suitBuild = (r.suitBuild || 0) | suitMask(2);
+    r.moveBonus = (r.moveBonus || 0) + (ctx.level >= 2 ? 2 : 1) * ctx.family('suit');
   },
 });
 
@@ -81,12 +81,11 @@ defineCharm({
   tags: ['COLUMN'],
   text: (s) => {
     const rank = shortThreadMax(s);
-    return rank === 5
-      ? 'Empty columns only accept sequences headed by a Five or lower.'
-      : `Empty columns only accept sequences headed by ${rankName(rank)} or lower.`;
+    return `Only a King, or a ${rankName(rank)} or lower (or a run starting with either), can go into an empty column. Empty columns don't raise your move capacity.`;
   },
-  ease: (ctx) => -0.08 * ctx.strength,
+  ease: (ctx) => -0.15 * ctx.strength,
   rules(r, ctx) {
     r.emptyMaxRank = shortThreadMax(ctx.strength);
+    r.emptyKings = true;
   },
 });

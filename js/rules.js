@@ -17,8 +17,8 @@ export const RULE_DEFAULTS = Object.freeze({
   foundationReturn: false, startHome: 0, noCellRanks: 0, noCellCards: [],
   barren: null, foundationSpread: 0, emptyMinRank: 0, cellThaw: null,
   sealedCols: [], maxHeight: 0, cellColors: [], oneWayCellRanks: 0,
-  wildCards: [], anchorCards: [], freeCards: [], buildUp: 0, suitRunFree: 0,
-  cellLimits: [], emptyMaxRank: 0, cellClose: null, gate: null, dealSkew: null,
+  wildCards: [], anchorCards: [], freeCards: [], buildUp: 0, suitBuildUp: 0, suitRunFree: 0,
+  cellLimits: [], emptyMaxRank: 0, emptyKings: false, cellClose: null, gate: null, dealSkew: null,
   phase: null, rankShift: {},
   emptyAlwaysCounts: false, cellStack: 0, pinned: null, maxEmpty: 0,
   colorSpread: 0, emptyColors: [], barrenCards: [],
@@ -36,7 +36,7 @@ export function compileRules(r = RULE_DEFAULTS) {
     else out.noCellHi |= 1 << (id - 33);
   }
   // Only variant stacking pays for a lookup table; classic keeps its original predicate.
-  if (out.wildRanks || out.suitBuild || out.barren || out.barrenCards.length || out.wildCards.length || out.anchorCards.length || out.buildUp || out.twinStack || out.skipBuild || out.sameColorRanks || Object.keys(out.rankShift).length) {
+  if (out.wildRanks || out.suitBuild || out.barren || out.barrenCards.length || out.wildCards.length || out.anchorCards.length || out.buildUp || out.suitBuildUp || out.twinStack || out.skipBuild || out.sameColorRanks || Object.keys(out.rankShift).length) {
     out.build = new Uint8Array(53 * 53);
     for (let parent = 1; parent <= 52; parent++) for (let child = 1; child <= 52; child++) {
       const pr = rankOf(parent) + (out.rankShift[parent] || 0), cr = rankOf(child) + (out.rankShift[child] || 0), ps = suitOf(parent);
@@ -46,13 +46,14 @@ export function compileRules(r = RULE_DEFAULTS) {
         out.wildCards.includes(parent) || out.wildCards.includes(child) || ((out.suitBuild & (1 << ps)) && ps === suitOf(child));
       out.build[parent * 53 + child] = !barred && (out.anchorCards.includes(parent) ||
         (cr === pr && out.twinStack && (out.twinStack >= 2 || colour)) ||
-        (cr === pr - 1 && colour) || (cr === pr - 2 && out.skipBuild && (out.skipBuild >= 2 || same)) || (cr === pr + 1 && (out.buildUp & (1 << suitOf(child))) && colour)) ? 1 : 0;
+        (cr === pr - 1 && colour) || (cr === pr - 2 && out.skipBuild && (out.skipBuild >= 2 || same)) || (cr === pr + 1 && (out.buildUp & (1 << suitOf(child))) && colour) ||
+        (cr === pr + 1 && (out.suitBuildUp & (1 << ps)) && ps === suitOf(child))) ? 1 : 0;
     }
   }
   out.classic = Object.keys(RULE_DEFAULTS).every((k) => k === 'freeCells' || JSON.stringify(out[k]) === JSON.stringify(RULE_DEFAULTS[k]));
   if (out.phase) {
     const overrides = {};
-    for (const k of ['noCellRanks', 'oneWayCellRanks', 'foundationSpread', 'emptyMinRank', 'emptyMaxRank', 'gate', 'emptyFactor', 'moveBonus'])
+    for (const k of ['noCellRanks', 'oneWayCellRanks', 'foundationSpread', 'emptyMinRank', 'emptyMaxRank', 'gate', 'emptyFactor', 'emptyAlwaysCounts', 'moveBonus'])
       if (Object.hasOwn(out.phase.rules || {}, k)) overrides[k] = out.phase.rules[k];
     out.phaseRules = compileRules({ ...r, ...overrides, phase: null, _compiled: false });
   }
@@ -291,14 +292,14 @@ export function cloneState(st) {
 
 export function canStackOn(column, card, rules, override, st) {
   const r = st ? rulesForState(st, rules) : resolved(rules);
-  if (column.length === 0) return !!override?.ignoreRestrictions || ((!r.emptyCure || (st ? cardsHome(st) : 0) >= r.emptyCure) && (!r.emptyMinRank || rankOf(card) >= r.emptyMinRank) && (!r.emptyMaxRank || rankOf(card) <= r.emptyMaxRank));
+  if (column.length === 0) return !!override?.ignoreRestrictions || ((!r.emptyCure || (st ? cardsHome(st) : 0) >= r.emptyCure) && (!r.emptyMinRank || rankOf(card) >= r.emptyMinRank) && (!r.emptyMaxRank || rankOf(card) <= r.emptyMaxRank || (r.emptyKings && rankOf(card) === 13)));
   const top = column[column.length - 1];
   if (r.loneAccepts && column.length <= r.loneAccepts) override = { ...override, ignoreRank: true, ignoreColour: true };
   if (!override) return builds(top, card, r);
   if (!override.ignoreRestrictions && (r.barrenCards.includes(top) || (r.barren && (r.barren.suits & (1 << suitOf(top))) && (r.barren.ranks & (1 << rankOf(top)))))) return false;
   if (r.anchorCards.includes(top)) return true;
   const pr = rankOf(top) + (r.rankShift[top] || 0), cr = rankOf(card) + (r.rankShift[card] || 0);
-  if (!override.ignoreRank && cr !== pr - 1 && !(override.rankGap === 2 && cr === pr - 2) && !(cr === pr + 1 && (r.buildUp & (1 << suitOf(card)))) && !(cr === pr && r.twinStack) && !(cr === pr - 2 && r.skipBuild)) return false;
+  if (!override.ignoreRank && cr !== pr - 1 && !(override.rankGap === 2 && cr === pr - 2) && !(cr === pr + 1 && (r.buildUp & (1 << suitOf(card)))) && !(cr === pr + 1 && (r.suitBuildUp & (1 << suitOf(card))) && suitOf(card) === suitOf(top)) && !(cr === pr && r.twinStack) && !(cr === pr - 2 && r.skipBuild)) return false;
   if (cr === pr - 2 && r.skipBuild && !override.ignoreRank) {
     if (override.ignoreColour || r.skipBuild >= 2 || colorOf(card) === colorOf(top)) return true;
     if (override.rankGap !== 2) return false; // a two-rank ability still adds its ordinary colour link
@@ -307,7 +308,8 @@ export function canStackOn(column, card, rules, override, st) {
   return override.ignoreColour || ((r.sameColorRanks & (1 << rankOf(card))) && !override.ignoreRestrictions ? colorOf(card) === colorOf(top) : colorOf(card) !== colorOf(top)) ||
     !!(r.wildRanks & ((1 << rankOf(card)) | (1 << rankOf(top)))) ||
     r.wildCards.includes(card) || r.wildCards.includes(top) ||
-    !!((r.suitBuild & (1 << suitOf(card))) && suitOf(card) === suitOf(top));
+    !!((r.suitBuild & (1 << suitOf(card))) && suitOf(card) === suitOf(top)) ||
+    !!(cr === pr + 1 && (r.suitBuildUp & (1 << suitOf(card))) && suitOf(card) === suitOf(top));
 }
 
 export function foundationAccepts(st, card, rules, dest = foundationDestination(st, card)) {
@@ -634,7 +636,7 @@ export function safeToFoundation(st, card, rules, dest = foundationDestination(s
   if (r.openCols && (r.emptyMinRank || r.emptyMaxRank || r.emptyColors.some(Boolean))) return false;
   // A colour balance cap can make the next opposite-colour home move necessary first.
   if (r.colorSpread) return false;
-  if (st.spur || r.cellExitWild || r.wildCards.length || r.anchorCards.length || r.buildUp || r.suitBuild || r.twinStack || r.skipBuild || r.sameColorRanks || Object.keys(r.rankShift).length) {
+  if (st.spur || r.cellExitWild || r.wildCards.length || r.anchorCards.length || r.buildUp || r.suitBuildUp || r.suitBuild || r.twinStack || r.skipBuild || r.sameColorRanks || Object.keys(r.rankShift).length) {
     for (let child = 1; child <= 52; child++)
       if (child !== card && (r.cellExitWild ? canStackOn([card], child, r, { ignoreColour: true }) : builds(card, child, r)) && !cardIsHome(st, child)) return false;
     return true;
