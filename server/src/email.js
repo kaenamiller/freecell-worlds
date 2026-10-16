@@ -64,6 +64,6 @@ export const emails = {
   }),
   deleteAccount: (url) => ({
     subject: 'Confirm deleting your FreeCell Worlds account',
-    ...layout('Open this link to permanently delete your account, progress and custom themes.', 'Delete my account', url, "If you didn't ask for this, ignore this email and nothing will change."),
+    ...layout('Open this link to permanently delete your account, progress and custom themes.', 'Delete my account', url, "Open it in the browser where you are signed in. If you didn't ask for this, ignore this email and nothing will change."),
   }),
 };

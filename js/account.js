@@ -238,12 +238,12 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
       <p class="account-error" role="alert">${esc(state.error)}</p>
       <details class="account-danger">
         <summary>Delete account</summary>
-        <p class="account-note">This permanently deletes your profile, synced progress, custom themes and unused tokens. Purchase records are kept for tax law. Progress on this device stays here.</p>
+        <p class="account-note">This permanently deletes your profile, synced progress, custom themes and unused tokens. Purchase records are kept for tax law. Progress on this device stays here. The link only works in this browser while you are still signed in.</p>
         <button type="button" class="btn" id="account-delete">Email me a deletion link</button>
       </details>`;
     },
     deleteSent: () => `
-      <p class="account-lead">We sent a link to <strong>${esc(state.user?.email)}</strong>. Your account is deleted when you open it.</p>
+      <p class="account-lead">We sent a link to <strong>${esc(state.user?.email)}</strong>. Open it in this browser while you are still signed in. Your account is deleted when you open it.</p>
       <button type="button" class="btn" data-view="account">Back</button>`,
   };
 
