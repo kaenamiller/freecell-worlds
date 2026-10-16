@@ -189,12 +189,17 @@ function disableGa() {
 // --- app-wide events ------------------------------------------------------------------
 function wireGlobal() {
   let errors = 0;
-  const report = (message, where) => {
+  const report = (message, where, error) => {
     if (errors++ >= 5) return; // a few per page load is enough to spot a problem; Sentry has the rest
-    track('app_error', { message: String(message || 'error').slice(0, 100), where: String(where || '').replace(location.origin, '').slice(0, 100) });
+    const stack = error && typeof error.stack === 'string' ? error.stack.replaceAll(location.origin, '').slice(0, 500) : undefined;
+    track('app_error', {
+      message: String(message || 'error').slice(0, 100),
+      where: String(where || '').replaceAll(location.origin, '').slice(0, 100),
+      stack,
+    });
   };
-  window.addEventListener('error', (e) => report(e.message, e.filename ? `${e.filename}:${e.lineno}` : ''));
-  window.addEventListener('unhandledrejection', (e) => report(e.reason?.message || e.reason, 'promise'));
+  window.addEventListener('error', (e) => report(e.message, e.filename ? `${e.filename}:${e.lineno}` : '', e.error));
+  window.addEventListener('unhandledrejection', (e) => report(e.reason?.message || e.reason, 'promise', e.reason));
   window.addEventListener('beforeinstallprompt', () => track('pwa_install_prompt', { outcome: 'shown' }));
   window.addEventListener('appinstalled', () => track('pwa_installed'));
 }

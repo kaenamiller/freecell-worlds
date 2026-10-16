@@ -1727,8 +1727,14 @@ function rankForCode(code) {
 
 const heldRankCodes = new Set();
 
+// Some keyup events are not real keystrokes: a synthetic Event, or a key the browser
+// did not name. `key` is then undefined, and toLowerCase throws.
+function eventKey(e) {
+  return typeof e.key === 'string' ? e.key.toLowerCase() : '';
+}
+
 function rankFromEvent(e) {
-  return rankForCode(e.code) ?? rankForHeldKey(e.key.toLowerCase());
+  return rankForCode(e.code) ?? rankForHeldKey(eventKey(e));
 }
 
 function syncHeldRankHighlight() {
@@ -3844,7 +3850,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (!game || ui.modalOpen || !ui.els.title.classList.contains('hidden')) return;
-  const k = e.key.toLowerCase();
+  const k = eventKey(e);
   if (intro.active && (k === ' ' || k === 'enter' || k === 'escape')) {
     e.preventDefault();
     skipIntro();
@@ -3891,11 +3897,14 @@ window.addEventListener('keydown', (e) => {
   }
 });
 window.addEventListener('keyup', (e) => {
-  if (e.key.toLowerCase() === 'p') {
+  // Unlike keydown, this runs on the title screen and inside inputs. A keyup with
+  // no `key` (synthetic events, unnamed keys) used to throw here.
+  const key = eventKey(e);
+  if (key === 'p') {
     fogInput.pDown = false;
     if (fogInput.peek?.source === 'keyboard') endFogPeek();
   }
-  if (fogInput.peek?.source === 'keyboard' && /^[1-8]$/.test(e.key)) endFogPeek();
+  if (fogInput.peek?.source === 'keyboard' && /^[1-8]$/.test(key)) endFogPeek();
   if (heldRankCodes.delete(e.code) || rankFromEvent(e) != null) syncHeldRankHighlight();
 });
 window.addEventListener('blur', clearHeldRankHighlight);
