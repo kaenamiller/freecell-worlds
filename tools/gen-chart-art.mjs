@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join, basename } from 'node:path';
 import { THEMES, THEME_ORDER } from '../js/themes.js';
 import { need, pool, retry, save } from './lib.mjs';
+import { ISLANDS } from './chart-island-subjects.mjs';
 
 const MODEL = 'gemini-nano-banana-2.1';
 const args = process.argv.slice(2);
@@ -218,24 +219,66 @@ await pool(specials.filter(([id]) => !only.size || only.has(id)), 2, async ([id,
   } finally { rmSync(work, { recursive: true, force: true }); }
 });
 
-const markets = [
-  ['market-stickers', 'markets/stickers', 'One compact island vignette for the Sticker market, a harbour where sailors buy paper seals. The dominant feature is dozens of colorful round stickers and sticker sheets stuck across a wooden stall, crates, and a small rocky isle, plus one warm lantern and a short quay. Make it unmistakably a sticker stall, not a generic fair or a themed card table. Match the footprint, scale, three-quarter top-down camera, lighting and detail density of the other chart islands. No words, letters, or numbers. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge.'],
-  ['market-boons', 'markets/boons', 'One compact island vignette for the Charm market, a harbour where sailors buy talismans. A small rocky isle with brass stalls, hanging glass charms and lockets, a circular jeweler counter, tiny gem cases, and warm lanterns. Make it unmistakably a market stop, not a themed card table. Match the footprint, scale, three-quarter top-down camera, lighting and detail density of the other chart islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge.'],
-  ['market-upgrades', 'markets/upgrades', 'One compact island vignette for the Upgrade market, a harbour workshop that raises a charm to a finer second form. A small rocky isle with a two-level atelier, a gold-inlaid workbench, a brighter finished talisman beside a plainer one, light scaffolding, and a taller lantern. Make it unmistakably a workshop market, not a themed card table. Match the footprint, scale, three-quarter top-down camera, lighting and detail density of the other chart islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge.'],
-];
+// Islands and markets read at 64px on the chart, so each one is a single hero
+// landmark on matching ground. Masters keep their chroma backdrop; keying runs on a copy.
+const KEY = String.raw`#!/usr/bin/env python3
+"""Soft-key a chroma green backdrop to alpha and despill green fringes."""
+from PIL import Image
+import sys
 
-await pool(markets.filter(([id]) => !only.size || only.has(id)), 2, async ([, file, prompt]) => {
-  const png = await image(file, prompt);
-  knockout(png);
-  webp(png, `${output}/${file}.webp`, 'format=rgba,scale=256:256:force_original_aspect_ratio=decrease:flags=lanczos', 76);
-});
+im = Image.open(sys.argv[1]).convert('RGBA')
+px = im.load()
+w, h = im.size
+for y in range(h):
+    for x in range(w):
+        r, g, b, a = px[x, y]
+        spill = g - max(r, b)
+        if spill > 30:
+            px[x, y] = (r, max(r, b), b, min(a, max(0, 255 - (spill - 30) * 4)))
+        elif spill > 0:
+            px[x, y] = (r, max(r, b), b, a)
+im.save(sys.argv[1])
+`;
+
+function chromaKey(file) {
+  const result = spawnSync('python3', ['-c', KEY, file], { stdio: 'inherit' });
+  if (result.status) throw new Error(`chroma key failed for ${file}`);
+}
+
+const heroPrompt = (subject, landmark, ground, extra = '') => `One island destination for a nautical voyage map, ${subject}
+Approach: ONE HERO LANDMARK. The whole island is a pedestal for ${landmark}. It stands on a small, rounded, low island whose top surface is ${ground}, with gently uneven natural edges, ringed by a thin pale foam shoreline and a narrow halo of painted shallow water.${extra} Nothing else on the island: no extra buildings, trees, props, or clutter. The landmark is bold, chunky and solid (no thin spindly parts), takes up at least half the image, and is the brightest, highest-contrast thing in the picture, so its silhouette reads even at 64 pixels wide. Any lights, lamps, windows, or gems glow strongly.
+Style: hand-painted storybook gouache with fine charcoal contours, three-quarter top-down view, muted mineral pigments with warm lantern-gold rim light. Large simple shapes, very few small details.
+Isolated on a perfectly flat pure chroma green #00FF00 background with no texture, gradient, or shadow on it; the island itself contains no chroma green. Centered, filling about 75 percent of a square frame. No words, letters, numbers, signs, border, frame, watermark, or UI.`;
 
 const themes = THEME_ORDER.filter((id) => !only.size || only.has(id));
-await pool(themes, 2, async (id) => {
-  const theme = THEMES[id];
-  const png = await image(`islands/${id}`, `One compact island vignette for "${theme.name}". Visual idea: ${theme.tagline}. Make the destination unmistakably inspired by that world while remaining a natural island surrounded by a very small painted shoreline/water halo. Match a consistent footprint, scale, camera angle, lighting and detail density across a set of 48 islands. No words. Isolated object on a truly transparent alpha background; no square background, horizon, sky, or scene extending to the canvas edge.`);
-  knockout(png);
-  webp(png, `${output}/islands/${id}.webp`, 'format=rgba,scale=256:256:force_original_aspect_ratio=decrease:flags=lanczos', 76);
+await pool(themes, 4, async (id) => {
+  const master = await image(`islands/${id}`, heroPrompt(`for a world called "${THEMES[id].name}": ${THEMES[id].tagline}`, ...ISLANDS[id]), '1:1', '1K', `${source}/islands/${id}.png`);
+  const work = mkdtempSync(join(tmpdir(), 'chart-island-'));
+  const png = join(work, `${id}.png`);
+  copyFileSync(master, png);
+  try {
+    chromaKey(png);
+    webp(png, `${output}/islands/${id}.webp`, 'format=rgba,scale=256:256:force_original_aspect_ratio=decrease:flags=lanczos', 76);
+  } finally { rmSync(work, { recursive: true, force: true }); }
+});
+
+// A short pier with a lantern marks a market stop apart from the themed tables.
+const PIER = ' A short wooden pier with one glowing lantern post juts out from the island into the water, marking it as a harbour market stop.';
+const markets = [
+  ['market-stickers', 'markets/stickers', 'the Sticker market, where sailors buy paper seals for their cards.', 'a chunky wooden market stall with a red-and-cream striped awning, its whole front plastered with big round colorful die-cut stickers (a key, a gold coin, a clover, a violet diamond)', 'weathered harbour planks'],
+  ['market-boons', 'markets/boons', 'the Charm market, where sailors buy talismans.', 'a round teal-and-gold striped market tent with big glass charms, lockets and small lanterns hanging all around its scalloped edge', 'a small round cobbled plaza'],
+  ['market-upgrades', 'markets/upgrades', 'the Upgrade market, a workshop that raises a charm to a finer second form.', 'a sturdy jeweler’s workbench with a giant brass magnifying loupe on an arm, focused on a radiant golden charm', 'a stone workshop floor with a few curled brass shavings'],
+];
+
+await pool(markets.filter(([id]) => !only.size || only.has(id)), 3, async ([, file, subject, landmark, ground]) => {
+  const master = await image(file, heroPrompt(subject, landmark, ground, PIER), '1:1', '1K', `${source}/${file}.png`);
+  const work = mkdtempSync(join(tmpdir(), 'chart-market-'));
+  const png = join(work, basename(master));
+  copyFileSync(master, png);
+  try {
+    chromaKey(png);
+    webp(png, `${output}/${file}.webp`, 'format=rgba,scale=256:256:force_original_aspect_ratio=decrease:flags=lanczos', 76);
+  } finally { rmSync(work, { recursive: true, force: true }); }
 });
 
 const STICKER = `A single die-cut paper sticker, straight-on, centered, filling about 70 percent of a square frame. Thick warm-white sticker border, slightly imperfect handmade cut, fine charcoal contour, soft gouache. One bold symbol only, readable at 40 pixels. No text, letters, numbers, watermark, cast shadow, or scenery. The background outside the sticker is a perfectly flat pure chroma green #00FF00, with no texture or gradient. The sticker itself contains no chroma green.`;
