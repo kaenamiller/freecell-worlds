@@ -11,6 +11,7 @@ const force = args.includes('--force');
 const only = new Set((args.find((arg) => arg.startsWith('--only='))?.slice(7) || '').split(',').filter(Boolean));
 const ROOT = 'assets-src/art-staging/brand';
 const REF = `${ROOT}/island-reference.png`;
+const LOGO_REF = `${ROOT}/logo-o-globe.png`;
 
 const STYLE = `Art direction: the same hand-painted storybook nautical style as the attached island sprites. Traditional gouache and transparent watercolor with fine charcoal contours. Dark teal, indigo, weathered parchment, muted mineral pigments, warm lantern gold. Sophisticated tabletop-game illustration.`;
 const ISLANDS = `Tiny floating island boards like the attached reference sit on the globe's surface as its continents: a gold Roman statue on marble, a neon cyber tower, a carnival ferris wheel, a brass diving helmet, a pink blossom tree on raked sand, a wooden saloon, a frosted research hut. Each island is a miniature, readable, with its own painted shoreline ring.`;
@@ -58,6 +59,44 @@ const JOBS = [
     ratio: '1:1',
     prompt: `${ICON}\n\nA small round world, storybook "little planet" style, with a curved teal ocean horizon. On top of it stands one hero island: the gold Roman statue on its marble plinth from the reference, large and centered, with three smaller islands (ferris wheel, blossom tree, saloon) peeking over the curve of the world. An ace of spades playing card stands upright like a sail behind the statue. Deep indigo sky background with faint gold stars. ${STYLE}`,
   },
+  {
+    id: 'logo-o-stacked',
+    ratio: '4:3',
+    refs: [LOGO_REF],
+    prompt: `${LOGO}\n\nA stacked two-line version of the attached approved wordmark. "FreeCell" on the first line, "Worlds" on the second line set larger. The letter "o" in "Worlds" is a painted globe of teal ocean dotted with miniature island boards, noticeably larger than the other letters and wrapped by a thin tilted gold orbit ring. The four tiny suit pips (spade, heart, diamond, club) sit centered above "FreeCell". Same refined classical serif and warm antique gold leaf as the reference. ${STYLE}`,
+  },
+  {
+    id: 'logo-o-armillary',
+    ratio: '16:9',
+    refs: [LOGO_REF],
+    prompt: `${LOGO}\n\nA one-line wordmark "FreeCell Worlds" in the same classical serif as the attached approved logo, but in pale ivory with a fine gold inline and a thin dark ink outline, like an engraved title plate. The letter "o" in "Worlds" is a small antique armillary globe: a teal ocean sphere with miniature island boards, crossed by two gold meridian rings, with a tiny gold spade pip at its north pole. A slim gold rule runs under "FreeCell" and ends in a small spade. ${STYLE}`,
+  },
+  {
+    id: 'logo-o-bold',
+    ratio: '16:9',
+    refs: [LOGO_REF],
+    prompt: `${LOGO}\n\nA bolder, chunkier version of the attached approved wordmark for small screens. "FreeCell" in smaller spaced capitals above a large "Worlds" in a heavy bracketed display serif. Thick bevelled gold letters with a deep teal-black outline and a soft warm glow. The "o" in "Worlds" is a large painted globe of teal ocean with three clear miniature islands (a gold statue, a ferris wheel, a pink blossom tree) and a gold orbit ring that sweeps behind the "W" and in front of the "r". ${STYLE}`,
+  },
+  {
+    id: 'icon-gs-classic',
+    ratio: '1:1',
+    prompt: `${ICON}\n\nA single round globe of rich blue-teal painted ocean, fills about 75 percent of the canvas, with soft gouache wave texture and a warm gold rim light. In the exact center of the globe sits one large solid gold spade pip, bold and simple, polished gold leaf with a subtle bevel and a soft shadow on the ocean. The spade covers about half the globe's width. Only a few tiny pale island shapes near the globe's edge, kept faint so the spade dominates. Deep near-black warm brown background (#0d0806). ${STYLE}`,
+  },
+  {
+    id: 'icon-gs-meridian',
+    ratio: '1:1',
+    prompt: `${ICON}\n\nA blue painted ocean globe crossed by two thin gold meridian lines and a gold equator ring, like an antique navigator's globe. A large solid gold spade pip stands in the center of the globe, flat polished gold with a crisp dark outline, covering about half the globe's width. No islands. Deep indigo background with a soft gold halo behind the globe. Very clean, minimal and bold. ${STYLE}`,
+  },
+  {
+    id: 'icon-gs-orbit',
+    ratio: '1:1',
+    prompt: `${ICON}\n\nA small blue ocean planet with a solid gold spade pip in its center, the spade bold and simple with a gentle bevel. A single thin gold orbit ring tilts around the globe. Three tiny island boards sit on the globe's rim (a gold statue, a ferris wheel, a pink blossom tree), very small so they never compete with the spade. Deep indigo night background with a few faint gold stars. ${STYLE}`,
+  },
+  {
+    id: 'icon-gs-fullbleed',
+    ratio: '1:1',
+    prompt: `${ICON}\n\nA blue painted ocean globe so large it nearly fills the square, its curved edge just inside the canvas, with soft gouache waves and a lantern-gold rim light along the upper left. A large solid gold spade pip sits dead center, thick and simple, warm gold leaf with a soft drop shadow. Corners of the canvas are deep near-black indigo. No islands, no stars, no extra detail. ${STYLE}`,
+  },
 ];
 
 async function gen(job) {
@@ -65,6 +104,10 @@ async function gen(job) {
   if (!force && existsSync(out)) return console.log('skip', out);
   const body = {
     contents: [{ parts: [
+      ...(job.refs || []).flatMap((ref) => [
+        { inlineData: { mimeType: 'image/png', data: readFileSync(ref).toString('base64') } },
+        { text: 'This attached image is the approved logo. Keep its typeface, gold finish and globe treatment unless the prompt changes them.' },
+      ]),
       { inlineData: { mimeType: 'image/png', data: readFileSync(REF).toString('base64') } },
       { text: `The attached image is a sheet of approved island sprites from the game. Use it for medium, palette, and the look of the island boards only. Do not copy its grid layout or background.\n\n${job.prompt}` },
     ] }],

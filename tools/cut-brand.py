@@ -15,7 +15,7 @@ ICON_OUT = Path('assets/icons')
 
 
 def cut_logo():
-    im = np.asarray(Image.open(SRC / 'logo-o-globe.png').convert('RGB')).astype(np.float32)
+    im = np.asarray(Image.open(SRC / 'logo-o-bold.png').convert('RGB')).astype(np.float32)
     # Sample the backdrop from the corners rather than trusting the prompt hex.
     h, w, _ = im.shape
     bg = np.concatenate([im[:40, :40], im[:40, -40:], im[-40:, :40], im[-40:, -40:]]).reshape(-1, 3).mean(0)
@@ -41,12 +41,12 @@ def cut_logo():
 
 
 def cut_icon():
-    src = Image.open(SRC / 'icon-spade-world.png').convert('RGB')
+    src = Image.open(SRC / 'icon-gs-classic.png').convert('RGB')
     size = src.size[0]
     ICON_OUT.mkdir(parents=True, exist_ok=True)
     for px, name in [(192, 'icon-192.png'), (512, 'icon-512.png'), (180, 'apple-touch-icon.png'), (48, 'favicon-48.png')]:
         src.resize((px, px), Image.LANCZOS).save(ICON_OUT / name, optimize=True)
-    # Maskable: the spade tip touches the 80% safe circle, so shrink the art and
+    # Maskable: the globe rim runs past the 80% safe circle, so shrink the art and
     # feather it into a backdrop sampled from the master's own border.
     scale = 0.84
     inner = src.resize((round(size * scale),) * 2, Image.LANCZOS)
