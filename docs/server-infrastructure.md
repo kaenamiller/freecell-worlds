@@ -76,14 +76,14 @@ Plain variables are in `server/wrangler.toml`. Secrets are set with `npx wrangle
 | `BETTER_AUTH_SECRET` | secret | `openssl rand -base64 32` | created by the staging workflow if missing | dev placeholder |
 | `GOOGLE_CLIENT_SECRET` | secret | from Google Cloud | same secret, set with `--env staging` | empty |
 | `RESEND_API_KEY` | secret | from Resend | same, `--env staging` | empty (emails print to the wrangler log) |
-| `TURNSTILE_SECRET_KEY` | secret, except staging where it is a var | from the Turnstile widget | Cloudflare's always-pass test secret | Cloudflare's always-pass test secret |
+| `TURNSTILE_SECRET_KEY` | secret | from the Turnstile widget | same secret, uploaded by the deploy when the GitHub environment secret is set and the worker does not have it yet | Cloudflare's always-pass test secret |
 | `GEN_MOCK` | var | `0` | `1` | `1` |
 | `ANTHROPIC_API_KEY` | secret | from the Anthropic Console | empty while `GEN_MOCK=1` | empty while `GEN_MOCK=1` |
 | `GEMINI_API_KEY` | secret | from Google AI Studio / Cloud | empty while `GEN_MOCK=1` | empty while `GEN_MOCK=1` |
 | `ELEVENLABS_API_KEY` | secret | from ElevenLabs | empty while `GEN_MOCK=1` | empty while `GEN_MOCK=1` |
 | `LLM_MODEL`, `IMAGE_MODEL` | var (optional) | unset: `claude-opus-5-5` and `gemini-nano-banana-2.1` | unset | unset |
 
-The Turnstile **site key** is public and lives in the client: `CONFIG.turnstileSiteKey` in `js/account.js`. Production is still a placeholder (`0x4AAAAAAA_REPLACE_ME`). Local and `staging.freecellworlds.com` use Cloudflare's always-pass test site key until a real widget exists.
+The Turnstile **site key** is public and lives in the client: `CONFIG.turnstileSiteKey` in `js/account.js`. `freecellworlds.com` and `staging.freecellworlds.com` use `0x4AAAAAAFYovaiTyTegTnzy`. Localhost keeps Cloudflare's always-pass test site key. The widget secret is `TURNSTILE_SECRET_KEY` on the worker. It is not a wrangler var: a var would replace the secret on every deploy.
 
 Session cookies are not shared across environments. Production sets `__Secure-fcw.session_token` for `Domain=freecellworlds.com`, which the browser sends to every subdomain, including `api-staging`. Staging sets `__Secure-fcw-staging.session_token` with no `Domain`, so it is host-only on `api-staging.freecellworlds.com` and the worker never reads the production cookie. Local sets the prefix to `better-auth` in `.dev.vars`, so the cookie is `better-auth.session_token` on `localhost` and does not inherit production's `fcw`.
 
@@ -128,12 +128,12 @@ Check current pricing pages before launch; these notes describe the plan tiers, 
 
 ## Deploying
 
-GitHub Actions (`.github/workflows/deploy-api.yml`) deploys with `cloudflare/wrangler-action`. It needs repo secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+GitHub Actions (`.github/workflows/deploy-api.yml`) deploys with `cloudflare/wrangler-action`. The `staging` and `production` GitHub environments each need `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 
-- **Staging** deploys on every push to `main` or `player-accounts` that changes `server/` or the workflow. The job applies staging D1 migrations, then `wrangler deploy --env staging`. The first run stores a `BETTER_AUTH_SECRET` on the staging worker if one is missing. It does not print the value.
-- **Production** deploys only from a manual run (`workflow_dispatch`, target `production`). The job uses the GitHub environment `production`. Turn on Required reviewers for that environment (Settings → Environments → production) before the first production deploy. The workflow file cannot set reviewers. The job refuses to deploy until `BETTER_AUTH_SECRET` and `TURNSTILE_SECRET_KEY` exist on the production worker, then applies production migrations and deploys.
+- **Staging** deploys on every push to `main` or `player-accounts` that changes `server/` or the workflow. The job applies staging D1 migrations first (the database already exists, so this does not need the Worker), then deploys. A missing Worker is normal on the first run: `wrangler secret list` fails until the Worker exists, so the job treats that error as an empty secret list and passes missing secrets to `wrangler deploy --secrets-file`. That creates the Worker and the secrets in one request. A `BETTER_AUTH_SECRET` that is already stored is left as it is, and the value is never printed. `TURNSTILE_SECRET_KEY` is uploaded the same way when the GitHub environment secret of that name is set. The job warns and still deploys when it is absent.
+- **Production** deploys only from a manual run (`workflow_dispatch`, target `production`). The job uses the GitHub environment `production`. Turn on Required reviewers for that environment (Settings → Environments → production) before the first production deploy. The workflow file cannot set reviewers. It uses the same migrations-then-deploy order as staging, including the first run before the production Worker exists.
 
-From a machine that is already logged in to Cloudflare, the same steps are `npm run db:migrate:staging` and `npm run deploy:staging`, or `npm run db:migrate` and `npm run deploy` for production. `npm run deploy` passes `--env=""` so Wrangler uses the top-level worker and not staging. Staging is only `wrangler deploy --env staging`.
+From a machine that is already logged in to Cloudflare, the same steps are `npm run db:migrate:staging` and `npm run deploy:staging`, or `npm run db:migrate` and `npm run deploy` for production. `npm run deploy` passes `--env=""` so Wrangler uses the top-level worker and not staging. Staging is only `wrangler deploy --env staging`. On a brand-new Worker, put secrets in the deploy (`wrangler deploy --secrets-file`) rather than `wrangler secret put`, which cannot see a Worker that does not exist yet.
 
 - Always apply migrations before deploying code that needs them.
 - Staging migrations 0001 and 0002 are already recorded in `d1_migrations`. Production migrations have not been applied.
@@ -174,13 +174,13 @@ From a machine that is already logged in to Cloudflare, the same steps are `npm 
 - [x] Create production D1 `freecell-worlds` and put its id in `server/wrangler.toml`.
 - [x] Create production R2 `freecell-worlds-theme-assets`.
 - [x] Create staging D1 `freecell-worlds-staging`, apply migrations 0001 and 0002, and create staging R2 `freecell-worlds-theme-assets-staging`.
-- [ ] Add GitHub secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. The token needs Workers Scripts, D1, R2, Workers routes, and DNS edit on `freecellworlds.com`.
+- [x] Add GitHub environment secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` on `staging` and `production`. The token has Workers Scripts, D1, R2, Account Settings Read, Workers Routes, DNS, and Zone Read. Creating or updating a Workflow (`PUT /accounts/{account_id}/workflows/{workflow_name}`) accepts **Workers Scripts Write** — the same Workers Scripts permission. The token UI has no separate Workflows permission. Under the new Workers roles, creating a Worker that does not exist yet needs **Workers Admin** at the Workers product scope; **Editor** cannot create one. Legacy Workers Scripts Edit still includes create.
 - [ ] On the GitHub environment `production`, turn on Required reviewers. Leave `staging` without reviewers.
 - [ ] Upgrade to the Workers Paid plan (scrypt, and the Workflows binding).
-- [ ] Turn on Cloudflare Images for the account (the `IMAGES` binding). Staging and production both bind it.
+- [x] Turn on Cloudflare Images for the account (the `IMAGES` binding). Staging and production both bind it.
 - [ ] Apply production migrations (the manual production workflow does this, or `npm run db:migrate`).
-- [ ] Set production secrets: `BETTER_AUTH_SECRET`, `TURNSTILE_SECRET_KEY`. Add `GOOGLE_CLIENT_SECRET` and `RESEND_API_KEY` when those accounts exist. Set the same Google and Resend secrets on staging (`--env staging`) when they exist. The staging workflow creates `BETTER_AUTH_SECRET` if it is missing.
-- [ ] Create the Turnstile widget for `freecellworlds.com` and `staging.freecellworlds.com`. Replace the production site-key placeholder in `js/account.js`. Staging currently uses the public always-pass test keys.
+- [ ] Set `TURNSTILE_SECRET_KEY` (the widget secret) as a GitHub environment secret on `staging` and `production`, or with `wrangler secret put` after the Worker exists. The deploy stores it when that GitHub secret is present and the Worker does not already have it. The site key `0x4AAAAAAFYovaiTyTegTnzy` is already in `js/account.js` for both public hosts. Localhost still uses the test site key. The first deploy generates `BETTER_AUTH_SECRET` when it is missing and does not print it.
+- [ ] Add `GOOGLE_CLIENT_SECRET` and `RESEND_API_KEY` on both workers when those accounts exist.
 - [ ] Create the Google OAuth client. Authorized JavaScript origins: `https://freecellworlds.com`, `https://www.freecellworlds.com`, `https://staging.freecellworlds.com`. Redirect URIs: `https://api.freecellworlds.com/api/auth/callback/google` and `https://api-staging.freecellworlds.com/api/auth/callback/google`. Put the client id in both `[vars]` and `[env.staging.vars]`.
 - [ ] Verify `mail.freecellworlds.com` in Resend. Until `RESEND_API_KEY` is set, verification links are only in the Worker logs (`npx wrangler tail --env staging`).
 - [ ] Set up `gdpr@` and `support@` in Email Routing.

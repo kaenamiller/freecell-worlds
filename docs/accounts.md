@@ -71,7 +71,7 @@ Locally, emails are printed to the wrangler log instead of sent, and Turnstile u
 
 1. **Cloudflare**
    - Production D1 `freecell-worlds` (`8d4f72c3-98ac-4ad1-af49-60b9252b27bb`) and R2 `freecell-worlds-theme-assets` already exist. The id is in `server/wrangler.toml`. Migrations are not applied yet: the manual production workflow applies them, or run `npm run db:migrate`.
-   - Turnstile: add a widget for `freecellworlds.com` (Managed mode). Put the **site key** in `CONFIG.turnstileSiteKey` in `js/account.js`, and the secret in `TURNSTILE_SECRET_KEY`.
+   - Turnstile: the widget for `freecellworlds.com` and `staging.freecellworlds.com` is in `CONFIG.turnstileSiteKey` (`0x4AAAAAAFYovaiTyTegTnzy`). Localhost keeps the always-pass test site key. Put the widget **secret** in `TURNSTILE_SECRET_KEY` on each worker.
    - Workers needs the Paid plan: password hashing uses more CPU than the free plan's 10 ms limit. Staging and production also bind a Workflow and Images.
 2. **Google Cloud Console** → APIs & Services → Credentials → OAuth client (Web):
    - Authorized JavaScript origins: `https://freecellworlds.com`, `https://www.freecellworlds.com`, `https://staging.freecellworlds.com`
@@ -91,7 +91,7 @@ Locally, emails are printed to the wrangler log instead of sent, and Turnstile u
 
 ## Staging
 
-`api-staging.freecellworlds.com` uses D1 `freecell-worlds-staging` (migrations already applied) and R2 `freecell-worlds-theme-assets-staging`. Theme generation is mocked (`GEN_MOCK=1`). The session cookie is `__Secure-fcw-staging.session_token`, host-only, so it does not collide with production's `__Secure-fcw.session_token` on `Domain=freecellworlds.com`. The game at `staging.freecellworlds.com` calls this API; localhost still calls `:8787`. Until Resend is configured, open `npx wrangler tail --env staging` to read the confirmation link.
+`api-staging.freecellworlds.com` uses D1 `freecell-worlds-staging` (migrations already applied) and R2 `freecell-worlds-theme-assets-staging`. Theme generation is mocked (`GEN_MOCK=1`). The session cookie is `__Secure-fcw-staging.session_token`, host-only, so it does not collide with production's `__Secure-fcw.session_token` on `Domain=freecellworlds.com`. The game at `staging.freecellworlds.com` calls this API and uses the same Turnstile site key as production; localhost still calls `:8787` with the test site key. Until Resend is configured, open `npx wrangler tail --env staging` to read the confirmation link. Sign-up on staging also needs `TURNSTILE_SECRET_KEY` on the staging worker, because the real widget does not match the always-pass test secret.
 
 ## Later
 

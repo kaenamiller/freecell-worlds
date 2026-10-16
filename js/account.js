@@ -5,13 +5,16 @@ import { createSync } from './sync.js';
 const host = location.hostname;
 const local = host === 'localhost' || host === '127.0.0.1' || host === '::1';
 const staging = host === 'staging.freecellworlds.com';
-// Staging uses Cloudflare's always-pass Turnstile test site key, paired with the test
-// secret in wrangler [env.staging.vars]. Production needs the real widget site key.
-const CONFIG = local
-  ? { api: `http://${host === '127.0.0.1' ? '127.0.0.1' : 'localhost'}:8787`, turnstileSiteKey: '1x00000000000000000000AA' }
-  : staging
-    ? { api: 'https://api-staging.freecellworlds.com', turnstileSiteKey: '1x00000000000000000000AA' }
-    : { api: 'https://api.freecellworlds.com', turnstileSiteKey: '0x4AAAAAAA_REPLACE_ME' };
+// Localhost keeps Cloudflare's always-pass test site key. The real widget covers
+// freecellworlds.com and staging.freecellworlds.com.
+const CONFIG = {
+  api: local
+    ? `http://${host === '127.0.0.1' ? '127.0.0.1' : 'localhost'}:8787`
+    : staging
+      ? 'https://api-staging.freecellworlds.com'
+      : 'https://api.freecellworlds.com',
+  turnstileSiteKey: local ? '1x00000000000000000000AA' : '0x4AAAAAAFYovaiTyTegTnzy',
+};
 
 const APP_URL = location.origin + location.pathname;
 const $ = (s) => document.querySelector(s);

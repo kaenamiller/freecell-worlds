@@ -48,4 +48,13 @@ test('wrangler.toml points production and staging at the provisioned resources',
   assert.match(staging, /COOKIE_PREFIX = "fcw-staging"/);
   assert.match(staging, /GEN_MOCK = "1"/);
   assert.doesNotMatch(staging, /COOKIE_DOMAIN = "freecellworlds.com"/);
+  assert.doesNotMatch(staging, /TURNSTILE_SECRET_KEY/);
+});
+
+test('hosted pages use the real Turnstile site key and localhost keeps the test key', () => {
+  const src = readFileSync(new URL('../../js/account.js', import.meta.url), 'utf8');
+  assert.match(src, /0x4AAAAAAFYovaiTyTegTnzy/);
+  assert.match(src, /1x00000000000000000000AA/);
+  assert.doesNotMatch(src, /0x4AAAAAAA_REPLACE_ME/);
+  assert.match(src, /turnstileSiteKey: local \? '1x00000000000000000000AA' : '0x4AAAAAAFYovaiTyTegTnzy'/);
 });

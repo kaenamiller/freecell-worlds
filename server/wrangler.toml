@@ -55,8 +55,8 @@ enabled = true
 # Staging: api-staging.freecellworlds.com. Deployed on every push to main (and this
 # branch) by .github/workflows/deploy-api.yml. Theme generation stays on stand-ins.
 # Cookies are host-only and use a different prefix so production's Domain=freecellworlds.com
-# session is not accepted here. Turnstile uses Cloudflare's published always-pass test
-# keys until a real widget exists; a later TURNSTILE_SECRET_KEY secret overrides the var.
+# session is not accepted here. TURNSTILE_SECRET_KEY is a secret, not a var: a var of
+# the same name would overwrite the secret on every deploy.
 [env.staging]
 name = "freecell-worlds-api-staging"
 routes = [{ pattern = "api-staging.freecellworlds.com", custom_domain = true }]
@@ -69,7 +69,6 @@ COOKIE_PREFIX = "fcw-staging"
 EMAIL_FROM = "FreeCell Worlds <accounts@mail.freecellworlds.com>"
 GOOGLE_CLIENT_ID = ""
 GEN_MOCK = "1"
-TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA"
 
 [[env.staging.d1_databases]]
 binding = "DB"
