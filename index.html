@@ -330,6 +330,9 @@
         <label class="row check"><input type="checkbox" id="set-tap-peek" />Tap to peek<small>Fog of War: tap a column to peek, then tap again to hide. Keyboard: P, then 1–8 (or hold P + digit).</small></label>
         <label class="row check"><input type="checkbox" id="set-reduced" />Reduce motion<small>Calmer cards, immediate cursor light, fewer effects</small></label>
         <label class="row check"><input type="checkbox" id="set-cursor-light" />Cursor light<small>A soft light follows your pointer or finger across the table</small></label>
+        <h4>Privacy</h4>
+        <label class="row check"><input type="checkbox" id="set-share-data" />Share play statistics<small>Game statistics help us balance tables, charms and difficulty. Turn off to send nothing at all. <a href="privacy/">Privacy policy</a></small></label>
+        <label class="row check" id="set-analytics-cookies-row" hidden><input type="checkbox" id="set-analytics-cookies" />Allow analytics storage<small>Lets us recognise this device between visits and use Google Analytics. Off: only anonymous game totals, with nothing stored on your device for statistics.</small></label>
         <h4>Data</h4>
         <button class="btn" id="btn-reset-stats">Reset statistics</button>
       </div>
@@ -357,6 +360,13 @@
       </div>
     </div>
   </div>
+
+  <!-- Shown only where the law asks for a choice first (js/consent.js). -->
+  <aside id="consent-banner" class="consent-banner panel" role="dialog" aria-modal="false" aria-labelledby="consent-title" aria-describedby="consent-text" hidden>
+    <p id="consent-title">Play statistics</p>
+    <p id="consent-text">May we use Google Analytics and our own play statistics to see how the game is played and keep it balanced? If you decline, we only count anonymous game totals and store nothing on your device for statistics. You can change this in Settings. <a href="privacy/">Privacy policy</a></p>
+    <div class="consent-actions"><button type="button" class="btn" id="consent-decline">Decline</button><button type="button" class="btn" id="consent-accept">Accept</button></div>
+  </aside>
 
   <div id="fs-hint" class="fs-hint panel" role="dialog" aria-modal="false" aria-labelledby="fs-hint-title" hidden>
     <p id="fs-hint-title">Play in landscape</p>

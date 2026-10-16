@@ -4,6 +4,7 @@ import { THEMES, THEME_ORDER } from './themes.js';
 import { settings, saveSettings, load } from './store.js';
 import { stats, ACHIEVEMENTS, fmtTime, dailyDone } from './stats.js';
 import { initFullscreen } from './fullscreen.js';
+import { track, screen } from './analytics.js';
 
 const $ = (s) => document.querySelector(s);
 
@@ -104,7 +105,9 @@ export const ui = {
     if (this.titleHeroUrl !== chosen.art.hero) { this.titleHeroUrl = chosen.art.hero; this.setHero(chosen.art.hero, chosen.name); }
   },
   setTitleMode(mode, { persist = true } = {}) {
+    const prev = this.titleMode;
     this.titleMode = mode === 'voyage' ? 'voyage' : 'classic';
+    if (persist && prev !== this.titleMode) track('title_tab', { tab: this.titleMode });
     if (persist) this.titleUserSwitched = true;
     document.body.classList.toggle('voyage-reduced-motion', !!settings.reducedMotion);
     for (const name of ['classic', 'voyage']) {
@@ -209,7 +212,7 @@ export const ui = {
       small.className = 'theme-card';
       small.dataset.theme = id;
       small.innerHTML = `<img src="${t.art.thumb}" alt="" loading="lazy" /><span>${t.name}</span>`;
-      small.addEventListener('click', () => this.handlers.theme && this.handlers.theme(id));
+      small.addEventListener('click', () => this.handlers.theme && this.handlers.theme(id, 'title_tile'));
       row.appendChild(small);
     }
     for (const id of THEME_ORDER) {
@@ -220,8 +223,9 @@ export const ui = {
       big.dataset.theme = id;
       big.innerHTML = `<img src="${t.art.thumb}" alt="" loading="lazy" /><div class="meta"><b>${t.name}</b><small>${t.tagline}</small></div>`;
       big.addEventListener('click', () => {
+        const source = this.els.title.classList.contains('hidden') ? 'in_game' : 'all_themes';
         this.closeModals();
-        this.handlers.theme && this.handlers.theme(id);
+        this.handlers.theme && this.handlers.theme(id, source);
       });
       grid.appendChild(big);
     }
@@ -234,7 +238,7 @@ export const ui = {
     random.addEventListener('click', async () => {
       random.disabled = true;
       try {
-        await this.handlers.randomTheme?.();
+        await this.handlers.randomTheme?.('random');
       } finally {
         random.disabled = false;
       }
@@ -253,6 +257,7 @@ export const ui = {
     this.closeModals();
     this.els.win.classList.remove('show');
     this.els.title.classList.remove('hidden', 'leaving');
+    screen('title');
     this.els.hud.classList.add('hidden');
     this.els.statusBar.classList.add('hidden');
     $('#scene').style.visibility = 'hidden';
@@ -362,6 +367,7 @@ export const ui = {
       this.handlers.statsOpened?.();
     }
     $('#' + id).classList.add('show');
+    track('modal_open', { modal: id.replace(/^modal-/, '') });
   },
   closeModals() {
     document.querySelectorAll('.modal.show').forEach((m) => m.classList.remove('show'));
@@ -460,7 +466,7 @@ export const ui = {
     on('#btn-title-themes', () => this.openModal('modal-themes'));
 
     on('#btn-home', () => H().home());
-    on('#btn-new', () => H().newGame());
+    on('#btn-new', () => H().newGame('new_button'));
     on('#btn-undo', () => H().undo());
     on('#btn-hint', () => H().hint());
     on('#btn-check', () => H().check());
@@ -470,10 +476,11 @@ export const ui = {
       settings.muted = !settings.muted;
       saveSettings();
       this.setMuteIcon(settings.muted);
+      track('mute_toggle', { muted: settings.muted });
       H().settings('muted');
     });
     on('#btn-settings', () => this.openModal('modal-settings'));
-    on('#btn-win-new', () => H().newGame());
+    on('#btn-win-new', () => H().newGame('win_again'));
     on('#btn-win-menu', () => H().home());
     on('#btn-reset-stats', () => H().resetStats());
 

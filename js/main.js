@@ -21,6 +21,8 @@ import { scoreBoard, starsFor, starThresholds } from './voyage/scoring.js';
 import { loadBank, prepare as prepareDeals, dealFor, setBusyProbe } from './voyage/dealer.js';
 import { voyageStats, recordRunStart, recordRunEnd, recordBoardCleared, recordCharmPick, recordEconomy, resetVoyageStats } from './voyage/stats.js';
 import { computeBury, shortSolve } from './difficulty.js';
+import { initAnalytics, track, screen, setContextProvider, onPageHide, newId, PlayCounters } from './analytics.js';
+import * as voyageAnalytics from './voyage/analytics.js';
 import { VOYAGE_STUCK_IDLE_MS, VOYAGE_STUCK_PROOF_MS, VOYAGE_STUCK_SETTLE_MS, voyageStuckPlan } from './voyage/stuck.js';
 
 // ---------------------------------------------------------------------------
@@ -657,6 +659,7 @@ let themeGen = 0;
 
 async function applyTheme(id, { persist = true, gen, css = true } = {}) {
   const theme = THEMES[id];
+  const t0 = performance.now(), loading = currentTheme?.id !== id || !currentArt;
   const art = await loadThemeAssets(theme);
   if (gen != null && gen !== themeGen) return;
   currentTheme = theme;
@@ -711,6 +714,7 @@ async function applyTheme(id, { persist = true, gen, css = true } = {}) {
   audio.setTheme(id);
   renderer.shadowMap.needsUpdate = true;
   await warmGpu();
+  if (loading) track('theme_load', { ms: Math.round(performance.now() - t0) });
 }
 
 // Upload every texture and link every shader the theme needs while the theme
@@ -1124,6 +1128,7 @@ function playDealIntro() {
 
 function endIntro() {
   intro.active = false;
+  play.dealt();
   dealing = false;
   skipHint?.classList.remove('on');
   scheduleAuto(300);
@@ -1173,7 +1178,9 @@ let game = null;
 let selection = null;
 let won = false;
 let isDaily = false;
-const run = { undos: 0, hints: 0, counted: false, timerOn: false, t0: 0, elapsed: 0, solved: false };
+const run = { undos: 0, hints: 0, checks: 0, counted: false, timerOn: false, t0: 0, elapsed: 0, solved: false, gid: null, resumed: false };
+// Interaction counters for the deal on the table (analytics game_end / voyage_board_end).
+const play = new PlayCounters();
 
 function locateCard(id) {
   const st = game.state;
@@ -1431,7 +1438,10 @@ function stepAuto(tok) {
   let mv = safeFoundationMoves(game.state, game.rules).find((m) => !held.has(m.card));
   // No individually safe card? If foundation moves alone can still clear the table, the win is
   // guaranteed, so play it out (this is what finishes cross-blocked endgames).
-  if (!mv && canFinishWithFoundationOnly(game.state, game.rules)) mv = legalFoundationMoves(game.state, game.rules).find((m) => !held.has(m.card));
+  if (!mv && canFinishWithFoundationOnly(game.state, game.rules)) {
+    mv = legalFoundationMoves(game.state, game.rules).find((m) => !held.has(m.card));
+    if (mv) play.autoFinished = true;
+  }
   if (!mv) return;
   const m = game.moveToFoundation(mv.src);
   if (!m) return;
@@ -1480,6 +1490,7 @@ function autoMove(id) {
     }
   }
   audio.invalid();
+  play.invalid();
   return false;
 }
 
@@ -1542,6 +1553,7 @@ function endFogPeek() {
   }
 }
 function beginFogPeek(col, source) {
+  play.count('peeks');
   const ctx = fogContext();
   endFogPeek();
   if (!ctx || !game.tableau[col]) return false;
@@ -2101,8 +2113,10 @@ function onPointerUp(e) {
     if (e.target !== canvas || !game || won) return;
     const target = pickTarget(e);
     if (target && selection) {
-      if (!commitMove(tryDrop(selection.from, target))) {
+      if (commitMove(tryDrop(selection.from, target))) play.move('taps');
+      else {
         audio.invalid();
+        play.invalid();
         clearSelection();
       }
     } else if (!target && selection) {
@@ -2116,7 +2130,7 @@ function onPointerUp(e) {
 
   if (!d.moved) {
     if (d.dbl) {
-      autoMove(d.ids[0]);
+      if (autoMove(d.ids[0])) play.move('double_clicks');
       clearSelection();
       return;
     }
@@ -2128,7 +2142,7 @@ function onPointerUp(e) {
     const target = { kind: d.from.kind, index: d.from.index };
     if (selection) {
       const fn = tryDrop(selection.from, target);
-      if (commitMove(fn)) return;
+      if (commitMove(fn)) { play.move('taps'); return; }
     }
     selectCard(loc);
     return;
@@ -2143,9 +2157,9 @@ function onPointerUp(e) {
     g.rotation.set(0, g.rotation.y, 0);
   });
   if (fn) {
-    commitMove(fn);
+    if (commitMove(fn)) play.move('drags');
   } else {
-    if (target) audio.invalid();
+    if (target) { audio.invalid(); play.invalid(); }
     hideValidTargets();
     applyLayout(true);
   }
@@ -2167,6 +2181,8 @@ window.addEventListener('pointercancel', () => {
     canvas.style.cursor = 'default';
   }
 }, true);
+canvas.addEventListener('webglcontextlost', () => track('webgl_context_lost'));
+canvas.addEventListener('webglcontextrestored', () => track('webgl_context_restored'));
 canvas.addEventListener('lostpointercapture', () => {
   cancelFogPointer();
   if (fogInput.peek?.source === 'hold') endFogPeek();
@@ -2181,7 +2197,7 @@ canvas.addEventListener('dblclick', (e) => {
   const id = pickCard(e);
   if (id == null) return;
   e.preventDefault();
-  autoMove(id);
+  if (autoMove(id)) play.move('double_clicks');
   clearSelection();
 });
 
@@ -2279,8 +2295,10 @@ function persistGame() {
     elapsed: run.elapsed,
     undos: run.undos,
     hints: run.hints,
+    checks: run.checks,
     daily: isDaily,
     counted: run.counted,
+    gid: run.gid,
   });
 }
 const savedGame = () => {
@@ -2304,6 +2322,10 @@ async function doCheck() {
     const r = await requestSolve({ timeLimitMs: 8000 });
     const f = formatResult(r);
     setStatus(f.text, f.kind);
+    if (mode === 'classic' && run.gid) {
+      run.checks++;
+      track('check_used', { game_id: run.gid, moves_so_far: manualMoves(), result: r.solvable === true ? 'solvable' : r.solvable === false ? 'unsolvable' : 'unknown' });
+    }
     if (r.solvable === true) audio.hint();
     else if (r.solvable === false) audio.invalid();
   } catch (err) {
@@ -2337,6 +2359,8 @@ async function doHint({ dev = false, charm = false } = {}) {
       if (mode !== 'voyage') run.hints++;
       audio.hint();
       const played = game.applyDescriptor(move);
+      play.move();
+      if (mode === 'classic' && !dev && run.gid) track('hint_used', { game_id: run.gid, moves_so_far: manualMoves() });
       if (charm && vy.ability) played.voyageAbility = { ...vy.ability };
       clearSelection();
       afterMove({ noAuto: mode === 'voyage' });
@@ -2378,6 +2402,7 @@ async function doSolve({ dev = false } = {}) {
   }
 
   autoplay.running = true;
+  if (mode === 'classic' && !dev && !run.solved && run.gid) track('solve_used', { game_id: run.gid, moves_so_far: manualMoves() });
   run.solved = true; // machine-played wins don't count toward stats or achievements
   ui.setSolveActive(true);
   motion.speed = 0.6;
@@ -2457,7 +2482,32 @@ async function newGame(dealNumber, opts = {}) {
   }
 }
 
+// game_end for the classic deal on the table (analytics-plan.md §5.2).
+function classicGameEnd(outcome, extra = {}) {
+  if (!run.gid || !game) return;
+  track('game_end', {
+    game_id: run.gid, deal: game.dealNumber, daily: isDaily, outcome, resumed: run.resumed,
+    time_s: Math.round(run.elapsed), moves: manualMoves(), undos: run.undos, hints: run.hints, checks: run.checks,
+    cards_home: cardsHome(game.state), streak: stats.streak,
+    ...play.summary(game.history),
+    ...extra,
+  });
+  run.gid = null;
+}
+
+onPageHide(() => {
+  if (game && !won && !vy.boardLive && run.gid && run.counted) {
+    track('game_exit', { game_id: run.gid, cards_home: cardsHome(game.state), elapsed_s: Math.round(run.elapsed), moves: manualMoves() });
+  }
+});
+
 function dealGame(dealNumber, opts = {}) {
+  // A classic deal still on the table ends here: abandoned once moved, skipped if untouched.
+  if (game && !won && !vy.boardLive && run.gid) {
+    const reason = opts.source || (opts.voyage ? 'voyage' : opts.restore ? 'resume' : 'other');
+    if (run.counted && stats.streak > 0 && !opts.restore) track('streak_lost', { streak: stats.streak });
+    classicGameEnd(run.counted ? 'abandoned' : 'skipped', { reason, after_invalid_burst: run.counted ? play.invalidBurst() : undefined });
+  }
   // Walking away from a classic game in progress breaks the streak.
   if (game && !won && run.counted && !opts.restore && !vy.boardLive) recordLoss();
   vy.boardLive = mode === 'voyage';
@@ -2484,6 +2534,9 @@ function dealGame(dealNumber, opts = {}) {
   }
   run.undos = opts.restore ? opts.restore.undos || 0 : 0;
   run.hints = opts.restore ? opts.restore.hints || 0 : 0;
+  run.checks = opts.restore ? opts.restore.checks || 0 : 0;
+  run.resumed = !!opts.restore;
+  play.reset();
   run.elapsed = opts.restore ? opts.restore.elapsed || 0 : 0;
   run.counted = opts.restore ? !!opts.restore.counted : false;
   run.timerOn = false;
@@ -2501,6 +2554,13 @@ function dealGame(dealNumber, opts = {}) {
     g.rotation.set(Math.PI, 0, 0);
     g.visible = false;
   }
+
+  if (!vy.boardLive) {
+    run.gid = opts.restore?.gid || newId();
+    if (opts.restore) track('game_resume', { game_id: run.gid, deal: dealNumber, daily: isDaily, moves_so_far: manualMoves(), elapsed_s: Math.round(run.elapsed) });
+    else track('game_start', { game_id: run.gid, deal: dealNumber, daily: isDaily, source: opts.source || 'other', free_cells: freeCellCount });
+    screen('classic_board');
+  } else run.gid = null;
 
   playDealIntro();
   updateHUD();
@@ -2536,6 +2596,12 @@ function handleWin() {
         theme: currentTheme.id,
         daily: isDaily,
       });
+  classicGameEnd(run.solved ? 'solved' : 'win');
+  if (!run.solved) {
+    track('post_score', { score: manualMoves(), level: game.dealNumber, character: currentTheme.id });
+    for (const a of result.unlocked) track('unlock_achievement', { achievement_id: a.id });
+    if (isDaily) track('daily_complete', { deal: game.dealNumber, time_s: Math.round(run.elapsed), moves: manualMoves() });
+  }
   audio.win();
   audio.duck(8);
   post.pulse(1.2);
@@ -2716,7 +2782,9 @@ function doUndo() {
   if (undone) {
     const free = mode === 'voyage' && !!vy.run.current?.memo?._undoWindow;
     if (!free) run.undos++;
+    play.undo();
     if (mode === 'voyage') voyageUndone({ free });
+    if (mode === 'voyage' && !free) voyageAnalytics.undo(vy.run);
     audio.undo();
     clearSelection();
     ui.hideWin();
@@ -2835,6 +2903,7 @@ async function voyageShowMap() {
   // A market row ends on the chart with the market as the only open stop;
   // the player sails in from there.
   voyageUI.showMap(view);
+  vy.mapShownAt = performance.now();
   voyageUI.tutorial('map');
   voyagePrepareAhead();
 }
@@ -2851,13 +2920,17 @@ async function voyageStart({ daily = false } = {}) {
       cancel: 'Keep it',
     });
     if (!ok) return;
+    const live = vy.run === saved && vy.boardLive && game;
+    const board = live ? { moves: manualMoves(), cardsHome: cardsHome(game.state), timeS: run.elapsed, counters: play.summary(game.history), invalidBurst: play.invalidBurst() } : {};
     loseRun(saved, 'abandoned');
     recordRunEnd(saved);
+    voyageAnalytics.runEnd(saved, 'abandoned_for_new', board);
     saveRun(saved);
   }
   await loadBank();
   vy.run = createRun({ daily });
   recordRunStart();
+  voyageAnalytics.runStart(vy.run, { replaced: !!saved, runsLifetime: voyageStats.runs });
   saveRun(vy.run);
   enterVoyageMode();
   voyageShowMap();
@@ -2868,6 +2941,7 @@ async function voyageContinue() {
   const r = vy.run && ['map', 'board', 'reward', 'port'].includes(vy.run.status) ? vy.run : loadRun();
   if (!r) return voyageStart({});
   vy.run = r;
+  voyageAnalytics.runResume(r);
   enterVoyageMode();
   await loadBank();
   if (r.status === 'map') return voyageShowMap();
@@ -2887,6 +2961,7 @@ async function voyageContinue() {
     ui.hideTitle();
     await applyVoyageBoardTheme(r.current.theme);
     voyageHud();
+    screen('voyage_board');
     return;
   }
   ui.hideTitle();
@@ -2898,18 +2973,22 @@ async function voyagePickNode(nodeId) {
   const r = vy.run;
   if (!r || r.status !== 'map' || voyageUI.preparing) return;
   const node = findNode(r.map, nodeId);
-  if (!node || !runView(r).map.flat().some(n => n.id === nodeId && n.state === 'available')) return;
+  const options = runView(r).map.flat().filter((n) => n.state === 'available');
+  if (!node || !options.some((n) => n.id === nodeId)) return;
+  const decideMs = vy.mapShownAt ? Math.round(performance.now() - vy.mapShownAt) : undefined;
   voyageUI.setPreparing(true);
   // The boat always sails the whole lane. If the table is still being dealt when
   // it arrives, a loading screen says so instead of leaving the chart still.
   const dealt = dealFor({ ...boardPlan(r, node.theme, { nodeId }) }, { seed: r.seed, exclude: vyUsedDeals() });
   let ready = false;
   dealt.then(() => { ready = true; }, () => {});
-  let pick;
+  let pick, prepWaitMs;
   try {
     await (voyageUI.sailTo?.(nodeId) || Promise.resolve());
     if (!ready) voyageUI.showLoading?.('Preparing board…');
+    const landed = performance.now();
     pick = await dealt;
+    prepWaitMs = Math.round(performance.now() - landed);
   } catch (error) {
     voyageUI.chart?.cancel();
     ui.toast('⚓', 'Course unavailable', error.message);
@@ -2920,6 +2999,7 @@ async function voyagePickNode(nodeId) {
   }
   if (vy.run !== r || r.status !== 'map') return;
   startBoard(r, nodeId, pick);
+  voyageAnalytics.nodePick(r, { node, options, decideMs, prepWaitMs, inspected: voyageUI.inspected });
   saveRun(r);
   voyageUI.hideMap();
   if (!ui.els.title.classList.contains('hidden')) ui.hideTitle();
@@ -3098,7 +3178,12 @@ function voyageRuntimeAPI() {
     },
     endAbility: () => { vy.ability = null; clearTargetChosen(); },
     addUndos: (n) => { vy.run.undos += Math.max(0, Math.floor(Number(n) || 0)); voyageRefresh(); },
-    addCoins: (n) => { vy.run.coins = (vy.run.coins || 0) + Math.max(0, Math.floor(Number(n) || 0)); voyageRefresh(); },
+    addCoins: (n) => {
+      const add = Math.max(0, Math.floor(Number(n) || 0));
+      vy.run.coins = (vy.run.coins || 0) + add;
+      voyageAnalytics.earn(vy.run, add, 'charm');
+      voyageRefresh();
+    },
     concedeBoard: () => {
       if (!game || won || !vy.boardLive || vy.run?.status !== 'board' || vy.run.current.idx >= VOYAGE.boards - 1) return false;
       return voyageWin({ conceded: true });
@@ -3106,6 +3191,7 @@ function voyageRuntimeAPI() {
     spendCoins: (n) => {
       if (!game || won || !vy.boardLive || vy.run?.status !== 'board' || !Number.isInteger(n) || n < 0 || n > vy.run.coins) return false;
       vy.run.coins -= n; (vy.run.economy ??= {}).coinsSpent = (vy.run.economy.coinsSpent || 0) + n;
+      voyageAnalytics.spend(vy.run, n, vy.ability ? `charm_spend:${vy.ability.id}` : 'charm_spend');
       voyageRefresh(); return true;
     },
     grantUse: (id = '*', n = 1) => vy.effects?.grantUse(id, n) || 0,
@@ -3129,9 +3215,19 @@ function voyageRuntimeAPI() {
       syncRankHighlight();
     },
     hint: () => doHint({ charm: true }),
-    preview: voyagePreview,
+    preview: async (n) => {
+      const r = vy.run, moves = await voyagePreview(n);
+      if (r) voyageAnalytics.preview(r, { n: n ?? 3, found: !!moves });
+      return moves;
+    },
     solvable: voyageSolvable,
-    sonar: voyageSonar,
+    sonar: async (options) => {
+      const r = vy.run, t0 = performance.now(), result = await voyageSonar(options);
+      if (r && result) voyageAnalytics.sonar(r, { steps: result.steps, ms: Math.round(performance.now() - t0) });
+      return result;
+    },
+    charmTrack: (id, what, n) => vy.run && voyageAnalytics.trigger(vy.run, id, what, n),
+    undoCapHit: (id) => vy.run && voyageAnalytics.undoCapHit(vy.run, id),
     resetBoard: () => {
       if (!game || won || !vy.boardLive || vy.run?.status !== 'board' || !manualMoves()) return false;
       voyageClearPreview(); clearSelection(); autoTok++;
@@ -3250,9 +3346,11 @@ async function voyagePickTarget({ kind, filter = () => true, prompt = null, card
   const pool = kind === 'column' ? game.tableau.map((_, i) => i) : kind === 'freecell' ? game.free.map((_, i) => i)
     : [...cardGroups.keys()].filter((id) => { const loc = locateCard(id); return loc && loc.kind !== 'found' && !faceDown(id); });
   const values = pool.filter((value) => filter(value, game.state));
-  if (!values.length) { ui.toast('✦', 'Charm', 'Nothing on the table can be chosen right now.', 2200); return null; }
+  if (!values.length) { ui.toast('✦', 'Charm', 'Nothing on the table can be chosen right now.', 2200); vy.cancelStage = 'nothing_to_pick'; return null; }
   clearSelection(); setPeek(null);
-  return startTargeting({ kind, values, prompt, cards, group });
+  const picked = await startTargeting({ kind, values, prompt, cards, group });
+  if (picked == null) vy.cancelStage = 'pick';
+  return picked;
 }
 
 // A small menu for choices that are not places on the table (a direction, a sticker, a suit).
@@ -3260,7 +3358,9 @@ async function voyageChoose({ prompt = '', options = [], card = null } = {}) {
   if (!game || !vy.boardLive || won || !options.some((o) => !o.disabled)) return null;
   const point = card != null ? window.FreeCell.projectCard(card, true) : null;
   const charm = vy.ability && CHARMS[vy.ability.id];
-  return voyageUI.choose({ icon: charm?.icon || '✦', name: charm?.name || 'Charm', text: prompt, options, at: point });
+  const value = await voyageUI.choose({ icon: charm?.icon || '✦', name: charm?.name || 'Charm', text: prompt, options, at: point });
+  if (value == null) vy.cancelStage = 'choose';
+  return value;
 }
 
 // Deal run.current onto the table with its charms active.
@@ -3289,6 +3389,8 @@ function voyageDealBoard({ restore = null } = {}) {
   vy.seen = game.history.length;
   vy.lastHistory = game.history.slice();
   vy.emptyCols = new Set(game.tableau.map((c, i) => (c.length ? -1 : i)).filter((i) => i >= 0));
+  if (!restore) voyageAnalytics.boardStart(vy.run, { freeCells: game.state.free.length });
+  screen('voyage_board');
   const initial = cloneState(cur.initial);
   vy.effects.setup({ state: initial, initial, deal: cur.deal, restored: !!restore });
   voyageRevealExposed();
@@ -3388,7 +3490,8 @@ function voyageStuckBlocked() {
     || (vy.run.current?.memo?._undoWindow && manualMoves() > 0);
 }
 
-function voyageWarnStuck(text) {
+function voyageWarnStuck(text, kind = 'other') {
+  if (!vy.stuckWarned && vy.run) voyageAnalytics.stuckWarning(vy.run, { kind, abilityAvailable: vy.effects?.hasAvailableAbility() });
   vy.stuckWarned = true;
   setStatus(text, 'warn');
 }
@@ -3396,8 +3499,17 @@ function voyageWarnStuck(text) {
 // A charm that only pulls back from the dead end (Sonar) keeps the run alive without hiding the warning.
 function voyageStuckRescue() {
   if (!vy.effects?.hasAvailableAbility()) return false;
-  voyageWarnStuck('No way forward from here — use a charm, or abandon the board.');
+  voyageWarnStuck('No way forward from here — use a charm, or abandon the board.', 'rescue');
   return true;
+}
+
+// The last chance before a loss: charm stuck hooks may cancel it (or concede the board).
+function voyageEmitStuck() {
+  const r = vy.run, fx = vy.effects, idx = r?.current?.idx;
+  if (fx) fx.stuckCancelledBy = fx.stuckHandledBy = null;
+  const cancelled = fx?.emit('stuck');
+  if (r && (cancelled || r.status !== 'board')) voyageAnalytics.lossSaved(r, idx, fx?.stuckCancelledBy || fx?.stuckHandledBy);
+  return cancelled;
 }
 
 async function voyageProveStuck(tok, { settle = true } = {}) {
@@ -3418,11 +3530,11 @@ async function voyageProveStuck(tok, { settle = true } = {}) {
     return;
   }
   if (vy.run.undos > 0) {
-    voyageWarnStuck('No way forward from here — undo, or abandon the board.');
+    voyageWarnStuck('No way forward from here — undo, or abandon the board.', 'proven_dead');
     return;
   }
   if (voyageStuckRescue()) return;
-  const cancelled = vy.effects?.emit('stuck');
+  const cancelled = voyageEmitStuck();
   if (vy.run?.status !== 'board') return; // Cliffhanger already entered the result flow.
   voyageRefresh();
   if (cancelled || tok !== vy.stuckTok || vy.run.undos > 0 || vy.effects?.hasAvailableAbility() || voyageStuckBlocked()) return;
@@ -3436,12 +3548,12 @@ async function voyageCheckStuck() {
   const moves = generateMoves(game.state, { rules: game.rules });
   const plan = voyageStuckPlan(moves, vy.run.undos);
   if (plan === 'warn') {
-    voyageWarnStuck('No moves left — undo, or abandon the board.');
+    voyageWarnStuck('No moves left — undo, or abandon the board.', 'no_moves');
     return;
   }
   if (plan === 'lose') {
     if (voyageStuckRescue()) return;
-    const cancelled = vy.effects?.emit('stuck');
+    const cancelled = voyageEmitStuck();
     if (vy.run?.status !== 'board') return; // Cliffhanger already entered the result flow.
     voyageRefresh();
     if (cancelled || tok !== vy.stuckTok || vy.run.undos > 0 || vy.effects?.hasAvailableAbility() || voyageStuckBlocked()) return;
@@ -3465,8 +3577,11 @@ function voyageLose(reason) {
   if (!r || r.status === 'lost') return;
   voyageDisarmStuck();
   voyageClearStuckWarning();
+  const live = vy.boardLive && game;
+  const board = live ? { moves: manualMoves(), cardsHome: cardsHome(game.state), timeS: run.elapsed, counters: play.summary(game.history), invalidBurst: reason === 'abandoned' ? play.invalidBurst() : undefined } : {};
   loseRun(r, reason);
   recordRunEnd(r);
+  voyageAnalytics.runEnd(r, reason, board);
   saveRun(r);
   vy.boardLive = false;
   vy.effects = null;
@@ -3490,8 +3605,13 @@ function voyageWin({ conceded = false } = {}) {
   if (!r || r.status !== 'board' || (conceded && r.current.idx >= VOYAGE.boards - 1)) return false;
   voyageDisarmStuck();
   voyageClearStuckWarning();
+  const cur = r.current, undosBefore = r.undos, cards = cardsHome(game.state);
   const result = winBoard(r, game.history, vy.effects, { elapsed: run.elapsed, rules: game.rules, conceded });
   vy.effects?.emit('win', { result });
+  voyageAnalytics.boardEnd(r, cur, { outcome: conceded ? 'conceded' : 'cleared', result, undosLeft: undosBefore, cardsHome: cards, counters: play.summary(game.history) });
+  voyageAnalytics.earn(r, result.coins, 'board');
+  if (r.status === 'reward') voyageAnalytics.rewardOpen(r);
+  if (r.status === 'won') voyageAnalytics.runEnd(r, 'won');
   recordBoardCleared(result);
   recordEconomy(r);
   if (r.status === 'won') recordRunEnd(r);
@@ -3513,7 +3633,10 @@ function voyageWin({ conceded = false } = {}) {
 
 function voyagePickCharm(id) {
   if (vy.run?.status !== 'reward') return false;
+  voyageAnalytics.rewardOpen(vy.run); // a reward restored from a save made before analytics
+  voyageAnalytics.rewardPick(vy.run, id);
   pickCharm(vy.run, id, { api: voyageRuntimeAPI() });
+  voyageAnalytics.rewardSettled(vy.run);
   recordCharmPick(id);
   recordEconomy(vy.run);
   saveRun(vy.run);
@@ -3530,6 +3653,7 @@ function voyagePickCharm(id) {
 function voyagePortShow() {
   if (vy.run?.status !== 'port') return;
   if (voyageUI.showPort) {
+    voyageAnalytics.portEnter(vy.run);
     voyageUI.showPort?.(vyView());
     voyagePrepareAhead();
   } else {
@@ -3540,9 +3664,14 @@ function voyagePortShow() {
   }
 }
 
+const PORT_ACTIONS = new Map([[buyBoon, 'boon'], [buySticker, 'sticker'], [upgradeBoon, 'upgrade'], [buyUndo, 'undo'], [sellBoon, 'sell'], [rerollPort, 'reroll'], [portService, 'service']]);
+
 function voyagePortAction(action, ...args) {
   if (vy.run?.status !== 'port') return false;
+  const port = vy.run.port, coinsBefore = vy.run.coins;
+  const stockBefore = port?.kind === 'boons' ? port.boons.map((o) => o.id) : port?.kind === 'stickers' ? port.stickers.map((o) => o.type) : [];
   const changed = action(vy.run, ...args);
+  if (changed) voyageAnalytics.portAction(vy.run, PORT_ACTIONS.get(action), args[0], { coinsBefore, stockBefore });
   recordEconomy(vy.run);
   saveRun(vy.run);
   voyagePortShow();
@@ -3550,7 +3679,9 @@ function voyagePortAction(action, ...args) {
 }
 
 function voyagePortLeave() {
+  const port = vy.run?.port;
   if (!vy.run || !leavePort(vy.run)) return false;
+  voyageAnalytics.portLeave(vy.run, port);
   voyagePersist();
   voyageShowMap();
   return true;
@@ -3561,8 +3692,14 @@ setBusyProbe(() => dealing || !!drag || motion.busy || animator.busy);
 const voyageHandlers = {
   useAbility: async (id) => {
     if (mode !== 'voyage' || vy.run?.status !== 'board' || dealing || drag || busy || motion.busy || animator.busy) return;
-    try { await vy.effects?.useAbility(id); }
+    const fx = vy.effects, r = vy.run, idx = r.current.idx;
+    const available = !!fx?.abilityState(id)?.available, whileStuck = vy.stuckWarned;
+    vy.cancelStage = null;
+    let used = false;
+    try { used = await fx?.useAbility(id); }
     catch (error) { console.error('[voyage] ability', error); ui.toast('✦', 'Charm', error.message); }
+    if (available && used) voyageAnalytics.abilityUse(r, idx, id, { usesLeft: fx.abilityState(id)?.uses, whileStuck, cardsHome: cardsHome(game.state), movesSoFar: manualMoves() });
+    else if (available) voyageAnalytics.abilityCancel(r, idx, id, vy.cancelStage || 'use');
     voyageRefresh(); voyageCheckStuck();
   },
   startVoyage: (o = {}) => voyageStart(o),
@@ -3597,6 +3734,17 @@ const voyageHandlers = {
   toMenu: () => voyageToMenu(),
 };
 
+// Sliders report on every input event; send one settings_change per setting once it settles.
+const settingTimers = new Map();
+function trackSetting(k) {
+  if (k === 'muted') return; // mute_toggle covers the mute button
+  clearTimeout(settingTimers.get(k));
+  settingTimers.set(k, setTimeout(() => {
+    settingTimers.delete(k);
+    track('settings_change', { setting: k, setting_value: String(settings[k]) });
+  }, 800));
+}
+
 ui.handlers = {
   reframe: () => frameBoard(),
   click: () => {
@@ -3608,40 +3756,42 @@ ui.handlers = {
     if (game && !won && !vy.boardLive) {
       audio.unlock();
       ui.hideTitle();
+      screen('classic_board');
       return;
     }
     const sg = savedGame();
     if (sg) startGameFromTitle(sg.deal, { restore: sg, daily: sg.daily });
-    else startGameFromTitle();
+    else startGameFromTitle(null, { source: 'play' });
   },
   daily: () => {
     if (mode === 'voyage') leaveVoyageMode();
-    return startGameFromTitle(dailyDealNumber(), { daily: true });
+    return startGameFromTitle(dailyDealNumber(), { daily: true, source: 'daily' });
   },
   dealNumber: (n) => {
     if (n == null) return;
     if (mode === 'voyage') leaveVoyageMode();
+    track('deal_number_entered', { deal: n });
     const onTitle = !ui.els.title.classList.contains('hidden');
-    if (onTitle) startGameFromTitle(n);
-    else newGame(n);
+    if (onTitle) startGameFromTitle(n, { source: 'deal_number' });
+    else newGame(n, { source: 'deal_number' });
   },
-  theme: (id) => {
+  theme: (id, source = 'other') => {
     settings.autoRandomTheme = false;
     saveSettings();
     ui.syncThemeSelection();
-    return switchTheme(id);
+    return switchTheme(id).then(() => track('theme_select', { source }));
   },
-  randomTheme: () => {
+  randomTheme: (source = 'random') => {
     settings.autoRandomTheme = true;
     saveSettings();
     ui.syncThemeSelection();
-    return switchTheme(randomThemeId(currentTheme.id));
+    return switchTheme(randomThemeId(currentTheme.id)).then(() => track('theme_select', { source }));
   },
   home: () => voyageToMenu(),
   restoreClassicTheme: () => restoreClassicTheme(),
-  newGame: () => {
+  newGame: (source = 'new_button') => {
     if (mode === 'voyage') leaveVoyageMode();
-    return newGame(randomDealNumber());
+    return newGame(randomDealNumber(), { source });
   },
   undo: doUndo,
   hint: () => mode === 'classic' && doHint(),
@@ -3650,6 +3800,7 @@ ui.handlers = {
   hasResume: () => (game && !won && !vy.boardLive && manualMoves() > 0) || !!savedGame(),
   statsOpened: () => voyageUI.renderStats(voyageStats),
   resetStats: () => {
+    track('stats_reset');
     resetStats();
     resetVoyageStats();
     ui.renderStats();
@@ -3663,6 +3814,7 @@ ui.handlers = {
   devAnalyze: () => devAnalyzePosition(),
   devResetBoard: () => devResetBoard(),
   settings: (k) => {
+    trackSetting(k);
     audio.applyVolumes();
     if (k === 'autoRandomTheme') ui.syncThemeSelection();
     if (k === 'quality') {
@@ -3717,20 +3869,21 @@ window.addEventListener('keydown', (e) => {
   }
   if (k === 'u' || k === 'z') doUndo();
   if (k === 'h' && mode === 'classic') doHint();
-  if (k === 'n' && mode === 'classic') newGame(randomDealNumber());
+  if (k === 'n' && mode === 'classic') newGame(randomDealNumber(), { source: 'new_key' });
   if (k === 'm') document.getElementById('btn-mute').click();
   // Shift+1..8 drops the selected card into that column (e.key is the shifted
   // symbol, so match the physical key via e.code).
   const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
   if (e.shiftKey && digit) {
     const col = parseInt(digit[1], 10) - 1;
-    if (col < 8 && selection) commitMove(tryDrop(selection.from, { kind: 'col', index: col }));
+    if (col < 8 && selection && commitMove(tryDrop(selection.from, { kind: 'col', index: col }))) play.move('key_moves');
     return;
   }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const rank = rankFromEvent(e);
   if (rank != null) {
     if (!e.repeat && rankForCode(e.code) != null) heldRankCodes.add(e.code);
+    if (!e.repeat) play.count('rank_highlight_uses');
     setRankHighlight(rank);
   }
 });
@@ -3776,6 +3929,7 @@ function adapt(raw) {
   if (!next) return;
   // Too slow: drop effects. Resolution stays at the display's native pixel ratio.
   perf.downgraded = true;
+  track('perf_downgrade', { from: perf.tier, to: next, fps: perf.fps });
   applyTier(next);
 }
 
@@ -3855,7 +4009,7 @@ window.FreeCell = {
   },
   async newGame(dealNumber) {
     ui.els.title.classList.contains('hidden') || ui.hideTitle();
-    await newGame(dealNumber ?? randomDealNumber());
+    await newGame(dealNumber ?? randomDealNumber(), { source: 'api' });
     return game.dealNumber;
   },
   undo() {
@@ -3950,6 +4104,14 @@ window.FreeCell = {
 // ---------------------------------------------------------------------------
 async function boot() {
   ui.init();
+  setContextProvider(() => ({
+    mode: document.body.classList.contains('title-open') ? 'menu' : mode,
+    theme_id: currentTheme.id,
+    theme_auto: !!settings.autoRandomTheme,
+    input: isTouch ? 'touch' : 'mouse',
+    quality: perf.tier,
+  }));
+  initAnalytics();
   voyageUI.init(voyageHandlers);
   voyageUI.renderStats(voyageStats);
   motion.reduced = settings.reducedMotion;
@@ -3977,6 +4139,7 @@ async function boot() {
   voyageRefreshTitle();
   loop();
   ui.setLoading(1, 'Ready');
+  track('app_ready', { load_ms: Math.round(performance.now()), quality_auto: perf.tier, cores: navigator.hardwareConcurrency || undefined });
   setTimeout(() => ui.hideLoader(), 250);
 }
 

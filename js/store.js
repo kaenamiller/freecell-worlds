@@ -50,6 +50,7 @@ export const defaultSettings = {
   highContrast: false,
   reducedMotion: false,
   cursorLight: true,
+  shareData: true, // Settings → Privacy; see js/consent.js
 };
 
 export const settings = load('settings', defaultSettings);

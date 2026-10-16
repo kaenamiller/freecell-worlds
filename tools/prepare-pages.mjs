@@ -42,6 +42,16 @@ if (!/^const VERSION = '/m.test(sw)) {
 sw = sw.replace(/^const VERSION = '[^']+'/m, `const VERSION = '${version}'`);
 await writeFile(swPath, sw);
 
+// Analytics build id (js/analytics-config.js): run number and short commit, e.g. 412-6044ba7.
+const appVersion = (version.match(/-(\d+)-([0-9a-f]{7})[0-9a-f]*$/)?.slice(1).join('-') || version.replace(/^freecell-?worlds-/, '')).slice(0, 40);
+const configPath = join(out, 'js/analytics-config.js');
+let analyticsConfig = await readFile(configPath, 'utf8');
+if (!/^export const APP_VERSION = '[^']*';$/m.test(analyticsConfig)) {
+  throw new Error("js/analytics-config.js: expected export const APP_VERSION = '...';");
+}
+analyticsConfig = analyticsConfig.replace(/^export const APP_VERSION = '[^']*';$/m, `export const APP_VERSION = '${appVersion}';`);
+await writeFile(configPath, analyticsConfig);
+
 const shell = sw.match(/const SHELL = \[([\s\S]*?)\];/);
 if (!shell) throw new Error('sw.js: expected const SHELL = [...]');
 const missing = [];
@@ -60,4 +70,4 @@ if (missing.length) {
   );
 }
 
-console.log(`Prepared _site/ with service worker cache id ${version}`);
+console.log(`Prepared _site/ with service worker cache id ${version}, app version ${appVersion}`);
