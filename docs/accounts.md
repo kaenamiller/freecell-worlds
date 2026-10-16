@@ -79,7 +79,7 @@ Locally, emails are printed to the wrangler log instead of sent, and Turnstile u
    - Authorized redirect URIs: `https://api.freecellworlds.com/api/auth/callback/google` and `https://api-staging.freecellworlds.com/api/auth/callback/google`.
    - `GOOGLE_CLIENT_SECRET` is a GitHub environment secret on `staging` and `production`. The API deploy writes it when that secret is set and does not print it.
    - OAuth consent screen: app name, support email, links to `/privacy/` and `/terms/`. Only the default `email`/`profile` scopes are used, so Google's sensitive-scope verification doesn't apply.
-3. **Resend:** verify `mail.freecellworlds.com` (SPF/DKIM records go in Cloudflare DNS) and put the API key in `RESEND_API_KEY`.
+3. **Resend:** verify `mail.freecellworlds.com` (SPF/DKIM records go in Cloudflare DNS). `RESEND_API_KEY` is a GitHub environment secret on `staging` and `production`. The API deploy writes it when that secret is set and does not print it. Until the domain is verified, Resend rejects the send and the Worker log has the error.
 4. **Email routing:** create `gdpr@freecellworlds.com` (Cloudflare Email Routing). The privacy policy and contact page point to it.
 5. **Secrets:**
    ```sh
@@ -92,7 +92,7 @@ Locally, emails are printed to the wrangler log instead of sent, and Turnstile u
 
 ## Staging
 
-`api-staging.freecellworlds.com` uses D1 `freecell-worlds-staging` (migrations already applied) and R2 `freecell-worlds-theme-assets-staging`. Theme generation is mocked (`GEN_MOCK=1`). The session cookie is `__Secure-fcw-staging.session_token`, host-only, so it does not collide with production's `__Secure-fcw.session_token` on `Domain=freecellworlds.com`. The game is the static-assets Worker `freecell-worlds-web-staging` at `staging.freecellworlds.com` (deploys from `player-accounts` and `main`). That page calls this API and uses the same Turnstile site key as production. Localhost still calls `:8787` with the test site key. Until Resend is configured, open `npx wrangler tail --env staging` to read the confirmation link.
+`api-staging.freecellworlds.com` uses D1 `freecell-worlds-staging` (migrations already applied) and R2 `freecell-worlds-theme-assets-staging`. Theme generation is mocked (`GEN_MOCK=1`). The session cookie is `__Secure-fcw-staging.session_token`, host-only, so it does not collide with production's `__Secure-fcw.session_token` on `Domain=freecellworlds.com`. The game is the static-assets Worker `freecell-worlds-web-staging` at `staging.freecellworlds.com` (deploys from `player-accounts` and `main`). That page calls this API and uses the same Turnstile site key as production. Localhost still calls `:8787` with the test site key. Until `mail.freecellworlds.com` is verified in Resend, open `npx wrangler tail --env staging` to read the confirmation link and the Resend error.
 
 ## Later
 

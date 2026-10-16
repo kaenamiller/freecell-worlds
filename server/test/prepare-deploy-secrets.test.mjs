@@ -26,21 +26,27 @@ test('the first deploy uploads a new auth secret and does not rotate one that ex
   assert.deepEqual(created, { BETTER_AUTH_SECRET: 'generated-secret' });
 
   const kept = secretsToUpload({
-    existing: ['BETTER_AUTH_SECRET', 'TURNSTILE_SECRET_KEY', 'GOOGLE_CLIENT_SECRET'],
+    existing: ['BETTER_AUTH_SECRET', 'TURNSTILE_SECRET_KEY', 'GOOGLE_CLIENT_SECRET', 'RESEND_API_KEY'],
     turnstileFromEnv: '',
     googleFromEnv: '',
+    resendFromEnv: '',
     generateAuth: () => 'rotated',
   });
   assert.deepEqual(kept, {});
 });
 
-test('Turnstile and Google secrets from GitHub are written when missing or changed', () => {
+test('Turnstile, Google, and Resend secrets from GitHub are written when missing or changed', () => {
   const uploaded = secretsToUpload({
     existing: ['BETTER_AUTH_SECRET', 'TURNSTILE_SECRET_KEY'],
     turnstileFromEnv: 'turnstile-secret',
     googleFromEnv: 'google-secret',
+    resendFromEnv: 'resend-secret',
     generateAuth: () => 'rotated',
   });
-  assert.deepEqual(uploaded, { TURNSTILE_SECRET_KEY: 'turnstile-secret', GOOGLE_CLIENT_SECRET: 'google-secret' });
+  assert.deepEqual(uploaded, {
+    TURNSTILE_SECRET_KEY: 'turnstile-secret',
+    GOOGLE_CLIENT_SECRET: 'google-secret',
+    RESEND_API_KEY: 'resend-secret',
+  });
   assert.equal(uploaded.BETTER_AUTH_SECRET, undefined);
 });

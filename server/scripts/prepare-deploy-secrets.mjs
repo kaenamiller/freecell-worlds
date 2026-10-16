@@ -29,15 +29,23 @@ export function parseSecretNames(stdout) {
 }
 
 // BETTER_AUTH_SECRET is created once and never replaced: rotating it signs everyone out.
-// TURNSTILE_SECRET_KEY and GOOGLE_CLIENT_SECRET come from GitHub environment secrets.
-// Wrangler cannot read a secret's current value, so when the GitHub secret is set the
-// deploy writes it. That fills a missing secret and picks up a changed one. The value
-// is never printed. An empty GitHub secret leaves whatever is already on the Worker.
-export function secretsToUpload({ existing, turnstileFromEnv = '', googleFromEnv = '', generateAuth = () => randomBytes(32).toString('base64') }) {
+// TURNSTILE_SECRET_KEY, GOOGLE_CLIENT_SECRET, and RESEND_API_KEY come from GitHub
+// environment secrets. Wrangler cannot read a secret's current value, so when the
+// GitHub secret is set the deploy writes it. That fills a missing secret and picks
+// up a changed one. The value is never printed. An empty GitHub secret leaves
+// whatever is already on the Worker.
+export function secretsToUpload({
+  existing,
+  turnstileFromEnv = '',
+  googleFromEnv = '',
+  resendFromEnv = '',
+  generateAuth = () => randomBytes(32).toString('base64'),
+}) {
   const toSet = {};
   if (!existing.includes('BETTER_AUTH_SECRET')) toSet.BETTER_AUTH_SECRET = generateAuth();
   if (turnstileFromEnv) toSet.TURNSTILE_SECRET_KEY = turnstileFromEnv;
   if (googleFromEnv) toSet.GOOGLE_CLIENT_SECRET = googleFromEnv;
+  if (resendFromEnv) toSet.RESEND_API_KEY = resendFromEnv;
   return toSet;
 }
 
@@ -84,11 +92,13 @@ function main() {
 
   const turnstileFromEnv = process.env.TURNSTILE_SECRET_KEY || '';
   const googleFromEnv = process.env.GOOGLE_CLIENT_SECRET || '';
-  const toSet = secretsToUpload({ existing, turnstileFromEnv, googleFromEnv });
+  const resendFromEnv = process.env.RESEND_API_KEY || '';
+  const toSet = secretsToUpload({ existing, turnstileFromEnv, googleFromEnv, resendFromEnv });
   if (toSet.BETTER_AUTH_SECRET) console.error('Deploy will store a new BETTER_AUTH_SECRET. The value is not printed.');
   else console.error('BETTER_AUTH_SECRET is already set. Leaving it unchanged.');
   reportManaged('TURNSTILE_SECRET_KEY', toSet, existing);
   reportManaged('GOOGLE_CLIENT_SECRET', toSet, existing);
+  reportManaged('RESEND_API_KEY', toSet, existing);
 
   let arg = '';
   if (Object.keys(toSet).length > 0) {

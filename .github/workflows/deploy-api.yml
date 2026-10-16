@@ -9,9 +9,10 @@
 # Leave the "staging" environment without reviewers so pushes deploy on their own.
 #
 # Environment secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
-# TURNSTILE_SECRET_KEY and GOOGLE_CLIENT_SECRET are uploaded on API deploy when
-# those GitHub environment secrets are set (missing or changed). Values are not printed.
-# BETTER_AUTH_SECRET is generated only when the worker does not have one.
+# TURNSTILE_SECRET_KEY, GOOGLE_CLIENT_SECRET, and RESEND_API_KEY are uploaded on
+# API deploy when those GitHub environment secrets are set (missing or changed).
+# Values are not printed. BETTER_AUTH_SECRET is generated only when the worker
+# does not have one.
 #
 # Token: Workers Scripts (Edit / Workers Scripts Write), D1, R2, Account Settings
 # Read, Workers Routes, DNS, and Zone Read. Creating or updating a Workflow
@@ -130,6 +131,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: node scripts/prepare-deploy-secrets.mjs --env=staging
 
       - name: Deploy staging Worker
@@ -233,6 +235,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: node scripts/prepare-deploy-secrets.mjs --env=
 
       - name: Deploy production Worker
