@@ -29,7 +29,7 @@ The session cookie is issued by `api.freecellworlds.com` for the parent domain `
 - Cloudflare Turnstile on sign-up, password sign-in, password reset and resending the confirmation email.
 - Rate limits per IP (Better Auth, stored in D1): sign-in 5/min, sign-up 10/hour, reset 3 per 15 min.
 - Per-account lockout: 8 wrong passwords within 15 minutes locks that email for 15 minutes, no matter how many IPs the guesses come from (`server/src/data.js`).
-- Password reset signs out every session. Account deletion is always confirmed by email.
+- Password reset signs out every session. Account deletion is always confirmed by email, and the link only works in a browser that is still signed in to that account.
 
 ### Sync rules (`js/sync.js`)
 

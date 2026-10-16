@@ -1,4 +1,4 @@
-# One-shot live tail. Not in the deploy path filter. Delete after the account check.
+# One-shot live tail. Not in the deploy path filter. Does not deploy the Worker.
 
 name: Tail staging once
 
