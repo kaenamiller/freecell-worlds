@@ -7,6 +7,7 @@ import {
   SAVE_KEYS, MAX_SAVE_BYTES, listSaves, putSave, tokenBalance, listPurchases, exportAccount, signInLockedUntil, recordSignIn, cleanup,
 } from './data.js';
 import themes from './themes/routes.js';
+import { analyticsConfig, ingestEvents } from './analytics/ingest.js';
 
 export { ThemeGeneration } from './themes/workflow.js';
 
@@ -48,6 +49,10 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => c.get('auth').handler(c.req.raw));
 
 // No session required. The game hides "Continue with Google" until a client id is set.
 app.get('/v1/config', (c) => c.json({ google: Boolean(c.env.GOOGLE_CLIENT_ID) }));
+
+// First-party analytics. Separate from /v1/config. Google Analytics stays off in the game.
+app.get('/config', (c) => analyticsConfig(c));
+app.post('/events', (c) => ingestEvents(c));
 
 // --- player data ----------------------------------------------------------------------
 const v1 = new Hono();
