@@ -99,7 +99,7 @@ export const THEMES = {
 
   cyber: {
     id: 'cyber',
-    name: 'Neon Grime',
+    name: 'Neon Alley',
     tagline: 'Rain, chrome and a thousand dead pixels.',
     fontFamily: 'Orbitron',
     fontFile: './assets/fonts/Orbitron.ttf',
@@ -180,7 +180,7 @@ export const THEMES = {
 
   aero: {
     id: 'aero',
-    name: 'Ocean Aero',
+    name: 'Bubble Lagoon',
     tagline: 'Dolphins, bubbles and a rainbow lagoon.',
     fontFamily: 'Fredoka',
     fontFile: './assets/fonts/Fredoka.ttf',

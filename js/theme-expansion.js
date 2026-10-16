@@ -6,7 +6,7 @@ const rgba = (hex, alpha) => `rgba(${channels(hex).map((v) => Math.round(v * 255
 
 const WORLDS = [
   {
-    id: 'library', name: 'Midnight Library', tagline: 'Leather spines, green glass lamps and rain on tall windows.',
+    id: 'library', name: 'Lamplight Library', tagline: 'Leather spines, green glass lamps and rain on tall windows.',
     font: 'Cormorant Garamond', bg: '#211812', panel: '#30231d', accent: '#d3b77b', secondary: '#86ad90',
     paper: ['#fff3db', '#eadbbd'], ink: '#231b16', red: '#a62e43', rail: '#652c38', inlay: '#ba9458',
     detail: 'wood', roughness: 0.8, key: '#ffe2ac', fill: '#aac5e6', ambient: '#efd7a1', count: 22,
@@ -47,7 +47,7 @@ const WORLDS = [
     glow: 0.15,
   },
   {
-    id: 'canyon', name: 'Canyon Turquoise', tagline: 'Adobe warmth, mesas at sundown and stone inlay.',
+    id: 'canyon', name: 'Turquoise Canyon', tagline: 'Adobe warmth, mesas at sundown and stone inlay.',
     font: 'Antonio', bg: '#46302c', panel: '#503932', accent: '#8acac1', secondary: '#edb887',
     paper: ['#fff1d9', '#e9d9bb'], ink: '#342725', red: '#b33f33', rail: '#a56248', inlay: '#429b9b',
     detail: 'slate', roughness: 0.94, key: '#ffe0ba', fill: '#c4b8db', ambient: '#e1bc96', count: 12,
@@ -61,7 +61,7 @@ const WORLDS = [
     clearcoat: 0.3, vignette: 0.23, caustics: { color: 0x9dc5c7, opacity: 0.04 },
   },
   {
-    id: 'theater', name: 'Between Shows', tagline: 'Painted flats, one spotlight and dust in the beam.',
+    id: 'theater', name: 'Backstage', tagline: 'Painted flats, coiled rope and a ghost light left burning.',
     font: 'Josefin Sans', bg: '#222226', panel: '#30282e', accent: '#d9bd80', secondary: '#8bc5c5',
     paper: ['#fff2de', '#e9d9be'], ink: '#25232b', red: '#b7384e', rail: '#9c4552', inlay: '#b79a63',
     detail: 'paint', roughness: 0.96, key: '#ffe8c3', fill: '#a7c7d7', ambient: '#eed9af', count: 16,
@@ -117,14 +117,14 @@ const WORLDS = [
     glow: 0.15, vignette: 0.35,
   },
   {
-    id: 'deepstorage', name: 'Hangar 18', tagline: 'Halogen hum, quarantine tape and one covered disk.',
+    id: 'deepstorage', name: 'Hangar X', tagline: 'Halogen hum, quarantine tape and one covered disk.',
     font: 'Antonio', bg: '#1d2126', panel: '#272c33', accent: '#e5c85a', secondary: '#7fd6c2',
     paper: ['#f5eeda', '#ddd2b4'], ink: '#22262c', red: '#b03a34', rail: '#43484e', inlay: '#d8b83e',
     detail: 'slate', roughness: 0.95, key: '#f0f2e8', fill: '#7e94b8', ambient: '#e0d8b0', count: 14,
     glow: 0.2, vignette: 0.4,
   },
   {
-    id: 'cafe', name: 'Morning Ritual', tagline: 'Fresh coffee, tall windows and a moment to yourself.',
+    id: 'cafe', name: 'First Pour', tagline: 'Fresh coffee, tall windows and a moment to yourself.',
     font: 'Josefin Sans', bg: '#173b38', panel: '#20433f', accent: '#e4caa1', secondary: '#bf8168',
     paper: ['#fff9ed', '#ede6d6'], ink: '#193a35', red: '#a84e37', rail: '#b58b60', inlay: '#dfcba9',
     detail: 'paint', roughness: 0.92, inlayMetal: 0, key: '#fff2dc', fill: '#c7dde0', ambient: '#e5d8b8', count: 10,
@@ -159,21 +159,21 @@ const WORLDS = [
     exposure: 1.06, vignette: 0.22,
   },
   {
-    id: 'prizelights', name: 'Prize Lights', tagline: 'Colored bulbs, a spinning wedge and a navy podium.',
+    id: 'prizelights', name: 'Prize Wheel', tagline: 'Colored bulbs, a spinning wedge and a navy podium.',
     font: 'Antonio', bg: '#12182a', panel: '#1c2640', accent: '#f0c14a', secondary: '#3ec6d6',
     paper: ['#f6efe2', '#e6dcc8'], ink: '#142033', red: '#e23b3b', rail: '#1a2744', inlay: '#f0c14a',
     detail: 'cloth', roughness: 0.9, key: '#fff0d0', fill: '#3ec6d6', ambient: '#f0c14a', count: 18,
     glow: 0.18, vignette: 0.32,
   },
   {
-    id: 'safetypin', name: 'Safety Pin', tagline: 'Photocopy black, torn newsprint and a magenta gel.',
+    id: 'safetypin', name: 'Basement Show', tagline: 'Photocopy black, torn newsprint and a magenta gel.',
     font: 'Antonio', bg: '#121014', panel: '#1e1a1e', accent: '#d23a45', secondary: '#c43b78',
     paper: ['#f4efe4', '#e0d8cc'], ink: '#161418', red: '#d23a45', rail: '#2a262c', inlay: '#c5c8ce',
     detail: 'paint', roughness: 0.92, key: '#f2e6c8', fill: '#c43b78', ambient: '#e6e0d4', count: 12,
     glow: 0.15, vignette: 0.4,
   },
   {
-    id: 'honeyhouse', name: 'Honey House', tagline: 'Dripping honey, black-and-yellow stripes, and a queen on the comb.',
+    id: 'honeyhouse', name: 'Honey House', tagline: 'Golden honey drips, soft wax comb, and a royal court of bees.',
     font: 'Cormorant Garamond', bg: '#2a2018', panel: '#3a2c22', accent: '#e0a23a', secondary: '#6e8f62',
     paper: ['#fff4dc', '#f0e0c0'], ink: '#3a342c', red: '#c47b2b', rail: '#5c4630', inlay: '#c47b2b',
     detail: 'wood', roughness: 0.84, key: '#ffe0a8', fill: '#c5d4b0', ambient: '#f0d090', count: 14,
@@ -223,7 +223,7 @@ const WORLDS = [
   },
   // Final roster: palettes follow tools/gen-locked-themes.mjs.
   {
-    id: 'signal', name: 'Signal', tagline: 'Cold stars, a radio dish and an amber window.',
+    id: 'signal', name: 'Radio Outpost', tagline: 'Cold stars, a radio dish and an amber window.',
     font: 'Antonio', bg: '#101827', panel: '#1c2838', accent: '#e5b263', secondary: '#a8c7df',
     paper: ['#f6f3e8', '#e1e5e6'], ink: '#172436', red: '#a6323f', rail: '#303b48', inlay: '#b88741',
     detail: 'carbon', roughness: 0.88, key: '#f5ead2', fill: '#a6c9ec', ambient: '#cbd8e5', count: 10,
@@ -251,7 +251,7 @@ const WORLDS = [
     exposure: 0.98, vignette: 0.32,
   },
   {
-    id: 'bloodmoon', name: 'Bloodmoon', tagline: 'Cold stone, crimson moonlight and one last candle.',
+    id: 'bloodmoon', name: 'Blood Moon', tagline: 'Cold stone, crimson moonlight and one last candle.',
     font: 'Cinzel', bg: '#1d151c', panel: '#30212a', accent: '#e0b278', secondary: '#c77887',
     paper: ['#faefda', '#e4d4ba'], ink: '#281d22', red: '#98283d', rail: '#492632', inlay: '#b18d56',
     detail: 'wood', roughness: 0.9, key: '#ffe0b5', fill: '#a9b6d8', ambient: '#dec0a0', count: 14,
@@ -272,7 +272,7 @@ const WORLDS = [
     exposure: 0.98, vignette: 0.2, slotInk: '#665c5b', slotAccent: '#80655c',
   },
   {
-    id: 'backrooms', name: 'Backrooms', tagline: 'Yellow walls, damp carpet and a hum with no end.',
+    id: 'backrooms', name: 'Liminal Halls', tagline: 'Yellow walls, damp carpet and a hum with no end.',
     font: 'Antonio', bg: '#373326', panel: '#484231', accent: '#e9d492', secondary: '#cad4ae',
     paper: ['#fff7dc', '#eee3bd'], ink: '#343226', red: '#963d3e', rail: '#968650', inlay: '#d1be7b',
     detail: 'cloth', roughness: 0.98, inlayMetal: 0, key: '#f0f1ce', fill: '#c2d0b1', ambient: '#dfdbad', count: 6,

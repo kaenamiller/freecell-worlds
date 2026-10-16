@@ -17,7 +17,7 @@ const COURT = `Square 1:1 full-bleed illustration. ONE upright head-and-shoulder
 const themes = [
   {
     id: 'signal',
-    name: 'Signal',
+    name: 'Radio Outpost',
     palette: 'polar night navy, dish white, amber instrument glow, dry grass grey, cold starlight',
     board: 'a matte charcoal metal table with a slim amber inlay only at the outer rim and tiny rivets in the corners. The center is empty, even, and dark.',
     backdrop: 'a lone radio telescope dish in a dark valley under a dense star field, a small lit shack, no people',
@@ -152,7 +152,7 @@ const themes = [
   },
   {
     id: 'backrooms',
-    name: 'Backrooms',
+    name: 'Liminal Halls',
     copyHero: 'docs/previews/liminal-art-test/liminal-hero.png',
     palette: 'moist butter yellow, nicotine cream, fluorescent green-white, stained beige, a faint pink',
     board: 'stained beige low-pile carpet from directly above, with a slim yellow wallpaper edge only at the rim. The center is even dull beige, empty, low contrast, slightly damp.',

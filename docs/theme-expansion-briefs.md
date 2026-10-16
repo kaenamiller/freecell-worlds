@@ -344,9 +344,9 @@ A small 1980s club just off stage. Matte black paint, silver tape, one bare bulb
 
 ## 21. Honey House
 
-*Dripping honey, black-and-yellow stripes, and a queen on the comb.*
+*Golden honey drips, soft wax comb, and a royal court of bees.*
 
-A living hive. Amber playing surface, a hazard-stripe rail with honey dripping inward, and comb pouring gold in the backdrop. Courts are bees: a worker, a queen in a honey crown, and a drone. Cormorant Garamond. Voyage: Forager, Nectar, Winter Stores, and Capped Comb.
+A living hive. Amber playing surface with a rounded golden honey rim, soft wax comb pouring gold in the backdrop, and prominent natural honeybees. Card backs pair bees with mirrored honey drips and pale wax edging. Courts are bees: a worker, a queen in a honey crown, and a drone. Natural bee markings remain; decorative black-and-yellow striping is excluded. Cormorant Garamond. Voyage: Forager, Nectar, Winter Stores, and Capped Comb.
 
 ## Final ten production worlds
 

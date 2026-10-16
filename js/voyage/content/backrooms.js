@@ -1,4 +1,4 @@
-// Backrooms — crowded cells, a buried-card escape and a limited run exit.
+// Liminal Halls — crowded cells, a buried-card escape and a limited run exit.
 import { canPlaceTableau, isPinned, registerCustomMove } from '../../rules.js';
 import { defineCharm } from '../registry.js';
 import { VOYAGE } from '../config.js';

@@ -1,0 +1,51 @@
+[
+  {
+    "theme": "honeyhouse",
+    "id": "board",
+    "aspect": "16:9",
+    "size": "2K",
+    "prompt": "Flat material texture map for a card-game playing surface, strict top-down orthographic view, filling the full frame edge to edge. Continuous deep warm amber-brown matte playing surface, fine quiet grain. Only the outermost narrow rim is coated with thick translucent golden honey, small rounded drips curling slightly inward at the corners. No striped border. Central eighty percent calm, uniformly medium-dark and entirely clear for cards. No large highlights or puddles in the center. This is a texture map, not a scene or a picture of a table in a room. No background or surrounding environment may appear at any edge. The central eighty percent must be uniformly medium-dark, flat, evenly lit and low contrast with no ornament, objects, light beams, hard shadows, medallions or cards. No perspective or visible table legs. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "backdrop",
+    "aspect": "16:9",
+    "size": "2K",
+    "prompt": "Wide cinematic atmospheric environment panorama for a premium solitaire game's blurred backdrop and reflection map, in a Dripping golden honey is the exclusive visual subject and identity. Luminous translucent amber, caramel gold, pale beeswax cream and deep warm brown, thick slow viscous honey with rounded droplets and soft liquid folds, rich painterly gouache with tactile glossy highlights, premium game art. No bees, insects, black-and-yellow stripes, diagonal bands, chevrons, hazard markings, construction motifs, jars, labels or lettering. Honeycomb may appear only as a subtle secondary wax texture, never the main subject. An immersive macro landscape of luminous golden honey pouring slowly over softly rounded pale beeswax ledges. Thick amber curtains, hanging droplets and glossy pools fill the edges; warm backlight glows through the syrup. Abstract honey sanctuary, warm brown shadow, no recognizable room or hive machinery. Honey itself dominates, only a few subtle wax cells tucked into a far edge. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "hero",
+    "aspect": "16:9",
+    "size": "2K",
+    "prompt": "Premium solitaire-game key art, in a Dripping golden honey is the exclusive visual subject and identity. Luminous translucent amber, caramel gold, pale beeswax cream and deep warm brown, thick slow viscous honey with rounded droplets and soft liquid folds, rich painterly gouache with tactile glossy highlights, premium game art. No bees, insects, black-and-yellow stripes, diagonal bands, chevrons, hazard markings, construction motifs, jars, labels or lettering. Honeycomb may appear only as a subtle secondary wax texture, never the main subject. Painterly still life, not a photograph. On the RIGHT a sculptural cascade of thick translucent golden honey folds over a pale beeswax ledge, long rounded drips suspended above a glossy amber pool. Honey is the dominant subject, no characters or creatures. A small fan of face-down playing cards rests on a dry wax ledge in front, fully inside the frame; every back has a warm amber field with mirrored golden honey drips and a central luminous honey droplet. LEFT third quiet deep caramel shadow for title readability. Soft rich golden backlight. Any fanned playing cards must be face-down physical cards with fully illustrated backs matching this theme: Flat ornamental honey design, true 180-degree rotational symmetry: warm amber field with flowing thick golden honey drips mirrored from top and bottom, fine pale wax edging and a central luminous rounded droplet-shaped amber jewel paired with its inverted twin. Rich liquid gradients and small restrained glossy highlights. Honey is the sole motif. No bees, insects, stripes, chevrons, black bands, scenery, jars or lettering. Apply that description to the printed decoration on each card, preserving the fan and scene perspective. Never show blank paper, empty cards or a generic unrelated card-back pattern. Strong readable right-side subject, quiet empty left third for title readability. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "back",
+    "aspect": "3:4",
+    "size": "2K",
+    "prompt": "Flat printed playing-card back design, point-symmetric through the center, straight-on orthographic full-bleed art filling the frame, in a Dripping golden honey is the exclusive visual subject and identity. Luminous translucent amber, caramel gold, pale beeswax cream and deep warm brown, thick slow viscous honey with rounded droplets and soft liquid folds, rich painterly gouache with tactile glossy highlights, premium game art. No bees, insects, black-and-yellow stripes, diagonal bands, chevrons, hazard markings, construction motifs, jars, labels or lettering. Honeycomb may appear only as a subtle secondary wax texture, never the main subject. Flat ornamental honey design, true 180-degree rotational symmetry: warm amber field with flowing thick golden honey drips mirrored from top and bottom, fine pale wax edging and a central luminous rounded droplet-shaped amber jewel paired with its inverted twin. Rich liquid gradients and small restrained glossy highlights. Honey is the sole motif. No bees, insects, stripes, chevrons, black bands, scenery, jars or lettering. No physical card edges, no table, perspective, cast shadows or rounded-card outline. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "court_j",
+    "aspect": "1:1",
+    "size": "2K",
+    "prompt": "Playing-card court portrait: a small original living honey-drop court figure, a rounded translucent golden honey droplet with a subtle friendly face sculpted in amber, a short dripping honey collar and a small droplet crest, upper body made entirely of flowing honey, no human skin or clothing. cohesive premium painterly gouache illustration with tactile translucent honey and restrained luminous highlights, golden amber, caramel and pale wax cream only, honey itself forms the full figure, clear distinct silhouette, no bees, insects, wings, antennae, striped bodies, black-and-yellow bands or hazard motifs. Centered head-and-shoulders with generous safe margins: full head and all hair or headwear inside the middle seventy percent, torso visible, no hands or essential props at the extreme top or bottom. Strong silhouette readable at small size, a plain flat pale beeswax-cream background. Full-bleed illustration with no inner card frame or border. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "court_q",
+    "aspect": "1:1",
+    "size": "2K",
+    "prompt": "Playing-card court portrait: an elegant original honey queen made entirely of translucent flowing golden honey, a crown of rounded suspended honey droplets, serene subtle face sculpted in amber, luxurious dripping honey shoulders and collar, no human skin or fabric. cohesive premium painterly gouache illustration with tactile translucent honey and restrained luminous highlights, golden amber, caramel and pale wax cream only, honey itself forms the full figure, clear distinct silhouette, no bees, insects, wings, antennae, striped bodies, black-and-yellow bands or hazard motifs. Centered head-and-shoulders with generous safe margins: full head and all hair or headwear inside the middle seventy percent, torso visible, no hands or essential props at the extreme top or bottom. Strong silhouette readable at small size, a plain flat pale beeswax-cream background. Full-bleed illustration with no inner card frame or border. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  },
+  {
+    "theme": "honeyhouse",
+    "id": "court_k",
+    "aspect": "1:1",
+    "size": "2K",
+    "prompt": "Playing-card court portrait: a stately original honey king made entirely of deep golden amber honey, a broad crown formed from rounded honey droplets, dignified subtle face sculpted in amber, a rich flowing honey mantle and rounded syrup beard, no human skin or fabric. cohesive premium painterly gouache illustration with tactile translucent honey and restrained luminous highlights, golden amber, caramel and pale wax cream only, honey itself forms the full figure, clear distinct silhouette, no bees, insects, wings, antennae, striped bodies, black-and-yellow bands or hazard motifs. Centered head-and-shoulders with generous safe margins: full head and all hair or headwear inside the middle seventy percent, torso visible, no hands or essential props at the extreme top or bottom. Strong silhouette readable at small size, a plain flat pale beeswax-cream background. Full-bleed illustration with no inner card frame or border. Absolutely no text, letters, numbers, writing, logos, watermarks or UI."
+  }
+]

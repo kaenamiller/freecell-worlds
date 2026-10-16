@@ -11,8 +11,8 @@ npm run serve        # http://localhost:8080  (any static server works)
 | Theme | Look | Ambient effect | Sound |
 | --- | --- | --- | --- |
 | **Neo-Classical** | black marble + gold meander, gold-statue court cards | dust motes | bronze-bell chimes, harp/lyre, temple ambience |
-| **Neon Grime** | wet carbon + neon circuitry, glowing card faces | rain | synth plucks, synthwave, rainy-city ambience |
-| **Ocean Aero** | glossy aqua water + caustics, dolphin court cards | bubbles | marimba/glass chimes, lounge chillout, lagoon |
+| **Neon Alley** | wet carbon + neon circuitry, glowing card faces | rain | synth plucks, synthwave, rainy-city ambience |
+| **Bubble Lagoon** | glossy aqua water + caustics, dolphin court cards | bubbles | marimba/glass chimes, lounge chillout, lagoon |
 | **Zen Garden** | raked gravel inside a vermilion lacquer ring, ukiyo-e court cards | falling cherry petals | singing-bowl chimes, koto + shakuhachi, bamboo-fountain garden |
 | **Enchanted Forest** | mossy forest floor with glowing runes and mushrooms, storybook court | fireflies | celesta/music-box, harp + flute, night-forest ambience |
 | **Art Deco** | black-emerald lacquer with brass sunbursts, jazz-age court | rising champagne bubbles | vibraphone, 1920s swing, speakeasy room tone |
@@ -24,42 +24,42 @@ npm run serve        # http://localhost:8080  (any static server works)
 | **Camp Pinecone** | pine-green canvas + cedar and rope, vintage outdoor field-guide court | warm motes + gentle campfire light | camp-bell chimes, acoustic guitar, crickets + lake water + campfire |
 | **Winterglass** | midnight-blue frosted glass + crystal and silver, stained-glass fantasy court | cool luminous motes | crystal bells, celesta + harp + strings, airy ice-palace ambience |
 | **Concrete Playground** | charcoal blacktop + coral/cobalt/yellow paint, streetwear poster court | sparse sunset motes | spray-can clicks, mellow instrumental hip-hop, distant city + basketball |
-| **Midnight Library** | smoked oak + oxblood leather, engraved bookplate archive staff | lamplit motes | brass bell, felt piano + cello, rain on library windows |
+| **Lamplight Library** | smoked oak + oxblood leather, engraved bookplate archive staff | lamplit motes | brass bell, felt piano + cello, rain on library windows |
 | **Glasshouse Conservatory** | jade paint + verdigris iron, botanical watercolor gardeners | sparse pollen-colored motes | porcelain/harp notes, harp + piano, rain on glass |
 | **Saffron Court** | sunlit cedar + indigo textiles and pierced brass, artisan gouache court | warm motes | tea-cup chimes, plucked strings, quiet courtyard fountain |
 | **Amber Harvest** | cider-brown pine + copper, agricultural-poster orchard workers | autumn-colored petals | copper bell, acoustic guitar + bass, orchard breeze |
 | **Carnival Nocturne** | indigo canvas + candy-striped rails, fairground-poster court | golden motes | small bell, gentle carousel organ, quiet midway machinery |
-| **Canyon Turquoise** | terracotta stone + turquoise inlay, artisan gouache court | sparse mineral-colored motes | stone chime, nylon guitar + strings, desert breeze |
+| **Turquoise Canyon** | terracotta stone + turquoise inlay, artisan gouache court | sparse mineral-colored motes | stone chime, nylon guitar + strings, desert breeze |
 | **Low Tide** | damp slate + oxidized pewter, naturalist field-guide court | faint edge caustics + cool motes | pewter bell, felt piano + harmonics, tidepool drips |
-| **Between Shows** | matte-black stage + crimson rails, tactile wooden marionette court | spotlight dust | wooden-joint clicks, music box + pizzicato, backstage creaks |
+| **Backstage** | matte-black stage + crimson rails, tactile wooden marionette court | spotlight dust | wooden-joint clicks, music box + pizzicato, backstage creaks |
 | **Obsidian Forge** | matte basalt + iron and copper, etched metalworker court | ember-colored motes + perimeter glow | iron taps, low strings + dulcimer, banked furnace |
 | **Frontier Saloon** | weathered oak + saddle leather, hand-tinted western woodcut court | warm dusty motes | wooden taps, upright piano + guitar, desert saloon ambience |
 | **Pharaoh's Tomb** | dark sandstone + lapis and gold, painted tomb-portrait court | torchlit gold dust | gold bell, oud + ney, quiet burial chamber |
 | **Cherry Counter** | daylight grey laminate + cherry vinyl and chrome, mid-century diner poster court | daylight motes | coffee-cup tap, electric piano + guitar, quiet highway diner |
 | **Treasure Cove** | salt-stained oak + rope and aged brass, engraved nautical-chart court | lantern-lit motes | ship's bell, concertina + guitar, sea-cave surf |
-| **Hangar 18** | brushed concrete + gunmetal and hazard striping, classified-file court | halogen dust + tarp-glow accent light | sonar ping, analog synth + vibraphone, ventilation hum |
-| **Morning Ritual** | deep teal + pale oak, white-tile specialty café and editorial coffee-professional court | sparse morning motes | ceramic saucer taps, guitar + piano + bass, quiet espresso-machine ambience |
+| **Hangar X** | brushed concrete + gunmetal and hazard striping, classified-file court | halogen dust + tarp-glow accent light | sonar ping, analog synth + vibraphone, ventilation hum |
+| **First Pour** | deep teal + pale oak, white-tile specialty café and editorial coffee-professional court | sparse morning motes | ceramic saucer taps, guitar + piano + bass, quiet espresso-machine ambience |
 | **Arctic Station** | snow-white aluminum + orange and steel-blue, expedition-poster court | aurora-lit motes | switch click, warm piano + glockenspiel, polar wind |
 | **Fossil Hall** | dark museum stone + bone ivory and brass, engraved fossil-worker court | case-lit dust | plaque tap, strings + celesta, vast hall hush |
 | **The Mint** | banknote green + gilt and lilac, steel-engraving court | warm proof-room dust | paper-weight tap, piano + strings, lamp hum |
 | **The Toy Box** | maple table + primary block rail, vintage toy-catalog court | afternoon motes | wooden-block tap, toy piano + glockenspiel, quiet playroom |
-| **Prize Lights** | navy felt + bulb-colored rail, 1970s broadcast court | marquee motes + cyan accent light | podium tap, electric piano + light brass, hushed TV stage |
-| **Safety Pin** | matte black stage paint + silver tape, photocopied club court | magenta-gel motes | bottle tap, dry snare + bass through a wall, club room tone |
-| **Honey House** | amber table + black-and-yellow rail, dripping comb and bee courts | honey-gold light | hive-frame tap, solo cello, distant bees beyond the screen |
+| **Prize Wheel** | navy felt + bulb-colored rail, 1970s broadcast court | marquee motes + cyan accent light | podium tap, electric piano + light brass, hushed TV stage |
+| **Basement Show** | matte black stage paint + silver tape, photocopied club court | magenta-gel motes | bottle tap, dry snare + bass through a wall, club room tone |
+| **Honey House** | amber table + golden honey rim, dripping comb and bee courts | honey-gold light | hive-frame tap, solo cello, distant bees beyond the screen |
 | **The Velvet Moth** | plum velvet + tarnished silver, moth aristocrats in extravagant collars | warm lamp motes | velvet tap, felt-piano waltz, quiet lounge |
 | **Cut-Paper Kingdom** | layered cobalt paper + coral and butter scallops, paper-puppet court | falling paper scraps | paper tap, music box, quiet craft table |
 | **Midnight Broadcast** | walnut console + amber lamps, television-headed broadcast court | amber indicator glow | switch click, electric piano, tape hiss |
 | **The Giant's Sewing Box** | linen pincushion + oversized spools and buttons, embroidered court | afternoon dust | button click, nylon guitar, quiet sewing box |
 | **Risograph Royalty** | warm paper + misregistered ink, halftone editorial court | sparse print-shop motes | ink-drum tap, dry electric piano, quiet press room |
 | **Viking Runes** | weathered oak + iron rivets, wool-and-amber carver court | fjord-light ash motes | nail tap, tagelharpa, fire and distant water |
-| **Signal** | charcoal metal + amber instruments, radio-observatory court | cold starlight motes | relay tap, analog synth + piano, observatory hum |
+| **Radio Outpost** | charcoal metal + amber instruments, radio-observatory court | cold starlight motes | relay tap, analog synth + piano, observatory hum |
 | **Roller Rink** | maple + magenta and silver facets, rink guard/skater/DJ court | disco-colored motes | skate-wheel tap, gentle disco, empty rink |
 | **The Darkroom** | matte black + safelight red, photographic-printer court | muted safelight motes | tray tap, piano + bowed vibraphone, enlarger hum |
 | **Smoke Watch** | weathered pine + smoke blue, lookout/ranger court | dusk motes | fire-finder click, guitar + low strings, cab wind + stove |
-| **Bloodmoon** | black oak + crimson and iron, gothic castle court | candlelit motes | iron latch, cello + harpsichord, stone-corridor wind |
+| **Blood Moon** | black oak + crimson and iron, gothic castle court | candlelit motes | iron latch, cello + harpsichord, stone-corridor wind |
 | **Deep Sea** | blue-black brass + cyan and rose, diving-expedition court | bubbles + faint edge caustics | pressure-switch tap, glass harmonica + celesta, sphere hum |
 | **Plaster Studio** | pale plaster + clay rim, sculptor/caster court | north-light dust | plaster tap, piano + viola, linen + window breeze |
-| **Backrooms** | stained carpet + yellow wallpaper, uneasy office court | fluorescent dust | light-switch click, detuned piano + pads, ballast hum |
+| **Liminal Halls** | stained carpet + yellow wallpaper, uneasy office court | fluorescent dust | light-switch click, detuned piano + pads, ballast hum |
 | **Vaporwave** | pink marble + teal checker, pastel mall court | pink sunset motes | cassette click, FM synth + electric piano, fountain + escalator |
 | **Silent Cinema** | charcoal + velvet burgundy, usher/pianist/projectionist court | projector dust | lever click, silent-film piano + organ, quiet projector |
 
