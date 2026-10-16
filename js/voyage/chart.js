@@ -193,29 +193,36 @@ export class VoyageChart {
   bindPan() {
     const root = this.root;
     root.addEventListener('pointerdown', (event) => {
-      if (this.media.matches || event.button) return;
+      if (this.media.matches || event.button || this.drag) return;
       // Keep pointer focus from inspecting an island before a drag is classified.
       event.preventDefault();
       this.didDrag = false;
-      this.drag = { x: event.clientX, pan: this.panX, moved: false };
-      this.drag.pointerId = event.pointerId;
+      const scroller = root.closest('.voyage-map-scroll');
+      this.drag = { x: event.clientX, y: event.clientY, pan: this.panX, scroller, top: scroller?.scrollTop || 0, pointerId: event.pointerId, axis: null };
     });
     root.addEventListener('pointermove', (event) => {
-      if (!this.drag) return;
+      if (event.pointerId !== this.drag?.pointerId) return;
       const dx = event.clientX - this.drag.x;
-      if (Math.abs(dx) > 7) {
-        this.drag.moved = true;
-        root.setPointerCapture?.(this.drag.pointerId);
+      const dy = event.clientY - this.drag.y;
+      if (!this.drag.axis && Math.max(Math.abs(dx), Math.abs(dy)) > 7) {
+        // Landscape charts take every touch (touch-action: none), so a vertical
+        // swipe scrolls the frame here instead of cancelling the pan midway.
+        this.drag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : event.pointerType === 'mouse' ? null : 'y';
+        if (this.drag.axis) root.setPointerCapture?.(this.drag.pointerId);
       }
-      if (this.drag.moved) this.setPan(this.drag.pan - dx);
+      if (this.drag.axis === 'x') this.setPan(this.drag.pan - dx);
+      else if (this.drag.axis === 'y' && this.drag.scroller) this.drag.scroller.scrollTop = this.drag.top - dy;
     });
-    const endDrag = () => {
-      if (this.drag?.moved) this.didDrag = true;
+    const endDrag = (event) => {
+      if (event.pointerId !== this.drag?.pointerId) return;
+      if (this.drag.axis) this.didDrag = true;
       this.drag = null;
     };
     root.addEventListener('pointerup', endDrag);
     root.addEventListener('pointercancel', endDrag);
-    root.addEventListener('lostpointercapture', endDrag);
+    // Touch implicitly captures to the island under the thumb; taking capture for
+    // the chart fires lostpointercapture on that island, which must not end the drag.
+    root.addEventListener('lostpointercapture', (event) => { if (event.target === root) endDrag(event); });
     root.addEventListener('click', (event) => {
       if (!this.didDrag) return;
       event.preventDefault();

@@ -5,7 +5,7 @@ import { cardName, cardsOfRanks, confirmStickerSwap, rankMask, ranksIn } from '.
 const STICKER_TYPES = ['wild', 'gold', 'lucky', 'key', 'fool'];
 
 function evenBarrenRanks(s) {
-  if (s <= 3) return rankMask(2, 3, 4, 5, 6);
+  if (s <= 3) return rankMask(2, 4, 6);
   const ranks = [];
   for (let rank = 2; rank <= 12; rank += 2) ranks.push(rank);
   return rankMask(...ranks);
