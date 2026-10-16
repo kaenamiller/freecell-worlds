@@ -1,9 +1,9 @@
 // Service worker: precache the app shell, runtime-cache art/audio (cache-first),
 // and keep code files network-first so updates arrive. Bump VERSION to invalidate.
-const VERSION = 'freecell-worlds-v34-analytics';
+const VERSION = 'freecell-worlds-v35-courts';
 const SHELL = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
-  './js/main.js', './js/rules.js', './js/card.js', './js/animation.js', './js/textures.js', './js/themes.js', './js/theme-expansion.js',
+  './js/main.js', './js/rules.js', './js/card.js', './js/animation.js', './js/textures.js', './js/themes.js', './js/theme-expansion.js', './js/object-court-themes.js',
   './js/table.js', './js/post.js', './js/fx.js', './js/audio.js', './js/ui.js', './js/fullscreen.js', './js/stats.js', './js/store.js',
   './js/analytics.js', './js/analytics-1p.js', './js/analytics-schema.js', './js/analytics-config.js', './js/consent.js', './js/voyage/analytics.js',
   './js/solver.worker.js', './js/account.js', './js/sync.js', './js/custom-themes.js', './vendor/three.module.js',

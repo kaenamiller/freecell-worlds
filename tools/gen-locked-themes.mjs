@@ -2,6 +2,7 @@
 // Usage: node tools/gen-locked-themes.mjs [--force] [--only=signal,rink]
 import { existsSync, copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { need, pool, retry, save } from './lib.mjs';
+import { objectCourtManifest } from './court-object-content.mjs';
 
 const MODEL = 'gemini-nano-banana-2.1';
 const key = need('GEMINI_API_KEY');
@@ -201,6 +202,7 @@ function courtPrompt(t, who) {
 }
 
 function jobsFor(t) {
+  const objectCourts = new Map(objectCourtManifest().filter((item) => item.theme === t.id).map((item) => [item.id, item]));
   const base = [
     ['board', '16:9', boardPrompt(t)],
     ['backdrop', '16:9', backdropPrompt(t)],
@@ -210,7 +212,7 @@ function jobsFor(t) {
     ['court_k', '1:1', courtPrompt(t, t.courts.k)],
   ];
   if (!t.copyHero) base.unshift(['hero', '16:9', heroPrompt(t)]);
-  return base.map(([id, aspect, prompt]) => ({ theme: t.id, id, aspect, prompt, ref: t.copyHero && id !== 'hero' ? `${ROOT}/${t.id}/hero.png` : null }));
+  return base.map(([id, aspect, prompt]) => ({ theme: t.id, id, aspect, prompt: objectCourts.get(id)?.prompt || prompt, ref: t.copyHero && id !== 'hero' ? `${ROOT}/${t.id}/hero.png` : null }));
 }
 
 async function gen(item) {

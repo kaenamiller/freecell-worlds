@@ -1,0 +1,210 @@
+[
+  {
+    "id": "roman",
+    "name": "Neo-Classical"
+  },
+  {
+    "id": "cyber",
+    "name": "Neon Alley"
+  },
+  {
+    "id": "aero",
+    "name": "Bubble Lagoon"
+  },
+  {
+    "id": "zen",
+    "name": "Zen Garden"
+  },
+  {
+    "id": "forest",
+    "name": "Enchanted Forest"
+  },
+  {
+    "id": "deco",
+    "name": "Art Deco"
+  },
+  {
+    "id": "muertos",
+    "name": "Día de Muertos"
+  },
+  {
+    "id": "azulejo",
+    "name": "Azulejo"
+  },
+  {
+    "id": "jetset",
+    "name": "Jet Set"
+  },
+  {
+    "id": "riverboat",
+    "name": "Riverboat Royale"
+  },
+  {
+    "id": "carvings",
+    "name": "Coastal Carvings"
+  },
+  {
+    "id": "pinecone",
+    "name": "Camp Pinecone"
+  },
+  {
+    "id": "winterglass",
+    "name": "Winterglass"
+  },
+  {
+    "id": "concrete",
+    "name": "Concrete Playground"
+  },
+  {
+    "id": "library",
+    "name": "Lamplight Library"
+  },
+  {
+    "id": "conservatory",
+    "name": "Glasshouse Conservatory"
+  },
+  {
+    "id": "saffron",
+    "name": "Saffron Court"
+  },
+  {
+    "id": "harvest",
+    "name": "Amber Harvest"
+  },
+  {
+    "id": "carnival",
+    "name": "Carnival Nocturne"
+  },
+  {
+    "id": "canyon",
+    "name": "Turquoise Canyon"
+  },
+  {
+    "id": "lowtide",
+    "name": "Low Tide"
+  },
+  {
+    "id": "theater",
+    "name": "Backstage"
+  },
+  {
+    "id": "forge",
+    "name": "Obsidian Forge"
+  },
+  {
+    "id": "saloon",
+    "name": "Frontier Saloon"
+  },
+  {
+    "id": "lapis",
+    "name": "Pharaoh's Tomb"
+  },
+  {
+    "id": "diner",
+    "name": "Cherry Counter"
+  },
+  {
+    "id": "cove",
+    "name": "Treasure Cove"
+  },
+  {
+    "id": "deepstorage",
+    "name": "Hangar X"
+  },
+  {
+    "id": "cafe",
+    "name": "First Pour"
+  },
+  {
+    "id": "arctic",
+    "name": "Arctic Station"
+  },
+  {
+    "id": "museum",
+    "name": "Fossil Hall"
+  },
+  {
+    "id": "mint",
+    "name": "The Mint"
+  },
+  {
+    "id": "toybox",
+    "name": "The Toy Box"
+  },
+  {
+    "id": "prizelights",
+    "name": "Prize Wheel"
+  },
+  {
+    "id": "safetypin",
+    "name": "Basement Show"
+  },
+  {
+    "id": "honeyhouse",
+    "name": "Honey House"
+  },
+  {
+    "id": "moth",
+    "name": "The Velvet Moth"
+  },
+  {
+    "id": "cutpaper",
+    "name": "Cut-Paper Kingdom"
+  },
+  {
+    "id": "broadcast",
+    "name": "Midnight Broadcast"
+  },
+  {
+    "id": "sewing",
+    "name": "The Giant's Sewing Box"
+  },
+  {
+    "id": "risograph",
+    "name": "Risograph Royalty"
+  },
+  {
+    "id": "runes",
+    "name": "Viking Runes"
+  },
+  {
+    "id": "signal",
+    "name": "Radio Outpost"
+  },
+  {
+    "id": "rink",
+    "name": "Roller Rink"
+  },
+  {
+    "id": "darkroom",
+    "name": "The Darkroom"
+  },
+  {
+    "id": "smokewatch",
+    "name": "Smoke Watch"
+  },
+  {
+    "id": "bloodmoon",
+    "name": "Blood Moon"
+  },
+  {
+    "id": "deepsea",
+    "name": "Deep Sea"
+  },
+  {
+    "id": "plaster",
+    "name": "Plaster Studio"
+  },
+  {
+    "id": "backrooms",
+    "name": "Liminal Halls"
+  },
+  {
+    "id": "vaporwave",
+    "name": "Vaporwave"
+  },
+  {
+    "id": "cinema",
+    "name": "Silent Cinema"
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "objectCourtThemes": 21,
+  "humanoidThemesRetained": [
+    "zen",
+    "deepstorage",
+    "moth",
+    "arctic",
+    "risograph"
+  ],
+  "broadcastOrder": [
+    "microphone",
+    "radio console",
+    "test-pattern television"
+  ],
+  "radioOrder": [
+    "headphones",
+    "instrument panel",
+    "radio dish"
+  ],
+  "retainedHumanoidAssetsMatchOriginals": true
+}

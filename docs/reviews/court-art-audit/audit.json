@@ -1,0 +1,418 @@
+[
+  {
+    "id": "roman",
+    "name": "Neo-Classical",
+    "current": "Gold classical busts",
+    "priority": "Keep",
+    "reason": "These already are sculptural objects; humanoid shape is central to classical statuary.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "cyber",
+    "name": "Neon Alley",
+    "current": "Cyberpunk human characters",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "aero",
+    "name": "Bubble Lagoon",
+    "current": "Dolphin characters",
+    "priority": "Keep",
+    "reason": "Already uses dolphins rather than people.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "zen",
+    "name": "Zen Garden",
+    "current": "Historical Japanese human figures",
+    "priority": "Strong candidate",
+    "reason": "Period human figures make the garden feel like a historical character theme.",
+    "suggested": "Bonsai; stone lantern; sculptural garden stone"
+  },
+  {
+    "id": "forest",
+    "name": "Enchanted Forest",
+    "current": "Fantasy woodland humanoids",
+    "priority": "Keep",
+    "reason": "Fantasy inhabitants support the enchanted-world premise.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "deco",
+    "name": "Art Deco",
+    "current": "1920s social characters",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "muertos",
+    "name": "D\u00eda de Muertos",
+    "current": "Decorated skeleton characters",
+    "priority": "Keep",
+    "reason": "Decorated skeleton characters are a defining part of the theme.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "azulejo",
+    "name": "Azulejo",
+    "current": "Human figures rendered in blue-and-white tile",
+    "priority": "Strong candidate",
+    "reason": "Tile portraits emphasize people over the distinctive ceramic tradition.",
+    "suggested": "Swallow tile; flowering urn; sailing-ship tile"
+  },
+  {
+    "id": "jetset",
+    "name": "Jet Set",
+    "current": "Airline staff and travelers",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "riverboat",
+    "name": "Riverboat Royale",
+    "current": "Period casino characters",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "carvings",
+    "name": "Coastal Carvings",
+    "current": "Animal carvings",
+    "priority": "Keep",
+    "reason": "Already uses animal carvings.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "pinecone",
+    "name": "Camp Pinecone",
+    "current": "Camp guides and leaders",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "winterglass",
+    "name": "Winterglass",
+    "current": "Ice-palace fantasy royalty",
+    "priority": "Keep",
+    "reason": "Ice royalty supports the palace-fantasy premise.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "concrete",
+    "name": "Concrete Playground",
+    "current": "Artists and neighborhood characters",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "library",
+    "name": "Lamplight Library",
+    "current": "Costumed literary figures",
+    "priority": "Strong candidate",
+    "reason": "Costumed literary portraits compete with the books-and-lamplight identity.",
+    "suggested": "Leatherbound book; green glass reading lamp; illuminated manuscript"
+  },
+  {
+    "id": "conservatory",
+    "name": "Glasshouse Conservatory",
+    "current": "Gardeners with plants",
+    "priority": "Strong candidate",
+    "reason": "Gardeners take the place of the plants this theme is built around.",
+    "suggested": "Unfurling fern; flowering orchid; sculptural palm"
+  },
+  {
+    "id": "saffron",
+    "name": "Saffron Court",
+    "current": "Contemporary courtyard artisans and tea host",
+    "priority": "Keep",
+    "reason": "The newly approved artisans and tea host connect well with the courtyard hero.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "harvest",
+    "name": "Amber Harvest",
+    "current": "Orchard workers",
+    "priority": "Optional",
+    "reason": "Orchard workers fit, but fruit and agricultural objects would identify the theme faster.",
+    "suggested": "Apple branch; copper cider jug; wooden cider press"
+  },
+  {
+    "id": "carnival",
+    "name": "Carnival Nocturne",
+    "current": "Fairground performers",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "canyon",
+    "name": "Turquoise Canyon",
+    "current": "Artisans with maps, pottery and tools",
+    "priority": "Strong candidate",
+    "reason": "Artisan portraits barely communicate the canyon or turquoise at card size.",
+    "suggested": "Turquoise cluster; painted ceramic vessel; layered mesa formation"
+  },
+  {
+    "id": "lowtide",
+    "name": "Low Tide",
+    "current": "Coastal researchers with specimens",
+    "priority": "Strong candidate",
+    "reason": "Coastal researchers obscure the tide-pool life.",
+    "suggested": "Anemone; sea star; spiral shell"
+  },
+  {
+    "id": "theater",
+    "name": "Backstage",
+    "current": "Wooden marionettes",
+    "priority": "Keep",
+    "reason": "Marionettes are thematic objects; human shape helps convey their material.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "forge",
+    "name": "Obsidian Forge",
+    "current": "Human smiths",
+    "priority": "Strong candidate",
+    "reason": "Smith portraits are less distinctive than the material and tools.",
+    "suggested": "Forged hammer; glowing crucible; basalt anvil"
+  },
+  {
+    "id": "saloon",
+    "name": "Frontier Saloon",
+    "current": "Western saloon characters",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "lapis",
+    "name": "Pharaoh's Tomb",
+    "current": "Egyptian figures and a funerary mask",
+    "priority": "Keep",
+    "reason": "The funerary mask is already an artifact; the figures form a coherent historical set.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "diner",
+    "name": "Cherry Counter",
+    "current": "Diner staff and patron",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "cove",
+    "name": "Treasure Cove",
+    "current": "Sailors and pirate-like characters",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "deepstorage",
+    "name": "Hangar X",
+    "current": "Scientists and officials",
+    "priority": "Strong candidate",
+    "reason": "Scientists and officials make an eerie hangar feel like office staff.",
+    "suggested": "Sealed specimen case; strange recovered device; tarp-covered saucer"
+  },
+  {
+    "id": "cafe",
+    "name": "First Pour",
+    "current": "Coffee professionals",
+    "priority": "Optional",
+    "reason": "Baristas fit the cafe, but coffee equipment could make a tighter still-life set.",
+    "suggested": "Ceramic espresso cup; pour-over dripper; brass espresso machine"
+  },
+  {
+    "id": "arctic",
+    "name": "Arctic Station",
+    "current": "Polar expedition staff",
+    "priority": "Optional",
+    "reason": "Expedition staff are plausible; instruments and ice would feel more isolated.",
+    "suggested": "Ice core; weather instrument; frost-covered radio"
+  },
+  {
+    "id": "museum",
+    "name": "Fossil Hall",
+    "current": "Fossil workers and curators",
+    "priority": "Strong candidate",
+    "reason": "Curator portraits hide the strongest subject: fossils.",
+    "suggested": "Ammonite; trilobite slab; dinosaur skull"
+  },
+  {
+    "id": "mint",
+    "name": "The Mint",
+    "current": "Engravers and mint workers",
+    "priority": "Strong candidate",
+    "reason": "Mint workers miss the chance to make the engraving and currency the subject.",
+    "suggested": "Engraved coin; guilloche printing plate; ornate banknote seal"
+  },
+  {
+    "id": "toybox",
+    "name": "The Toy Box",
+    "current": "Toy soldiers and rag doll",
+    "priority": "Keep",
+    "reason": "These already are thematic toy objects, despite their human shapes.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "prizelights",
+    "name": "Prize Wheel",
+    "current": "TV production staff, host and contestant",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "safetypin",
+    "name": "Basement Show",
+    "current": "Punk musicians",
+    "priority": "Keep",
+    "reason": "Musicians make sense in a theme about a live show.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "honeyhouse",
+    "name": "Honey House",
+    "current": "Natural bee characters",
+    "priority": "Keep",
+    "reason": "Already uses bees, recently revised and approved.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "moth",
+    "name": "The Velvet Moth",
+    "current": "Human-faced moth aristocrats",
+    "priority": "Strong candidate",
+    "reason": "Human faces and aristocratic clothing overpower the moth imagery.",
+    "suggested": "Plum-patterned moth; pale silk moth; broad-winged dusk moth"
+  },
+  {
+    "id": "cutpaper",
+    "name": "Cut-Paper Kingdom",
+    "current": "Paper-cut royal characters",
+    "priority": "Keep",
+    "reason": "Paper royalty fits both the material and Kingdom premise.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "broadcast",
+    "name": "Midnight Broadcast",
+    "current": "TV-headed humanoid courtiers",
+    "priority": "Optional",
+    "reason": "TV-headed courtiers are distinctive, though the costumes dilute the broadcast equipment.",
+    "suggested": "Microphone; test-pattern television; walnut radio console"
+  },
+  {
+    "id": "sewing",
+    "name": "The Giant's Sewing Box",
+    "current": "Embroidered human portraits",
+    "priority": "Strong candidate",
+    "reason": "Embroidered human portraits weaken the tiny-world sewing-box premise.",
+    "suggested": "Thread spool; pin cushion; ornate scissors"
+  },
+  {
+    "id": "risograph",
+    "name": "Risograph Royalty",
+    "current": "Printed humanoid royalty",
+    "priority": "Optional",
+    "reason": "Printed royal figures fit the name, but abstract print artifacts could better show the medium.",
+    "suggested": "Overprinted rosette; layered halftone proof; ink drum"
+  },
+  {
+    "id": "runes",
+    "name": "Viking Runes",
+    "current": "Norse craftspeople",
+    "priority": "Optional",
+    "reason": "Norse craftspeople fit, though carved artifacts would make the rune theme more direct.",
+    "suggested": "Rune stone; carved knotwork panel; ship-prow carving"
+  },
+  {
+    "id": "signal",
+    "name": "Radio Outpost",
+    "current": "Radio-outpost personnel",
+    "priority": "Strong candidate",
+    "reason": "A remote observatory becomes three generic staff portraits.",
+    "suggested": "Radio receiver; instrument panel; radio-telescope dish"
+  },
+  {
+    "id": "rink",
+    "name": "Roller Rink",
+    "current": "Skaters and DJ",
+    "priority": "Optional",
+    "reason": "Skaters fit the social setting; equipment could be more iconic at small size.",
+    "suggested": "Quad skate; mirror ball; DJ turntable"
+  },
+  {
+    "id": "darkroom",
+    "name": "The Darkroom",
+    "current": "Photographers and printers",
+    "priority": "Strong candidate",
+    "reason": "Photographers obscure the red-lit equipment and photographic process.",
+    "suggested": "Film reel; developing tray with print; enlarger"
+  },
+  {
+    "id": "smokewatch",
+    "name": "Smoke Watch",
+    "current": "Lookout staff and rangers",
+    "priority": "Optional",
+    "reason": "Rangers fit naturally, but instruments might reinforce the quiet lonely lookout.",
+    "suggested": "Binoculars; fire-finder instrument; lookout tower"
+  },
+  {
+    "id": "bloodmoon",
+    "name": "Blood Moon",
+    "current": "Gothic human/vampire-like figures",
+    "priority": "Keep",
+    "reason": "Gothic characters support the existing castle atmosphere.",
+    "suggested": "Retain current direction"
+  },
+  {
+    "id": "deepsea",
+    "name": "Deep Sea",
+    "current": "Divers and expedition staff",
+    "priority": "Strong candidate",
+    "reason": "Divers and expedition staff displace the strange underwater world.",
+    "suggested": "Jellyfish; chambered nautilus; brass diving bell"
+  },
+  {
+    "id": "plaster",
+    "name": "Plaster Studio",
+    "current": "Living sculptors and studio workers",
+    "priority": "Strong candidate",
+    "reason": "Living artists are less specific than sculptural plaster objects.",
+    "suggested": "Plaster hand cast; relief medallion; classical cast bust"
+  },
+  {
+    "id": "backrooms",
+    "name": "Liminal Halls",
+    "current": "Office workers",
+    "priority": "Strong candidate",
+    "reason": "Three office workers undermine the eerie emptiness of the setting.",
+    "suggested": "Fluorescent fixture; abandoned office chair; empty yellow doorway"
+  },
+  {
+    "id": "vaporwave",
+    "name": "Vaporwave",
+    "current": "Retro human portraits",
+    "priority": "Strong candidate",
+    "reason": "Fashion portraits read as generic retro people rather than surreal mall imagery.",
+    "suggested": "Chrome dolphin; classical marble bust; palm beneath a gridded sun"
+  },
+  {
+    "id": "cinema",
+    "name": "Silent Cinema",
+    "current": "Cinema staff and performers",
+    "priority": "Keep",
+    "reason": "Human roles help establish this social or historical setting; no strong mismatch.",
+    "suggested": "Retain current direction"
+  }
+]
