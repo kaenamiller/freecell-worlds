@@ -1,5 +1,5 @@
 # One-shot D1 snapshot. Not in the deploy path filter. Tokens are sealed, not printed.
-# Delete after the account check.
+# Delete after the account check. Snapshot pass 2.
 
 name: Snap staging once
 
