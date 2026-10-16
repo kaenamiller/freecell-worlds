@@ -73,11 +73,11 @@ Plain variables are in `server/wrangler.toml`. Secrets are set with `npx wrangle
 | `COOKIE_DOMAIN` | var | `freecellworlds.com` | empty (host-only) | empty |
 | `COOKIE_PREFIX` | var | `fcw` | `fcw-staging` | `better-auth` in `.dev.vars`, so the production name is not inherited |
 | `EMAIL_FROM` | var | `FreeCell Worlds <accounts@mail.freecellworlds.com>` | same | `onboarding@resend.dev` |
-| `GOOGLE_CLIENT_ID` | var | from Google Cloud | empty until the client id is copied here | empty (Google button hidden) |
+| `GOOGLE_CLIENT_ID` | var | `895742309264-uprjg6dj8eliu9sr7mf9u866gpfnbuol.apps.googleusercontent.com` | same | empty (Google button hidden) |
 | `BETTER_AUTH_SECRET` | secret | `openssl rand -base64 32` | created by the staging workflow if missing | dev placeholder |
-| `GOOGLE_CLIENT_SECRET` | secret | from Google Cloud | same secret, set with `--env staging` | empty |
+| `GOOGLE_CLIENT_SECRET` | secret | GitHub environment secret, uploaded on deploy when set | same | empty |
 | `RESEND_API_KEY` | secret | from Resend | same, `--env staging` | empty (emails print to the wrangler log) |
-| `TURNSTILE_SECRET_KEY` | secret | from the Turnstile widget | same secret, uploaded by the deploy when the GitHub environment secret is set and the worker does not have it yet | Cloudflare's always-pass test secret |
+| `TURNSTILE_SECRET_KEY` | secret | GitHub environment secret, uploaded on deploy when set | same | Cloudflare's always-pass test secret |
 | `GEN_MOCK` | var | `0` | `1` | `1` |
 | `ANTHROPIC_API_KEY` | secret | from the Anthropic Console | empty while `GEN_MOCK=1` | empty while `GEN_MOCK=1` |
 | `GEMINI_API_KEY` | secret | from Google AI Studio / Cloud | empty while `GEN_MOCK=1` | empty while `GEN_MOCK=1` |
@@ -181,9 +181,9 @@ From a machine that is already logged in to Cloudflare, the same steps are `npm 
 - [ ] Upgrade to the Workers Paid plan (scrypt, and the Workflows binding).
 - [x] Turn on Cloudflare Images for the account (the `IMAGES` binding). Staging and production both bind it.
 - [ ] Apply production migrations (the manual production workflow does this, or `npm run db:migrate`).
-- [x] Set `TURNSTILE_SECRET_KEY` on the `staging` and `production` GitHub environments. A staging API deploy uploads it when the worker does not already have it. The site key `0x4AAAAAAFYovaiTyTegTnzy` is in `js/account.js` for both public hosts. Localhost still uses the test site key. The first API deploy generates `BETTER_AUTH_SECRET` when it is missing and does not print it.
-- [ ] Add `GOOGLE_CLIENT_SECRET` and `RESEND_API_KEY` on both workers when those accounts exist.
-- [ ] Create the Google OAuth client. Authorized JavaScript origins: `https://freecellworlds.com`, `https://www.freecellworlds.com`, `https://staging.freecellworlds.com`. Redirect URIs: `https://api.freecellworlds.com/api/auth/callback/google` and `https://api-staging.freecellworlds.com/api/auth/callback/google`. Put the client id in both `[vars]` and `[env.staging.vars]`.
+- [x] Set `TURNSTILE_SECRET_KEY` and `GOOGLE_CLIENT_SECRET` on the `staging` and `production` GitHub environments. An API deploy writes each one when that GitHub secret is set, so a missing or changed value reaches the worker, and does not print it. `BETTER_AUTH_SECRET` is still generated only when the worker does not have one. The Turnstile site key `0x4AAAAAAFYovaiTyTegTnzy` is in `js/account.js` for both public hosts. Localhost still uses the test site key.
+- [ ] Add `RESEND_API_KEY` on both workers when that account exists.
+- [x] Create the Google OAuth client. Client id `895742309264-uprjg6dj8eliu9sr7mf9u866gpfnbuol.apps.googleusercontent.com` is in both `[vars]` and `[env.staging.vars]`. JavaScript origins include `https://staging.freecellworlds.com`. Redirect URIs: `https://api.freecellworlds.com/api/auth/callback/google` and `https://api-staging.freecellworlds.com/api/auth/callback/google`.
 - [ ] Verify `mail.freecellworlds.com` in Resend. Until `RESEND_API_KEY` is set, verification links are only in the Worker logs (`npx wrangler tail --env staging`).
 - [ ] Set up `gdpr@` and `support@` in Email Routing.
 - [x] Host the game at `staging.freecellworlds.com` from `player-accounts` (and `main` once it is merged) with `freecell-worlds-web-staging`. `js/account.js` calls `https://api-staging.freecellworlds.com` on that hostname.

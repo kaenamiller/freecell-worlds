@@ -9,8 +9,9 @@
 # Leave the "staging" environment without reviewers so pushes deploy on their own.
 #
 # Environment secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
-# Optional environment secret: TURNSTILE_SECRET_KEY (uploaded on API deploy when the
-# worker does not already have it).
+# TURNSTILE_SECRET_KEY and GOOGLE_CLIENT_SECRET are uploaded on API deploy when
+# those GitHub environment secrets are set (missing or changed). Values are not printed.
+# BETTER_AUTH_SECRET is generated only when the worker does not have one.
 #
 # Token: Workers Scripts (Edit / Workers Scripts Write), D1, R2, Account Settings
 # Read, Workers Routes, DNS, and Zone Read. Creating or updating a Workflow
@@ -22,7 +23,7 @@
 # First-run order for the API: D1 migrations do not need the Worker. `wrangler
 # secret list` fails until the Worker exists, so a missing Worker is an empty
 # secret list and missing secrets go with `wrangler deploy --secrets-file`.
-# Secrets already on the Worker are not replaced.
+# BETTER_AUTH_SECRET already on the Worker is not replaced.
 #
 # The site upload is web/public from tools/prepare-pages.mjs. That allowlist
 # omits server/, docs/, tools/, assets-src/, and every other non-site path.
@@ -128,6 +129,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: node scripts/prepare-deploy-secrets.mjs --env=staging
 
       - name: Deploy staging Worker
@@ -230,6 +232,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: node scripts/prepare-deploy-secrets.mjs --env=
 
       - name: Deploy production Worker

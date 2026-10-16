@@ -28,13 +28,23 @@ export function parseSecretNames(stdout) {
   return secrets.map((secret) => secret.name);
 }
 
-// Only secrets that are absent. A value already on the Worker is never replaced,
-// so a later deploy does not rotate BETTER_AUTH_SECRET.
-export function secretsToUpload({ existing, turnstileFromEnv, generateAuth = () => randomBytes(32).toString('base64') }) {
+// BETTER_AUTH_SECRET is created once and never replaced: rotating it signs everyone out.
+// TURNSTILE_SECRET_KEY and GOOGLE_CLIENT_SECRET come from GitHub environment secrets.
+// Wrangler cannot read a secret's current value, so when the GitHub secret is set the
+// deploy writes it. That fills a missing secret and picks up a changed one. The value
+// is never printed. An empty GitHub secret leaves whatever is already on the Worker.
+export function secretsToUpload({ existing, turnstileFromEnv = '', googleFromEnv = '', generateAuth = () => randomBytes(32).toString('base64') }) {
   const toSet = {};
   if (!existing.includes('BETTER_AUTH_SECRET')) toSet.BETTER_AUTH_SECRET = generateAuth();
-  if (turnstileFromEnv && !existing.includes('TURNSTILE_SECRET_KEY')) toSet.TURNSTILE_SECRET_KEY = turnstileFromEnv;
+  if (turnstileFromEnv) toSet.TURNSTILE_SECRET_KEY = turnstileFromEnv;
+  if (googleFromEnv) toSet.GOOGLE_CLIENT_SECRET = googleFromEnv;
   return toSet;
+}
+
+function reportManaged(name, toSet, existing) {
+  if (toSet[name]) console.error(`Deploy will store ${name} from the GitHub environment secret. The value is not printed.`);
+  else if (existing.includes(name)) console.error(`${name} is already set and the GitHub environment secret is empty. Leaving it unchanged.`);
+  else console.error(`::warning::${name} is not on the worker and no GitHub environment secret was provided.`);
 }
 
 function wranglerEnvArgs(envName) {
@@ -72,12 +82,13 @@ function main() {
     existing = parseSecretNames(stdout);
   }
 
-  const toSet = secretsToUpload({ existing, turnstileFromEnv: process.env.TURNSTILE_SECRET_KEY || '' });
+  const turnstileFromEnv = process.env.TURNSTILE_SECRET_KEY || '';
+  const googleFromEnv = process.env.GOOGLE_CLIENT_SECRET || '';
+  const toSet = secretsToUpload({ existing, turnstileFromEnv, googleFromEnv });
   if (toSet.BETTER_AUTH_SECRET) console.error('Deploy will store a new BETTER_AUTH_SECRET. The value is not printed.');
   else console.error('BETTER_AUTH_SECRET is already set. Leaving it unchanged.');
-  if (toSet.TURNSTILE_SECRET_KEY) console.error('Deploy will store TURNSTILE_SECRET_KEY from the GitHub environment secret.');
-  else if (existing.includes('TURNSTILE_SECRET_KEY')) console.error('TURNSTILE_SECRET_KEY is already set. Leaving it unchanged.');
-  else console.error('::warning::TURNSTILE_SECRET_KEY is not on the worker. Sign-up captcha fails until that secret is set (GitHub environment secret TURNSTILE_SECRET_KEY, or wrangler secret put).');
+  reportManaged('TURNSTILE_SECRET_KEY', toSet, existing);
+  reportManaged('GOOGLE_CLIENT_SECRET', toSet, existing);
 
   let arg = '';
   if (Object.keys(toSet).length > 0) {

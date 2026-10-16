@@ -49,6 +49,9 @@ test('wrangler.toml points production and staging at the provisioned resources',
   assert.match(staging, /GEN_MOCK = "1"/);
   assert.doesNotMatch(staging, /COOKIE_DOMAIN = "freecellworlds.com"/);
   assert.doesNotMatch(staging, /TURNSTILE_SECRET_KEY/);
+  const clientId = '895742309264-uprjg6dj8eliu9sr7mf9u866gpfnbuol.apps.googleusercontent.com';
+  assert.equal(toml.split(clientId).length - 1, 2);
+  assert.match(staging, new RegExp(clientId.replace(/[.]/g, '\\.')));
 });
 
 test('hosted pages use the real Turnstile site key and localhost keeps the test key', () => {

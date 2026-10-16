@@ -74,9 +74,10 @@ Locally, emails are printed to the wrangler log instead of sent, and Turnstile u
    - Turnstile: the widget for `freecellworlds.com` and `staging.freecellworlds.com` is in `CONFIG.turnstileSiteKey` (`0x4AAAAAAFYovaiTyTegTnzy`). Localhost keeps the always-pass test site key. Put the widget **secret** in `TURNSTILE_SECRET_KEY` on each worker.
    - Workers needs the Paid plan: password hashing uses more CPU than the free plan's 10 ms limit. Staging and production also bind a Workflow and Images.
 2. **Google Cloud Console** → APIs & Services → Credentials → OAuth client (Web):
-   - Authorized JavaScript origins: `https://freecellworlds.com`, `https://www.freecellworlds.com`, `https://staging.freecellworlds.com`
-   - Authorized redirect URIs: `https://api.freecellworlds.com/api/auth/callback/google` and `https://api-staging.freecellworlds.com/api/auth/callback/google`
-   - Put the client id in `GOOGLE_CLIENT_ID` for both `[vars]` and `[env.staging.vars]`, and the secret in `GOOGLE_CLIENT_SECRET` on both workers. Until the id is set, the game hides the Google button (`GET /v1/config`).
+   - Client id `895742309264-uprjg6dj8eliu9sr7mf9u866gpfnbuol.apps.googleusercontent.com` is in `GOOGLE_CLIENT_ID` for both `[vars]` and `[env.staging.vars]`. `GET /v1/config` then reports `google: true`, and the game shows Continue with Google.
+   - Authorized JavaScript origins include `https://freecellworlds.com`, `https://www.freecellworlds.com`, and `https://staging.freecellworlds.com`.
+   - Authorized redirect URIs: `https://api.freecellworlds.com/api/auth/callback/google` and `https://api-staging.freecellworlds.com/api/auth/callback/google`.
+   - `GOOGLE_CLIENT_SECRET` is a GitHub environment secret on `staging` and `production`. The API deploy writes it when that secret is set and does not print it.
    - OAuth consent screen: app name, support email, links to `/privacy/` and `/terms/`. Only the default `email`/`profile` scopes are used, so Google's sensitive-scope verification doesn't apply.
 3. **Resend:** verify `mail.freecellworlds.com` (SPF/DKIM records go in Cloudflare DNS) and put the API key in `RESEND_API_KEY`.
 4. **Email routing:** create `gdpr@freecellworlds.com` (Cloudflare Email Routing). The privacy policy and contact page point to it.
