@@ -1,4 +1,5 @@
 # One-shot live tail. Not in the deploy path filter. Does not deploy the Worker.
+# Pass 2, for the deletion email.
 
 name: Tail staging once
 
