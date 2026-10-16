@@ -2,11 +2,16 @@
 // sync engine (js/sync.js). The API lives at api.freecellworlds.com (server/).
 import { createSync } from './sync.js';
 
-const local = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+const host = location.hostname;
+const local = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+const staging = host === 'staging.freecellworlds.com';
+// Staging uses Cloudflare's always-pass Turnstile test site key, paired with the test
+// secret in wrangler [env.staging.vars]. Production needs the real widget site key.
 const CONFIG = local
-  ? { api: `http://${location.hostname === '127.0.0.1' ? '127.0.0.1' : 'localhost'}:8787`, turnstileSiteKey: '1x00000000000000000000AA' }
-  : // Public Turnstile site key from the Cloudflare dashboard (Turnstile → freecellworlds.com).
-    { api: 'https://api.freecellworlds.com', turnstileSiteKey: '0x4AAAAAAA_REPLACE_ME' };
+  ? { api: `http://${host === '127.0.0.1' ? '127.0.0.1' : 'localhost'}:8787`, turnstileSiteKey: '1x00000000000000000000AA' }
+  : staging
+    ? { api: 'https://api-staging.freecellworlds.com', turnstileSiteKey: '1x00000000000000000000AA' }
+    : { api: 'https://api.freecellworlds.com', turnstileSiteKey: '0x4AAAAAAA_REPLACE_ME' };
 
 const APP_URL = location.origin + location.pathname;
 const $ = (s) => document.querySelector(s);
@@ -95,7 +100,7 @@ function humanCheck(el) {
 
 // --- account state and modal ------------------------------------------------------------
 export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {} }) {
-  const state = { user: null, tokens: 0, view: 'signin', email: '', resetToken: '', syncing: false, lastSync: 0, error: '' };
+  const state = { user: null, tokens: 0, google: false, view: 'signin', email: '', resetToken: '', syncing: false, lastSync: 0, error: '' };
   const sync = createSync({ api, onRemote, canReplaceSession });
   const body = $('#account-body');
   const titleBtn = $('#btn-title-account');
@@ -161,12 +166,12 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
   }
 
   const googleButton = `<button type="button" class="btn account-google" id="account-google"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.8 9.4 6 12 6z"/></svg>Continue with Google</button>`;
+  const googleBlock = () => (state.google ? `${googleButton}<div class="account-or"><span>or use email</span></div>` : '');
 
   const views = {
     signin: () => `
       <p class="account-lead">Sign in to save your stats, settings and Voyage runs to your account and pick them up on any device. Playing without an account still works.</p>
-      ${googleButton}
-      <div class="account-or"><span>or use email</span></div>
+      ${googleBlock()}
       <div class="account-tabs" role="tablist">
         <button type="button" role="tab" class="btn${state.view === 'signin' ? ' active' : ''}" data-view="signin" aria-selected="${state.view === 'signin'}">Sign in</button>
         <button type="button" role="tab" class="btn${state.view === 'signup' ? ' active' : ''}" data-view="signup" aria-selected="${state.view === 'signup'}">Create account</button>
@@ -354,6 +359,14 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
     for (const k of ['account', 'token', 'error']) params.delete(k);
     history.replaceState(null, '', location.pathname + (params.size ? `?${params}` : '') + location.hash);
   }
+
+  api('/v1/config').then((res) => {
+    const google = res.status === 200 && !!res.json?.google;
+    if (google === state.google) return;
+    state.google = google;
+    const open = document.getElementById('modal-account')?.classList.contains('show');
+    if (open && !state.user && (state.view === 'signin' || state.view === 'signup')) render();
+  });
 
   (async () => {
     const res = await api('/api/auth/get-session');

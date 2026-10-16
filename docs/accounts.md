@@ -70,14 +70,13 @@ Locally, emails are printed to the wrangler log instead of sent, and Turnstile u
 ## Production setup checklist
 
 1. **Cloudflare**
-   - `npx wrangler d1 create freecell-worlds` and put the printed id in `server/wrangler.toml`.
-   - `npx wrangler r2 bucket create freecell-worlds-theme-assets`.
+   - Production D1 `freecell-worlds` (`8d4f72c3-98ac-4ad1-af49-60b9252b27bb`) and R2 `freecell-worlds-theme-assets` already exist. The id is in `server/wrangler.toml`. Migrations are not applied yet: the manual production workflow applies them, or run `npm run db:migrate`.
    - Turnstile: add a widget for `freecellworlds.com` (Managed mode). Put the **site key** in `CONFIG.turnstileSiteKey` in `js/account.js`, and the secret in `TURNSTILE_SECRET_KEY`.
-   - Workers needs the Paid plan: password hashing uses more CPU than the free plan's 10 ms limit.
+   - Workers needs the Paid plan: password hashing uses more CPU than the free plan's 10 ms limit. Staging and production also bind a Workflow and Images.
 2. **Google Cloud Console** → APIs & Services → Credentials → OAuth client (Web):
-   - Authorized JavaScript origin: `https://freecellworlds.com`
-   - Authorized redirect URI: `https://api.freecellworlds.com/api/auth/callback/google`
-   - Put the client id in `GOOGLE_CLIENT_ID` (`wrangler.toml`) and the secret in `GOOGLE_CLIENT_SECRET`.
+   - Authorized JavaScript origins: `https://freecellworlds.com`, `https://www.freecellworlds.com`, `https://staging.freecellworlds.com`
+   - Authorized redirect URIs: `https://api.freecellworlds.com/api/auth/callback/google` and `https://api-staging.freecellworlds.com/api/auth/callback/google`
+   - Put the client id in `GOOGLE_CLIENT_ID` for both `[vars]` and `[env.staging.vars]`, and the secret in `GOOGLE_CLIENT_SECRET` on both workers. Until the id is set, the game hides the Google button (`GET /v1/config`).
    - OAuth consent screen: app name, support email, links to `/privacy/` and `/terms/`. Only the default `email`/`profile` scopes are used, so Google's sensitive-scope verification doesn't apply.
 3. **Resend:** verify `mail.freecellworlds.com` (SPF/DKIM records go in Cloudflare DNS) and put the API key in `RESEND_API_KEY`.
 4. **Email routing:** create `gdpr@freecellworlds.com` (Cloudflare Email Routing). The privacy policy and contact page point to it.
@@ -88,7 +87,11 @@ Locally, emails are printed to the wrangler log instead of sent, and Turnstile u
    npx wrangler secret put RESEND_API_KEY
    npx wrangler secret put TURNSTILE_SECRET_KEY
    ```
-6. **Deploy:** `npm run db:migrate` then `npm run deploy`. The `routes` entry in `wrangler.toml` attaches `api.freecellworlds.com` as a custom domain.
+6. **Deploy:** staging deploys from GitHub Actions on push. Production is a manual workflow run behind the `production` environment. See [server-infrastructure.md](server-infrastructure.md#deploying). From a logged-in machine, `npm run db:migrate` then `npm run deploy`.
+
+## Staging
+
+`api-staging.freecellworlds.com` uses D1 `freecell-worlds-staging` (migrations already applied) and R2 `freecell-worlds-theme-assets-staging`. Theme generation is mocked (`GEN_MOCK=1`). The session cookie is `__Secure-fcw-staging.session_token`, host-only, so it does not collide with production's `__Secure-fcw.session_token` on `Domain=freecellworlds.com`. The game at `staging.freecellworlds.com` calls this API; localhost still calls `:8787`. Until Resend is configured, open `npx wrangler tail --env staging` to read the confirmation link.
 
 ## Later
 

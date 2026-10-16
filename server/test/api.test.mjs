@@ -12,6 +12,13 @@ const email = `player-${Date.now()}@example.com`;
 const a = client();
 const b = client(); // a second device
 
+test('public config reports whether Google sign-in is configured', async () => {
+  const r = await client()('/v1/config');
+  assert.equal(r.status, 200);
+  assert.equal(r.json.google, false);
+  assert.equal(r.headers.get('access-control-allow-origin'), ORIGIN);
+});
+
 test('sign-up needs a captcha', async () => {
   const r = await a('/api/auth/sign-up/email', { method: 'POST', body: { email, password: PASSWORD, name: 'Player' } });
   assert.equal(r.status, 400);
@@ -40,6 +47,10 @@ test('the verification link signs the player in and redirects to the game', asyn
   const r = await a(link.replace(/^https?:\/\/[^/]+/, ''));
   assert.equal(r.status, 302);
   assert.equal(r.headers.get('location'), `${ORIGIN}/?account=verified`);
+  // Local and staging omit COOKIE_DOMAIN, so the session cookie stays host-only.
+  const cookies = r.headers.getSetCookie();
+  assert.ok(cookies.some((c) => c.startsWith('better-auth.session_token=')));
+  assert.ok(cookies.every((c) => !/;\s*domain=/i.test(c)));
   const me = await a('/v1/me');
   assert.equal(me.status, 200);
   assert.equal(me.json.user.email, email);

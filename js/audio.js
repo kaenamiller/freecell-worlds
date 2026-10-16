@@ -197,7 +197,8 @@ export class AudioEngine {
 
   async loadMusic(theme) {
     const c = this.custom.get(theme);
-    if (!c) return this.loadMusic(theme);
+    // Built-in tables keep their own track. Recursing here loops forever.
+    if (!c) return this.load(theme, MUSIC_DIR);
     return (c.music && (await this.load(`music:${theme}`, MUSIC_DIR, c.music))) || this.load(c.soundsLike, MUSIC_DIR);
   }
 

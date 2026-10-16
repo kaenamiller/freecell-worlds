@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler deploy --env=\"\"",
     "db:migrate:local": "wrangler d1 migrations apply freecell-worlds --local",
     "db:migrate": "wrangler d1 migrations apply freecell-worlds --remote",
+    "db:migrate:staging": "wrangler d1 migrations apply freecell-worlds-staging --remote --env staging",
+    "deploy:staging": "wrangler deploy --env staging",
     "gen:schema": "node scripts/gen-schema.mjs",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "grant": "node scripts/grant-tokens.mjs"
   },
   "dependencies": {

@@ -76,6 +76,7 @@ export const defaultSettings = {
   highContrast: false,
   reducedMotion: false,
   cursorLight: true,
+  tapToPeek: false,
 };
 
 export const settings = track('settings', load('settings', defaultSettings), defaultSettings);

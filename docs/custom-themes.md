@@ -102,7 +102,7 @@ Local wrangler prints "Worker's code had hung" once per generation run. It's a q
 1. **API keys**, set as Worker secrets: `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `ELEVENLABS_API_KEY`. The Gemini and ElevenLabs keys used by the asset scripts would work, but separate production keys let you track and cap this spend on its own.
 2. **Cloudflare:** turn on Images for the account. Workflows are included in the Workers Paid plan already required for accounts.
 3. **Token pricing.** Decide what a token costs. Run a few real generations first and measure the cost of one version.
-4. **The other account setup** in [server-infrastructure.md](server-infrastructure.md#open-items) (D1, R2, Turnstile, Google, Resend).
+4. **The other account setup** in [server-infrastructure.md](server-infrastructure.md#open-items) (Turnstile, Google, Resend, Workers Paid, Images). Staging already has its database and bucket. The staging worker runs with `GEN_MOCK=1`, so it does not call Claude, Gemini or ElevenLabs.
 
 ### What I'd build next, in order
 

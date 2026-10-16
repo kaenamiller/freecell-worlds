@@ -46,6 +46,9 @@ app.post('/api/auth/sign-in/email', async (c) => {
 
 app.on(['GET', 'POST'], '/api/auth/*', (c) => c.get('auth').handler(c.req.raw));
 
+// No session required. The game hides "Continue with Google" until a client id is set.
+app.get('/v1/config', (c) => c.json({ google: Boolean(c.env.GOOGLE_CLIENT_ID) }));
+
 // --- player data ----------------------------------------------------------------------
 const v1 = new Hono();
 

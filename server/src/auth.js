@@ -22,7 +22,10 @@ export function authOptions(env, { database = env.DB, waitUntil = (p) => p } = {
       // Opaque random ids; the email is a login field, never the key.
       database: { generateId: 'uuid' },
       ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] },
-      // api.freecellworlds.com sets the cookie for freecellworlds.com so the game shares it.
+      // Production: prefix "fcw", Domain=freecellworlds.com (sent to every subdomain).
+      // Staging: prefix "fcw-staging" and no Domain, so the cookie is host-only on
+      // api-staging and is never the production session under another name.
+      ...(env.COOKIE_PREFIX ? { cookiePrefix: env.COOKIE_PREFIX } : {}),
       crossSubDomainCookies: env.COOKIE_DOMAIN ? { enabled: true, domain: env.COOKIE_DOMAIN } : undefined,
     },
     emailAndPassword: {

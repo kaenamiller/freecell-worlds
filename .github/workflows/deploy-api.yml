@@ -1,0 +1,150 @@
+# Staging deploys on every push to main or player-accounts that touches the API.
+# Production deploys only from a manual run, and only after the GitHub environment
+# "production" approves it.
+#
+# Required reviewers are a GitHub setting, not a workflow key. Before the first
+# production run: Settings → Environments → production → Required reviewers.
+# Leave the "staging" environment without reviewers so pushes deploy on their own.
+#
+# Repo or environment secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID.
+# The token needs Workers Scripts edit, D1 edit, R2 edit, Workers Routes/Domains,
+# and DNS edit on freecellworlds.com (custom domains).
+
+name: Deploy API
+
+on:
+  push:
+    branches: [main, player-accounts]
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy-api.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment to deploy
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-${{ github.event.inputs.target || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    name: Deploy staging
+    if: github.event_name == 'push' || github.event.inputs.target == 'staging'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://api-staging.freecellworlds.com
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Ensure staging auth secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          list=$(npx wrangler secret list --env staging)
+          if printf '%s' "$list" | grep -q 'BETTER_AUTH_SECRET'; then
+            echo "Staging BETTER_AUTH_SECRET already set."
+          else
+            openssl rand -base64 32 | tr -d '\n' | npx wrangler secret put BETTER_AUTH_SECRET --env staging
+            echo "Stored a new BETTER_AUTH_SECRET on the staging worker."
+          fi
+
+      - name: Apply staging D1 migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          command: d1 migrations apply freecell-worlds-staging --remote --env staging
+
+      - name: Deploy staging Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          command: deploy --env staging
+
+  production:
+    name: Deploy production
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://api.freecellworlds.com
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Require production secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          list=$(npx wrangler secret list)
+          missing=
+          for name in BETTER_AUTH_SECRET TURNSTILE_SECRET_KEY; do
+            if ! printf '%s' "$list" | grep -q "$name"; then
+              missing="$missing $name"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "Production is missing:$missing"
+            echo "Set them with: npx wrangler secret put <NAME>"
+            exit 1
+          fi
+
+      - name: Apply production D1 migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          command: d1 migrations apply freecell-worlds --remote --env=""
+
+      - name: Deploy production Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: server
+          command: deploy --env=""
