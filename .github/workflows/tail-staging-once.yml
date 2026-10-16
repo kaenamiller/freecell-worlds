@@ -1,0 +1,46 @@
+# One-shot live tail. This file is not in deploy-api.yml's path filter, so pushing
+# it does not redeploy the Worker. Delete it after the Resend line is captured.
+
+name: Tail staging once
+
+on:
+  push:
+    branches: [player-accounts]
+    paths:
+      - '.github/workflows/tail-staging-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  tail:
+    name: Tail staging email
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Tail staging logs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set +e
+          echo "tail starting $(date -u +%H:%M:%S)"
+          timeout 1200 npx wrangler tail --env staging --format json
+          echo "tail finished ($?) $(date -u +%H:%M:%S)"
