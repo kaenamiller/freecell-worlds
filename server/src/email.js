@@ -1,18 +1,41 @@
 // Account emails (verification, password reset, account deletion) sent through Resend.
 // Without RESEND_API_KEY (local dev) the message is logged instead of sent.
 
+const redact = (value) => String(value)
+  .replace(/https?:\/\/\S+/gi, '[url]')
+  .replace(/\bre_[A-Za-z0-9]+\b/g, '[redacted]')
+  .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]');
+
+// Status and Resend's id only. The message body holds the confirmation link, so it stays out of the log.
+export function resendResultLine(status, body) {
+  if (status < 200 || status >= 300) return `[email] Resend ${status}: ${redact(body).slice(0, 500)}`;
+  let id = '';
+  try {
+    const parsed = JSON.parse(body);
+    if (parsed && typeof parsed.id === 'string' && /^[A-Za-z0-9_-]+$/.test(parsed.id)) id = ` id=${parsed.id}`;
+  } catch { /* a 2xx with an unexpected body still reports the status */ }
+  return `[email] Resend ${status}${id}`;
+}
+
 export async function sendEmail(env, { to, subject, text, html }) {
   if (!env.RESEND_API_KEY) {
     console.log(`[email] to=${to} subject=${subject}\n${text}`);
     return;
   }
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: env.EMAIL_FROM, to, subject, text, html }),
-  });
-  if (!res.ok) console.error(`[email] Resend ${res.status}: ${await res.text()}`);
-  else console.log(`[email] Resend ${res.status}`);
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: env.EMAIL_FROM, to, subject, text, html }),
+    });
+    const body = await res.text();
+    const line = `${resendResultLine(res.status, body)} to=${to}`;
+    if (!res.ok) console.error(line);
+    else console.log(line);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'unknown error';
+    console.error(`[email] Resend request failed: ${redact(message)} to=${to}`);
+  }
 }
 
 const escape = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
