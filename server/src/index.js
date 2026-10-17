@@ -8,6 +8,7 @@ import {
 } from './data.js';
 import themes from './themes/routes.js';
 import { analyticsConfig, ingestEvents } from './analytics/ingest.js';
+import { adminPage, adminSummary } from './analytics/admin.js';
 
 export { ThemeGeneration } from './themes/workflow.js';
 
@@ -53,6 +54,10 @@ app.get('/v1/config', (c) => c.json({ google: Boolean(c.env.GOOGLE_CLIENT_ID) })
 // First-party analytics. Separate from /v1/config. Google Analytics stays off in the game.
 app.get('/config', (c) => analyticsConfig(c));
 app.post('/events', (c) => ingestEvents(c));
+
+// Private dashboard. The handlers refuse signed-out and non-allowlisted sessions.
+app.get('/admin/summary', (c) => adminSummary(c));
+app.get('/admin', (c) => adminPage(c));
 
 // --- player data ----------------------------------------------------------------------
 const v1 = new Hono();

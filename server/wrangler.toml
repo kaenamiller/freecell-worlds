@@ -69,6 +69,12 @@ COOKIE_PREFIX = "fcw-staging"
 EMAIL_FROM = "FreeCell Worlds <accounts@mail.freecellworlds.com>"
 GOOGLE_CLIENT_ID = "895742309264-uprjg6dj8eliu9sr7mf9u866gpfnbuol.apps.googleusercontent.com"
 GEN_MOCK = "1"
+# Comma-separated account emails allowed to open /admin. Not a secret: it grants
+# nothing by itself, and the signed-in session is still required. Kaena should
+# confirm kaena@redblindmedia.com is the email on her staging account.
+# Production is unset here, so a production deploy allows nobody until ADMIN_EMAILS
+# is added for that environment.
+ADMIN_EMAILS = "kaena@redblindmedia.com"
 
 [[env.staging.d1_databases]]
 binding = "DB"
