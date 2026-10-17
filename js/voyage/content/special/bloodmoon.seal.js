@@ -31,6 +31,11 @@ registerCustomMove(op, {
       m.pinnedCard = card;
       // Unpinning changes a rule, not the card's position or visibility.
       delete m.card;
+    } else if (m.action === 'cleanse') {
+      const card = m.cleansedCard;
+      if (!Number.isInteger(card) || ![...st.tableau.flat(), ...st.free].includes(card) || rules.cleansedCards?.includes(card)) throw new Error('Choose an affected card in play');
+      m.before = copy(rules.cleansedCards || []);
+      rules.cleansedCards = [...m.before, card];
     } else if (m.action === 'uncover') {
       const col = st.tableau[m.col];
       if (!Number.isInteger(m.col) || !col || !Array.isArray(m.hidden) || !m.hidden.length || !m.hidden.every((id) => col.slice(0, -1).includes(id))) throw new Error('Choose a concealed column');
@@ -41,14 +46,15 @@ registerCustomMove(op, {
     if (m.action === 'thaw') rules.cellThaw = copy(m.before);
     if (m.action === 'reopen') rules.cellClose = copy(m.before);
     if (m.action === 'unpin') rules.pinned = copy(m.before);
+    if (m.action === 'cleanse') rules.cleansedCards = copy(m.before);
     // rules.js restores sealedBefore; visibility and run undos live in the runtime.
   },
 });
 
 defineCharm({
   id: op, kind: 'boon', theme: 'bloodmoon', name: 'Broken Seal', icon: '⛓️‍💥', family: 'ability', ease: .25,
-  text: 'Once per board, break an obstacle: unseal a column, thaw or reopen a cell, unpin a card, or uncover a face-down column; with none, gain 1 undo.',
-  upgrade: 'Twice per board, break an obstacle: unseal a column, thaw or reopen a cell, unpin a card, or uncover a face-down column; with none, gain 1 undo.',
+  text: 'Once per board, break an obstacle: unseal a column, thaw or reopen a cell, unpin a card, clear a card’s negative stamps, or uncover a face-down column; with none, gain 1 undo.',
+  upgrade: 'Twice per board, break an obstacle: unseal a column, thaw or reopen a cell, unpin a card, clear a card’s negative stamps, or uncover a face-down column; with none, gain 1 undo.',
   ability: {
     uses: (ctx) => ctx.level === 2 ? 2 : 1, label: 'Break the seal', available: () => true,
     async use({ api }) {
@@ -59,6 +65,7 @@ defineCharm({
         activeFreeCells(st, api.rules) < st.free.length && { value: 'thaw', label: 'Thaw a cell' },
         closed(st, api.rules) >= 0 && { value: 'reopen', label: 'Reopen a cell' },
         pinned(st, api.rules) && { value: 'unpin', label: 'Unpin a card' },
+        api.negativeCards?.some((id) => [...st.tableau.flat(), ...st.free].includes(id)) && { value: 'cleanse', label: 'Clear a card’s negative effects' },
         st.tableau.some((_, i) => hiddenIn(i, st).length) && { value: 'uncover', label: 'Uncover a column' },
       ].filter(Boolean);
       const action = kinds.length > 1 ? await api.choose({ prompt: 'Which obstacle should break?', options: kinds }) : kinds[0]?.value || 'undo';
@@ -91,6 +98,24 @@ defineCharm({
         }
         if (card == null) return false;
         data = { action, pinnedCard: card };
+      } else if (action === 'cleanse') {
+        const affected = (id) => api.negativeCards?.includes(id);
+        const hidden = api.negativeCards.filter((id) => api.concealed.includes(id));
+        const visible = api.negativeCards.filter((id) => !api.concealed.includes(id) && [...st.tableau.flat(), ...st.free].includes(id));
+        const target = hidden.length && visible.length ? await api.choose({ prompt: 'Which affected card should be cleared?', options: [
+          { value: 'visible', label: 'Choose a face-up card' }, { value: 'hidden', label: 'Choose a face-down card’s column' },
+        ] }) : hidden.length ? 'hidden' : 'visible';
+        if (target == null) return false;
+        let card;
+        if (target === 'hidden') {
+          const hiddenIn = (i, s) => s.tableau[i].findLast((id) => affected(id) && api.concealed.includes(id));
+          const col = await api.pick({ kind: 'column', prompt: 'Choose a column with an affected face-down card', cards: (i, s) => [hiddenIn(i, s)], filter: (i, s) => !!hiddenIn(i, s) });
+          card = col == null ? null : hiddenIn(col, api.state);
+        } else {
+          card = await api.pick({ kind: 'card', prompt: 'Choose a card to clear all its negative effects', filter: (id, s) => affected(id) && !api.concealed.includes(id) && [...s.tableau.flat(), ...s.free].includes(id) });
+        }
+        if (card == null) return false;
+        data = { action, cleansedCard: card };
       } else if (action === 'uncover') {
         const col = await api.pick({ kind: 'column', prompt: 'Choose a column to turn its face-down cards over', cards: hiddenIn, filter: (i, s) => hiddenIn(i, s).length > 0 });
         if (col == null) return false;
@@ -98,7 +123,7 @@ defineCharm({
       } else data = { action: 'undo' };
       if (!api.charmMove(op, data)) return false;
       if (data.action === 'uncover') api.reveal(data.hidden);
-      api.notify({ unseal: 'Broken Seal: column unsealed', thaw: 'Broken Seal: cell thawed', reopen: 'Broken Seal: cell reopened', unpin: 'Broken Seal: card unpinned', uncover: 'Broken Seal: column uncovered', undo: 'Broken Seal: undo refunded up to the board cap' }[data.action]);
+      api.notify({ unseal: 'Broken Seal: column unsealed', thaw: 'Broken Seal: cell thawed', reopen: 'Broken Seal: cell reopened', unpin: 'Broken Seal: card unpinned', cleanse: 'Broken Seal: negative card effects cleared', uncover: 'Broken Seal: column uncovered', undo: 'Broken Seal: undo refunded up to the board cap' }[data.action]);
       return true;
     },
   },

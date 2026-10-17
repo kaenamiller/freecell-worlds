@@ -64,7 +64,7 @@ defineCharm({
       }
       sawOtherKing = true;
     }
-    if (won) sb.addCoins('keeper', 'The Keeper', pay);
+    if (won) sb.addCoins('keeper', 'The Keeper', pay, suit * 13 + 13);
   },
 });
 

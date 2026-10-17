@@ -56,7 +56,7 @@ defineCharm({
     const pay = ctx.level >= 2 ? 4 : 3;
     replay(sb, (move, state) => {
       if (move.t !== 'F' || !ids.has(move.card)) return;
-      if (cardsHome(state) < 26) sb.addCoins(`firefly.${move.card}`, 'Firefly Jar', pay);
+      if (cardsHome(state) < 26) sb.addCoins(`firefly.${move.card}`, 'Firefly Jar', pay, move.card);
     });
   },
 });

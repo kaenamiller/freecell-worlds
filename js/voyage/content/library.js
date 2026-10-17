@@ -58,12 +58,12 @@ defineCharm({
       if (src?.kind === 'free' && move.t !== 'C') {
         const since = dwell.get(move.card);
         if (since != null) {
-          if (moves - since > limit) penalty += 25;
+          if (moves - since > limit) { penalty += 25; sb.cardPenalty('overdue', move.card, 25); }
           dwell.delete(move.card);
         }
       }
     });
-    for (const since of dwell.values()) if (moves - since > limit) penalty += 25;
+    for (const [card, since] of dwell) if (moves - since > limit) { penalty += 25; sb.cardPenalty('overdue', card, 25); }
     if (penalty) sb.add('overdue', 'Overdue fines', -penalty);
   },
 });

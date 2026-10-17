@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { Game, cloneState, undoMove, generateMoves, maxMoveSize, canStackOn, sequenceStart, randomDealNumber, safeFoundationMoves, legalFoundationMoves, canFinishWithFoundationOnly, cardsHome } from './rules.js';
-import { buildCardMesh, applyCardStyle, setCardMark, setCardSticker, setCardMods, setCardConcealed, markSigilHit, modHit, cullCardFaces, CARD } from './card.js';
+import { buildCardMesh, applyCardStyle, setCardMark, setCardSticker, setCardMods, setCardConcealed, markSigilHit, stickerHit, modHit, cullCardFaces, CARD } from './card.js';
 import { setCardTheme } from './textures.js';
 import { Animator, Easing, CardMotion } from './animation.js';
 import { Post } from './post.js';
@@ -17,9 +17,12 @@ import { ui } from './ui.js';
 import { voyageUI } from './voyage/ui.js';
 import { createRun, loadRun, saveRun, runView, boardPlan, upcomingPlans, laterPlans, startBoard, spendUndo, winBoard, pickCharm, loseRun, scoringContext } from './voyage/run.js';
 import { BoardEffects, CHARMS } from './voyage/charms.js';
+import { STICKERS } from './voyage/stickers.js';
 import { buyBoon, buySticker, upgradeBoon, buyUndo, sellBoon, rerollPort, leavePort, portService } from './voyage/port.js';
 import { findNode } from './voyage/map.js';
 import { scoreBoard, starsFor, starThresholds } from './voyage/scoring.js';
+import { penaltyFeedback, bonusFeedback, PenaltyFloats } from './voyage/penalties.js';
+import { explainBlocked } from './voyage/blocked.js';
 import { loadBank, prepare as prepareDeals, dealFor, setBusyProbe } from './voyage/dealer.js';
 import { voyageStats, recordRunStart, recordRunEnd, recordBoardCleared, recordCharmPick, recordEconomy, resetVoyageStats } from './voyage/stats.js';
 import { computeBury, shortSolve } from './difficulty.js';
@@ -31,6 +34,7 @@ import { VOYAGE_STUCK_IDLE_MS, VOYAGE_STUCK_PROOF_MS, VOYAGE_STUCK_SETTLE_MS, vo
 // ---------------------------------------------------------------------------
 // Layout constants
 // ---------------------------------------------------------------------------
+const penaltyFloats = new PenaltyFloats((id) => window.FreeCell.projectCard(id, true));
 const COL = 1.0;
 const ROW = 0.34;
 const FREE_Z = -2.75;
@@ -1240,54 +1244,54 @@ function selectCard(loc) {
 }
 
 // --- move application ------------------------------------------------------
-function tryDrop(from, target) {
+function tryDrop(from, target, g = game) {
   if (!target) return null;
   if (from.kind === 'found') {
-    const spur = from.index === 4, top = spur ? game.state.spur?.top : game.found[from.index], suit = spur ? game.state.spur?.suit : from.index;
+    const spur = from.index === 4, top = spur ? g.state.spur?.top : g.found[from.index], suit = spur ? g.state.spur?.suit : from.index;
     if (from.cardIndex !== top - 1) return null;
     const to = { kind: target.kind, i: target.index };
-    return game.canReturnFoundation(suit, to, spur ? 'spur' : 'original') ? () => game.moveFoundationReturn(suit, to, spur ? 'spur' : 'original') : null;
+    return g.canReturnFoundation(suit, to, spur ? 'spur' : 'original') ? () => g.moveFoundationReturn(suit, to, spur ? 'spur' : 'original') : null;
   }
   if (target.kind === 'col') {
     if (from.kind === 'col') {
-      const col = game.tableau[from.index];
-      if (from.index === target.index || !game.canMoveSequenceStart(from.index, from.cardIndex)) return null;
+      const col = g.tableau[from.index];
+      if (from.index === target.index || !g.canMoveSequenceStart(from.index, from.cardIndex)) return null;
       const count = col.length - from.cardIndex;
       const card = col[from.cardIndex];
-      if (!game.canDropTableau(target.index, card, count, col.slice(from.cardIndex))) return null;
-      return () => game.moveSequenceToTableau(from.index, from.cardIndex, target.index);
+      if (!g.canDropTableau(target.index, card, count, col.slice(from.cardIndex))) return null;
+      return () => g.moveSequenceToTableau(from.index, from.cardIndex, target.index);
     }
     if (from.kind === 'free') {
-      const card = game.free[from.index];
-      if (!card || !game.canMoveFreeToTableau(from.index, target.index)) return null;
-      return () => game.moveFreeToTableau(from.index, target.index);
+      const card = g.free[from.index];
+      if (!card || !g.canMoveFreeToTableau(from.index, target.index)) return null;
+      return () => g.moveFreeToTableau(from.index, target.index);
     }
     return null;
   }
   if (target.kind === 'free') {
     if (from.kind !== 'col') return null;
-    const col = game.tableau[from.index];
+    const col = g.tableau[from.index];
     if (from.cardIndex !== col.length - 1) return null;
-    if (!game.canDropFreeCell(target.index, col[col.length - 1])) return null;
-    return () => game.moveToFreeCell({ kind: 'col', i: from.index }, target.index);
+    if (!g.canDropFreeCell(target.index, col[col.length - 1])) return null;
+    return () => g.moveToFreeCell({ kind: 'col', i: from.index }, target.index);
   }
   if (target.kind === 'found') {
     let src = null;
     let card = null;
     if (from.kind === 'col') {
-      const col = game.tableau[from.index];
+      const col = g.tableau[from.index];
       if (from.cardIndex !== col.length - 1) return null;
       src = { kind: 'col', i: from.index };
       card = col[col.length - 1];
     } else if (from.kind === 'free') {
       src = { kind: 'free', i: from.index };
-      card = game.free[from.index];
+      card = g.free[from.index];
     } else {
       return null;
     }
     const dest = target.index === 4 ? 'spur' : 'original';
-    if (!card || (game.state.spur && (((card - 1) / 13) | 0) !== (target.index === 4 ? game.state.spur.suit : target.index)) || !game.canDropFoundation(card, dest)) return null;
-    return () => game.moveToFoundation(src, dest);
+    if (!card || (g.state.spur && (((card - 1) / 13) | 0) !== (target.index === 4 ? g.state.spur.suit : target.index)) || !g.canDropFoundation(card, dest)) return null;
+    return () => g.moveToFoundation(src, dest);
   }
   return null;
 }
@@ -1457,6 +1461,24 @@ function stepAuto(tok) {
   setTimeout(() => stepAuto(tok), 170);
 }
 
+// Voyage: when a move fails only because of a challenge or boss rule, name the rule.
+let lastBlocked = { key: '', at: 0 };
+function explainVoyageBlock(attempt, meta = {}) {
+  if (mode !== 'voyage' || !vy.boardLive || !game || !vy.run?.current) return;
+  const r = vy.run;
+  const hit = explainBlocked(game, { ...r.current, seed: r.seed, levels: r.levels, stickers: r.stickers, runMemo: r.charmMemo }, attempt, meta);
+  if (!hit) return;
+  const key = `${hit.id}|${hit.reason}`, now = performance.now();
+  if (key === lastBlocked.key && now - lastBlocked.at < 2500) return;
+  lastBlocked = { key, at: now };
+  ui.toast(hit.icon, `Blocked by ${hit.name}`, hit.reason, 3200);
+}
+function explainDrop(from, target) {
+  if (!from || !target || (target.kind === from.kind && target.index === from.index)) return;
+  const card = from.kind === 'col' ? game.tableau[from.index][from.cardIndex] : from.kind === 'free' ? game.free[from.index] : null;
+  explainVoyageBlock((p) => tryDrop(from, target, p), { card, cell: target.kind === 'free' ? target.index : null, col: target.kind === 'col' ? target.index : null });
+}
+
 function commitMove(fn) {
   if (!fn) return false;
   if (!fn()) return false;
@@ -1494,6 +1516,7 @@ function autoMove(id) {
   }
   audio.invalid();
   play.invalid();
+  explainVoyageBlock((p) => p.canDropFoundation(card) || (loc.kind === 'col' && p.free.some((_, i) => p.canDropFreeCell(i, card))), { card });
   return false;
 }
 
@@ -1633,6 +1656,32 @@ function pickTarget(e) {
   raycaster.layers.set(0);
   if (hits.length) return { kind: hits[0].object.userData.pile, index: hits[0].object.userData.index };
   return null;
+}
+
+// Drops are forgiving: when the pointer misses every lit slot, snap to the nearest lit one
+// within DROP_SLACK of the pointer or of the dragged lead card. Aiming straight at the source
+// pile still means "put it back".
+const DROP_SLACK = CARD.W * 0.4;
+const slotPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(SURFACE_Y + 0.05));
+function pickDropTarget(e, from, leadId = null) {
+  const direct = pickTarget(e);
+  if (direct && (tryDrop(from, direct) || (direct.kind === from.kind && direct.index === from.index))) return direct;
+  const points = [];
+  const p = raycaster.ray.intersectPlane(slotPlane, new THREE.Vector3());
+  if (p) points.push(p);
+  const lead = leadId != null && cardGroups.get(leadId);
+  if (lead) points.push(lead.position);
+  let best = null, bestD = DROP_SLACK;
+  for (const m of slotHitAreas) {
+    const t = { kind: m.userData.pile, index: m.userData.index };
+    if (!glows.get(`${t.kind}${t.index}`)?.userData.want || !tryDrop(from, t)) continue;
+    const { width, height } = m.geometry.parameters;
+    for (const q of points) {
+      const d = Math.hypot(Math.max(0, Math.abs(q.x - m.position.x) - width / 2), Math.max(0, Math.abs(q.z - m.position.z) - height / 2));
+      if (d <= bestD) { bestD = d; best = t; }
+    }
+  }
+  return best ?? direct;
 }
 
 // --- rank highlight (hold a key to light up every card of that rank) --------
@@ -1951,6 +2000,8 @@ const LANE_TIPS = {
   sealed: { name: 'Sealed column', text: 'No card can be placed here. Move every card off this column to break the seal.' },
   noexit: { name: 'No Exit', text: 'The bottom card of this column can only leave to its foundation.' },
   open: { name: 'Pincushion', text: 'This column takes any card on top, whatever its rank or colour.' },
+  'frost-red': { name: 'Frosted column', text: 'Once this column is empty it only accepts a red card, or a run starting with one.' },
+  'frost-black': { name: 'Frosted column', text: 'Once this column is empty it only accepts a black card, or a run starting with one.' },
 };
 const lanePlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -SURFACE_Y), lanePoint = new THREE.Vector3();
 
@@ -1967,6 +2018,7 @@ function syncMarkTip(clientX, clientY, hit) {
   const style = group?.userData.mark;
   const tip = !group ? laneTipAt(clientX, clientY)
     : group.userData.concealed ? null
+    : group.userData.sticker && stickerHit(hit.uv, !!style, group.userData.mods) ? STICKERS[group.userData.sticker.slice(8)]
     : group.userData.mods?.length && modHit(hit.uv, !!style, !!group.userData.sticker, group.userData.mods) ? vy.effects?.modTip(group.userData.cardId)
     : style && !String(style).startsWith('sticker-') && markSigilHit(hit.uv) ? vy.effects?.markTip(group.userData.cardId, style)
     : null;
@@ -2033,6 +2085,7 @@ function onPointerDown(e) {
   const ids = loc && movableCards(loc);
   if (!ids || !ids.length) {
     if (fogCandidate) return;
+    if (loc?.kind === 'col') explainVoyageBlock((p) => p.canMoveSequenceStart(loc.index, loc.cardIndex), { card: id });
     if (buried) return; // tapping a buried card just fans it out
     audio.invalid();
     return;
@@ -2120,12 +2173,13 @@ function onPointerUp(e) {
   if (finishFogPointer(e)) return;
   if (!drag) {
     if (e.target !== canvas || !game || won) return;
-    const target = pickTarget(e);
+    const target = selection ? pickDropTarget(e, selection.from) : pickTarget(e);
     if (target && selection) {
       if (commitMove(tryDrop(selection.from, target))) play.move('taps');
       else {
         audio.invalid();
         play.invalid();
+        explainDrop(selection.from, target);
         clearSelection();
       }
     } else if (!target && selection) {
@@ -2152,12 +2206,13 @@ function onPointerUp(e) {
     if (selection) {
       const fn = tryDrop(selection.from, target);
       if (commitMove(fn)) { play.move('taps'); return; }
+      explainDrop(selection.from, target);
     }
     selectCard(loc);
     return;
   }
 
-  const target = pickTarget(e);
+  const target = pickDropTarget(e, d.from, d.ids[0]);
   const fn = tryDrop(d.from, target);
   d.ids.forEach((id) => {
     const g = cardGroups.get(id);
@@ -2169,6 +2224,7 @@ function onPointerUp(e) {
     if (commitMove(fn)) play.move('drags');
   } else {
     if (target) { audio.invalid(); play.invalid(); }
+    explainDrop(d.from, target);
     hideValidTargets();
     applyLayout(true);
   }
@@ -2292,11 +2348,11 @@ function tickTimer() {
 
 function persistGame() {
   if (mode === 'voyage') return voyagePersist();
-  if (!game || won) {
+  if (!game) return; // The menu has unloaded the board; keep its saved position.
+  if (won) {
     save('game', null);
     return;
   }
-  if (manualMoves() === 0) return;
   save('game', {
     deal: game.dealNumber,
     theme: currentTheme.id,
@@ -2312,7 +2368,7 @@ function persistGame() {
 }
 const savedGame = () => {
   const g = load('game', null);
-  return g && g.moves && g.moves.length ? g : null;
+  return g && Array.isArray(g.moves) ? g : null;
 };
 
 function formatResult(r) {
@@ -2324,11 +2380,13 @@ function formatResult(r) {
 let busy = false;
 async function doCheck() {
   if (busy || !game) return;
+  const board = game;
   busy = true;
   ui.setSolverBusy(true);
   setStatus('Searching for a solution…', 'warn');
   try {
     const r = await requestSolve({ timeLimitMs: 8000 });
+    if (game !== board) return;
     const f = formatResult(r);
     setStatus(f.text, f.kind);
     if (mode === 'classic' && run.gid) {
@@ -2338,7 +2396,7 @@ async function doCheck() {
     if (r.solvable === true) audio.hint();
     else if (r.solvable === false) audio.invalid();
   } catch (err) {
-    setStatus('Solver error: ' + err.message, 'bad');
+    if (game === board) setStatus('Solver error: ' + err.message, 'bad');
   } finally {
     busy = false;
     ui.setSolverBusy(false);
@@ -2378,7 +2436,7 @@ async function doHint({ dev = false, charm = false } = {}) {
       return true;
     }
   } catch (err) {
-    setStatus('Solver error: ' + err.message, 'bad');
+    if (game === board) setStatus('Solver error: ' + err.message, 'bad');
   } finally {
     busy = false;
     ui.setSolverBusy(false);
@@ -2391,19 +2449,21 @@ async function doSolve({ dev = false } = {}) {
   if (autoplay.running) return stopSolve();
   if (busy || !game || won) return;
   if (mode === 'voyage' && !dev && !ui.devUnlocked) return;
+  const board = game;
   busy = true;
   ui.setSolverBusy(true);
   setStatus('Solving…', 'warn');
   let solution = null;
   try {
     const r = await requestSolve({ timeLimitMs: 15000 });
+    if (game !== board) return;
     solution = r.solution;
     if (!r.solution) {
       setStatus(formatResult(r).text, 'warn');
       return;
     }
   } catch (err) {
-    setStatus('Solver error: ' + err.message, 'bad');
+    if (game === board) setStatus('Solver error: ' + err.message, 'bad');
     return;
   } finally {
     busy = false;
@@ -2418,12 +2478,13 @@ async function doSolve({ dev = false } = {}) {
   const step = Math.max(45, Math.min(130, Math.round(9000 / solution.length)));
   const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
   for (const m of solution) {
-    if (!autoplay.running) break;
+    if (!autoplay.running || game !== board) break;
     game.applyDescriptor(m);
     applyLayout(true);
     updateHUD();
     await sleep(step);
   }
+  if (game !== board) return;
   motion.speed = 1;
   autoplay.running = false;
   ui.setSolveActive(false);
@@ -2511,6 +2572,7 @@ onPageHide(() => {
 });
 
 function dealGame(dealNumber, opts = {}) {
+  penaltyFloats.clear();
   // A classic deal still on the table ends here: abandoned once moved, skipped if untouched.
   if (game && !won && !vy.boardLive && run.gid) {
     const reason = opts.source || (opts.voyage ? 'voyage' : opts.restore ? 'resume' : 'other');
@@ -2553,7 +2615,7 @@ function dealGame(dealNumber, opts = {}) {
   introDismissed = !!opts.restore;
   lastTimerText = -1;
   tickTimer();
-  save('game', null);
+  if (mode === 'classic') save('game', null);
 
   ensureCards();
   for (const [i, g] of cardGroups) {
@@ -2584,8 +2646,32 @@ function dealGame(dealNumber, opts = {}) {
   );
 }
 
+// The win is detected the moment the last card is committed, while it is still flying home.
+// Hold the celebration until every card bound for a foundation has landed (capped, so a stuck
+// tween can never swallow the win).
+let winWait = null;
+const cardInFlightHome = () => [...motion.items.values()].some((m) => !m.touched && m.g.userData.dest === 'found');
+
 function checkWin() {
-  if (game && !won && game.isWon()) handleWin();
+  if (!game || won || winWait || !game.isWon()) return;
+  const g0 = game;
+  const t0 = performance.now();
+  const timerWasOn = run.timerOn;
+  tickTimer();
+  run.timerOn = false; // the clock stops on the winning move, not on the landing
+  const wait = () => {
+    if (winWait !== tok) return;
+    if (game !== g0 || won || !game.isWon()) {
+      winWait = null;
+      if (game === g0 && !won) run.timerOn = timerWasOn;
+      return;
+    }
+    if (cardInFlightHome() && performance.now() - t0 < 2500) { requestAnimationFrame(wait); return; }
+    winWait = null;
+    handleWin();
+  };
+  const tok = (winWait = {});
+  wait();
 }
 
 function handleWin() {
@@ -2833,7 +2919,57 @@ const vyView = () => {
 };
 const vyUsedDeals = () => vy.run.results.map((r) => r.deal);
 
+// Save first, then discard the working board. Card meshes are reused, so reset
+// their overlays as well as the game and Voyage runtime before another mode loads.
+function clearActiveBoard() {
+  autoTok++;
+  stopSolve();
+  motion.speed = 1;
+  ui.setSolveActive(false);
+  voyageClearPreview();
+  voyageDisarmStuck();
+  voyageClearStuckWarning();
+  cancelTargeting();
+  cancelCascade();
+  winWait = null;
+  animator.clear();
+  motion.clear();
+  intro.active = false;
+  intro.tweens = [];
+  skipHint?.classList.remove('on');
+  endFogPeek();
+  cancelFogPointer();
+  fogInput.effects = fogInput.ctx = fogInput.hiddenRef = null;
+  fogInput.hidden.clear();
+  fogInput.pDown = false;
+  drag = null;
+  dealing = false;
+  clearSelection();
+  hideValidTargets();
+  setHover(null);
+  setRankHighlight(null);
+  markTipAt = null;
+  voyageUI.hideMarkTip();
+  penaltyFloats.clear();
+  ui.clearStatus();
+  ui.hideWin();
+  for (const g of cardGroups.values()) {
+    resetCard(g);
+    g.visible = false;
+  }
+  game = null;
+  won = false;
+  isDaily = false;
+  Object.assign(run, { undos: 0, hints: 0, counted: false, timerOn: false, t0: 0, elapsed: 0, solved: false });
+  Object.assign(vy, { effects: null, boardLive: false, seen: 0, lastHistory: [],
+    emptyCols: new Set(), positions: null, settingUp: false, ability: null, applyingCharm: false });
+}
+
 function enterVoyageMode() {
+  if (mode !== 'voyage') {
+    persistGame();
+    clearActiveBoard();
+  }
   mode = 'voyage';
   voyageUI.setMode('voyage');
 }
@@ -2841,12 +2977,10 @@ function enterVoyageMode() {
 // Back to classic: the Voyage run stays saved and can be continued from the title screen.
 function leaveVoyageMode() {
   if (mode !== 'voyage') return;
-  voyageDisarmStuck();
-  voyageClearStuckWarning();
   voyagePersist();
+  clearActiveBoard();
+  vy.run = null;
   mode = 'classic';
-  vy.effects = null;
-  cancelTargeting();
   voyageUI.hideAll();
   voyageUI.setMode('classic');
 }
@@ -2858,7 +2992,10 @@ function voyageRefreshTitle() {
 }
 
 function voyageToMenu() {
-  if (mode === 'voyage') voyagePersist();
+  tickTimer();
+  persistGame();
+  clearActiveBoard();
+  vy.run = null;
   voyageUI.hideAll();
   ui.showTitle();
   voyageRefreshTitle();
@@ -3206,6 +3343,7 @@ function voyageRuntimeAPI() {
     grantUse: (id = '*', n = 1) => vy.effects?.grantUse(id, n) || 0,
     spendUndos: (n) => { const spent = Math.min(vy.run.undos, Math.max(0, Math.floor(Number(n) || 0))); vy.run.undos -= spent; voyageRefresh(); return spent; },
     notify: (text) => ui.toast('✦', 'Charm', text, 2600),
+    cardBonus: (reward) => penaltyFloats.show([{ ...reward, bonus: true }], { reducedMotion: settings.reducedMotion }),
     mark: (ids, style) => { for (const id of ids) { const g = cardGroups.get(id); if (g) setCardMark(g, style); } },
     clearMarks: () => { for (const g of cardGroups.values()) { setCardMark(g, null); setCardSticker(g, null); setCardMods(g, []); } },
     conceal: (ids) => {
@@ -3403,7 +3541,7 @@ function voyageDealBoard({ restore = null } = {}) {
   const initial = cloneState(cur.initial);
   vy.effects.setup({ state: initial, initial, deal: cur.deal, restored: !!restore });
   voyageRevealExposed();
-  if (!restore) vy.effects.emit('start', {});
+  vy.effects.emit(restore ? 'resume' : 'start', {});
   vy.settingUp = false;
   voyageRefresh();
   voyagePrepareAhead();
@@ -3431,12 +3569,25 @@ function voyageHud() {
   frameBoard();
 }
 
+function voyageFeedbackScore(history = game.history) {
+  return scoreBoard(history, vy.run.current.par, vy.effects,
+    scoringContext(vy.run, { elapsed: run.elapsed, rules: game.rules }));
+}
+
+function voyageShowScoreFeedback(before, card, { bonuses = false } = {}) {
+  const after = voyageFeedbackScore();
+  const feedback = penaltyFeedback(before, after, card);
+  if (bonuses) feedback.push(...bonusFeedback(before, after, card));
+  penaltyFloats.show(feedback, { reducedMotion: settings.reducedMotion });
+}
+
 // Report new history entries to the charm hooks, update the HUD and watch for a dead end.
 function voyageAfterMove() {
   const fx = vy.effects;
   if (!fx || !vy.boardLive || !vy.run || vy.run.status !== 'board') return;
   const h = game.history;
   const newMoves = h.slice(vy.seen);
+  const beforeFeedback = newMoves.length ? voyageFeedbackScore(vy.lastHistory) : null;
   if (newMoves.length) voyageClearPreview();
   vy.seen = h.length; // advance before hooks, which may themselves apply a charm move
   for (const m of newMoves) {
@@ -3445,6 +3596,7 @@ function voyageAfterMove() {
     if (m.t === 'F') fx.emit('foundation', { card: m.card, move: m, src: m.src, auto: !!m.auto });
     if (m.t === 'C' || (m.t === 'R' && m.to?.kind === 'free')) fx.emit('freecell', { card: m.card, move: m });
   }
+  if (beforeFeedback) voyageShowScoreFeedback(beforeFeedback, newMoves.at(-1).card || newMoves.at(-1).cards?.[0], { bonuses: true });
   voyageRevealExposed(newMoves);
   vy.seen = h.length;
   vy.lastHistory = h.slice();
@@ -3458,6 +3610,8 @@ function voyageAfterMove() {
 }
 
 function voyageUndone({ free = false, reset = false, keepUse = null } = {}) {
+  const beforeFeedback = voyageFeedbackScore(vy.lastHistory);
+  penaltyFloats.clear();
   voyageClearPreview();
   if (!free && !reset) spendUndo(vy.run);
   vy.seen = game.history.length;
@@ -3470,6 +3624,7 @@ function voyageUndone({ free = false, reset = false, keepUse = null } = {}) {
   }
   vy.lastHistory = game.history.slice();
   vy.effects?.emit('undo', { move: moves.find((m) => !m.auto) || moves[0], moves, free, reset });
+  voyageShowScoreFeedback(beforeFeedback, moves.find((m) => !m.auto)?.card || moves[0]?.card);
   voyageRelayout();
   voyageRevealExposed();
   voyagePersist();
@@ -3633,6 +3788,7 @@ function voyageWin({ conceded = false } = {}) {
   setStatus(conceded ? 'Stepped out — to be continued' : r.status === 'won' ? 'The voyage is complete!' : `Board ${result.idx + 1} cleared — ${'★'.repeat(result.stars)}`, 'ok');
   voyageUI.setHud(vyView());
   setTimeout(() => {
+    if (mode !== 'voyage' || vy.run !== r) return;
     voyageUI.showResult(vyView());
     if (r.status === 'reward') voyageUI.tutorial('reward');
   }, conceded || settings.reducedMotion ? 300 : REVEAL.panelAt * 1000);
@@ -3885,7 +4041,10 @@ window.addEventListener('keydown', (e) => {
   const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
   if (e.shiftKey && digit) {
     const col = parseInt(digit[1], 10) - 1;
-    if (col < 8 && selection && commitMove(tryDrop(selection.from, { kind: 'col', index: col }))) play.move('key_moves');
+    if (col < 8 && selection) {
+      if (commitMove(tryDrop(selection.from, { kind: 'col', index: col }))) play.move('key_moves');
+      else explainDrop(selection.from, { kind: 'col', index: col });
+    }
     return;
   }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -3984,10 +4143,14 @@ function loop() {
   const raw = clock.getDelta();
   const dt = Math.min(raw, 0.05);
   const tl = ui.els.title.classList;
-  if (!tl.contains('hidden') && !tl.contains('leaving')) return; // title open: 3D view hidden
+  if (!tl.contains('hidden') && !tl.contains('leaving')) {
+    penaltyFloats.clear();
+    return; // title open: 3D view hidden
+  }
   t += dt;
   animator.update(dt);
   motion.update(dt);
+  penaltyFloats.update((id) => window.FreeCell.projectCard(id, true));
   if (markTipAt && voyageUI.markTipVisible() && !drag) syncMarkTip(markTipAt.x, markTipAt.y, pickCardHit({ clientX: markTipAt.x, clientY: markTipAt.y }));
   updateDrag(dt);
   updateGlows(dt);

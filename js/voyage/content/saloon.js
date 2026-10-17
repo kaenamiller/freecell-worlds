@@ -40,7 +40,7 @@ defineCharm({
       if (m.t === 'F' && m.card === wanted) homeAt = move;
     });
     if (exposedAt != null && homeAt != null && homeAt - exposedAt <= 8) {
-      sb.addCoins('wanted', 'Wanted card caught', pay);
+      sb.addCoins('wanted', 'Wanted card caught', pay, wanted);
     }
   },
 });

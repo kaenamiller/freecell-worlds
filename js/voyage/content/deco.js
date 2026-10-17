@@ -73,7 +73,7 @@ defineCharm({
       if (move.t !== 'F' || !gold.has(move.card) || paid.has(move.card)) return;
       if (52 - cardsHome(state) >= 13) {
         paid.add(move.card);
-        sb.addCoins(`gilded.${move.card}`, 'Gilded Age · gold', 5);
+        sb.addCoins(`gilded.${move.card}`, 'Gilded Age · gold', 5, move.card);
       }
     });
   },

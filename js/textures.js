@@ -64,14 +64,6 @@ function heartPath(ctx) {
   ctx.closePath();
 }
 
-function spadeStemPath(ctx) {
-  ctx.moveTo(-0.12, 0.15);
-  ctx.bezierCurveTo(-0.02, 0.27, -0.03, 0.36, -0.22, 0.45);
-  ctx.lineTo(0.22, 0.45);
-  ctx.bezierCurveTo(0.03, 0.36, 0.02, 0.27, 0.12, 0.15);
-  ctx.closePath();
-}
-
 // Spade: a smaller inverted heart sitting high, with a flared stem dropping below its lobes.
 function spadePath(ctx) {
   ctx.save();
@@ -86,14 +78,25 @@ function spadePath(ctx) {
   ctx.closePath();
 }
 
+// Club: three touching leaves, a triangle filling the gap between them, and a flared stem.
+// Every subpath winds clockwise so the nonzero fill never cuts holes where they overlap.
 function clubPath(ctx) {
-  ctx.moveTo(0.19, -0.2);
-  ctx.arc(0, -0.2, 0.19, 0, Math.PI * 2, false);
-  ctx.moveTo(-0.03, 0.14);
-  ctx.arc(-0.22, 0.14, 0.19, 0, Math.PI * 2, false);
-  ctx.moveTo(0.41, 0.14);
-  ctx.arc(0.22, 0.14, 0.19, 0, Math.PI * 2, false);
-  spadeStemPath(ctx);
+  const r = 0.23;
+  const leaves = [[0, -0.27], [0.256, 0.109], [-0.256, 0.109]];
+  for (const [x, y] of leaves) {
+    ctx.moveTo(x + r, y);
+    ctx.arc(x, y, r, 0, Math.PI * 2, false);
+  }
+  ctx.moveTo(leaves[0][0], leaves[0][1]);
+  ctx.lineTo(leaves[1][0], leaves[1][1]);
+  ctx.lineTo(leaves[2][0], leaves[2][1]);
+  ctx.closePath();
+  ctx.moveTo(-0.04, 0.1);
+  ctx.lineTo(0.04, 0.1);
+  ctx.bezierCurveTo(0.04, 0.33, 0.09, 0.45, 0.135, 0.5);
+  ctx.lineTo(-0.135, 0.5);
+  ctx.bezierCurveTo(-0.09, 0.45, -0.04, 0.33, -0.04, 0.1);
+  ctx.closePath();
 }
 
 function suitPath(ctx, suit) {

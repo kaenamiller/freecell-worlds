@@ -340,6 +340,15 @@ export class VoyageChart {
     const harbour = (view.markets || []).find((market) => market.state === 'current');
     const boatAt = harbour && points.get(harbour.id) ? points.get(harbour.id)
       : current ? points.get(current.id) : (this.portrait ? { x: width / 2, y: height - 28 } : this.geo.origin);
+    // Island chips sit inside the island button, so their tips never pin; a click still selects the island.
+    const chipTip = (name, text) => ` title="" data-tip-pin="off" data-tip-name="${esc(name)}" data-tip-text="${esc(text.trim())}"`;
+    // Challenge chips show the charm art; the glyph stays behind it as the fallback if the art fails to load.
+    const chipIcon = (c, fallback) => {
+      const glyph = `<b>${esc(this.options.charmGlyph(c) || fallback)}</b>`;
+      const src = this.options.charmArt?.(c);
+      return src ? `<img src="${esc(src)}" alt="" draggable="false" loading="lazy" onerror="this.hidden=true">${glyph}` : glyph;
+    };
+    const stormText = (c) => (c?.level === 2 && c.upgradeText) || c?.text || '';
     const islands = all.map((node) => {
       const p = points.get(node.id);
       if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return '';
@@ -352,9 +361,9 @@ export class VoyageChart {
         <span class="voyage-island-glow" aria-hidden="true"></span>
         <span class="voyage-island-art"><img src="${esc(this.options.islandUrl(node.theme))}" alt="" draggable="false" loading="lazy" onerror="this.hidden=true">${fallbackIsland(accent)}</span>
         <span class="voyage-island-name">${esc(t.name)}</span>
-        <span class="voyage-island-chips" aria-hidden="true"><i class="challenge">${esc(this.options.charmGlyph(challenge) || '◆')}</i>${node.market ? '<i class="harbour" title="Market after this table">⚓</i>' : ''}${node.storm ? `<i class="storm voyage-node-storm">${esc(this.options.charmGlyph(node.stormChallenge) || 'ϟ')}</i>` : ''}</span>
+        <span class="voyage-island-chips" aria-hidden="true"><i class="challenge"${chipTip(`Challenge · ${challenge?.name || 'None'}`, `${challenge?.text || 'No challenge on this table.'} Strength ${strength}.`)}>${chipIcon(challenge, '◆')}</i>${node.storm ? `<i class="storm voyage-node-storm"${chipTip(`Storm · ${node.stormChallenge?.name || 'Second challenge'}`, `${stormText(node.stormChallenge)} A storm table adds this second challenge, but pays double coins and offers 3 charm choices.`)}>${chipIcon(node.stormChallenge, 'ϟ')}</i>` : ''}</span>
         ${node.storm ? '<span class="voyage-storm-head" aria-hidden="true"></span>' : ''}
-        ${node.final ? `<span class="voyage-finale-mark" aria-hidden="true">${esc(this.options.charmGlyph(view.boss) || '♛')}</span>` : ''}
+        ${node.final ? `<span class="voyage-finale-mark" aria-hidden="true"${chipTip(`Final boss · ${view.boss?.name || 'Boss'}`, `${view.boss?.text || 'The boss waits on this final table.'}${node.confiscated ? ` Confiscates ${node.confiscated.name}.` : ''}`)}>${esc(this.options.charmGlyph(view.boss) || '♛')}</span>` : ''}
       </button>`;
     }).join('');
     const markets = (view.markets || []).map((market) => {

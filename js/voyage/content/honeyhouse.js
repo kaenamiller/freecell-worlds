@@ -25,7 +25,7 @@ defineCharm({
     replay(sb, (move, state) => {
       if (move.t !== 'F') return;
       const tops = state.found;
-      if (Math.max(...tops) - Math.min(...tops) <= span) coins++;
+      if (Math.max(...tops) - Math.min(...tops) <= span) { coins++; sb.cardBonus?.('forager', move.card, 1); }
     });
     if (coins) sb.addCoins('forager', 'Forager', coins);
   },

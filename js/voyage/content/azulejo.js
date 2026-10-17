@@ -22,7 +22,7 @@ defineCharm({
     const each = ctx.level === 2 ? 4 : 2;
     const seq = foundationSequence(sb.history);
     let n = 0;
-    for (let i = 1; i < seq.length; i++) if (rankOf(seq[i]) === rankOf(seq[i - 1])) n++;
+    for (let i = 1; i < seq.length; i++) if (rankOf(seq[i]) === rankOf(seq[i - 1])) { n++; sb.cardBonus?.('tessellate', seq[i], each); }
     if (n) sb.addCoins('tessellate', 'Tessellation', n * each);
   },
 });

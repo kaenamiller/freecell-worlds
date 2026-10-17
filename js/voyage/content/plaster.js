@@ -71,7 +71,7 @@ defineCharm({
       const cards = move.t === 'F' ? [move.card] : move.homeCards || (move.op === 'voyage.spur' ? [move.card] : []);
       for (const [i, card] of cards.entries()) {
         if (paid.has(card) || rankOf(card) !== ctx.runMemo.rank || cardsHome(state) - cards.length + i + 1 >= 26) continue;
-        paid.add(card); sb.addCoins(`commission.${card}`, 'Commission', ctx.level === 2 ? 6 : 4);
+        paid.add(card); sb.addCoins(`commission.${card}`, 'Commission', ctx.level === 2 ? 6 : 4, card);
       }
     });
   },

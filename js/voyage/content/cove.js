@@ -28,7 +28,7 @@ defineCharm({
     replay(sb, (m) => {
       if (m.t !== 'F') return;
       homes++;
-      if (homes < 30 && ids.includes(m.card)) paid++;
+      if (homes < 30 && ids.includes(m.card)) { paid++; sb.cardBonus?.('treasure', m.card, 15); }
     });
     if (paid) sb.addCoins('treasure', 'Buried treasure', paid * 15);
   },
@@ -112,7 +112,8 @@ defineCharm({
   score(sb, ctx) {
     const cursed = new Set(ctx.memo.cursed || []);
     let penalty = 0;
-    replay(sb, (move) => {
+    replay(sb, (move, _state, _index, rules) => {
+      if (rules.cleansedCards?.includes(move.card)) return;
       if (move.t === 'C' && cursed.has(move.card)) penalty += 2;
       if (move.t === 'R' && move.to?.kind === 'free' && cursed.has(move.card)) penalty += 2;
     });

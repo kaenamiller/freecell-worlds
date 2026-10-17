@@ -30,16 +30,16 @@ defineCharm({
     const pay = ctx.level >= 2 ? 20 : 12;
     let homes = sb.initial?.found?.reduce((n, rank) => n + rank, 0) || 0;
     let rankHomes = 0;
-    let won = false;
+    let won = false, winner = null;
     replay(sb, (m) => {
       if (m.t !== 'F') return;
       homes++;
       if (rankOf(m.card) === rank) {
         rankHomes++;
-        if (rankHomes === 4 && homes < 30) won = true;
+        if (rankHomes === 4 && homes < 30) { won = true; winner = m.card; }
       }
     });
-    if (won) sb.addCoins('blueplate', `Blue plate (${rankBadge(rank)})`, pay);
+    if (won) sb.addCoins('blueplate', `Blue plate (${rankBadge(rank)})`, pay, winner);
   },
 });
 

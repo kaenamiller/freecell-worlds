@@ -19,7 +19,7 @@ defineCharm({
       if (move.t !== 'F') return;
       tops[suitOf(move.card)]++;
       const rank = tops[0];
-      if (rank && rank < 12 && tops.every((t) => t === rank)) sb.addCoins(`spice.${rank}`, 'Spice Blend', pay);
+      if (rank && rank < 12 && tops.every((t) => t === rank)) sb.addCoins(`spice.${rank}`, 'Spice Blend', pay, move.card);
     });
   },
 });
