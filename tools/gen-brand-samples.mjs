@@ -12,6 +12,8 @@ const only = new Set((args.find((arg) => arg.startsWith('--only='))?.slice(7) ||
 const ROOT = 'assets-src/art-staging/brand';
 const REF = `${ROOT}/island-reference.png`;
 const LOGO_REF = `${ROOT}/logo-o-globe.png`;
+// Edit jobs restyle the approved logo using the approved icon, without the island sheet.
+const EDIT_REFS = [`${ROOT}/logo-o-bold.png`, `${ROOT}/icon-gs-classic.png`];
 
 const STYLE = `Art direction: the same hand-painted storybook nautical style as the attached island sprites. Traditional gouache and transparent watercolor with fine charcoal contours. Dark teal, indigo, weathered parchment, muted mineral pigments, warm lantern gold. Sophisticated tabletop-game illustration.`;
 const ISLANDS = `Tiny floating island boards like the attached reference sit on the globe's surface as its continents: a gold Roman statue on marble, a neon cyber tower, a carnival ferris wheel, a brass diving helmet, a pink blossom tree on raked sand, a wooden saloon, a frosted research hut. Each island is a miniature, readable, with its own painted shoreline ring.`;
@@ -97,13 +99,34 @@ const JOBS = [
     ratio: '1:1',
     prompt: `${ICON}\n\nA blue painted ocean globe so large it nearly fills the square, its curved edge just inside the canvas, with soft gouache waves and a lantern-gold rim light along the upper left. A large solid gold spade pip sits dead center, thick and simple, warm gold leaf with a soft drop shadow. Corners of the canvas are deep near-black indigo. No islands, no stars, no extra detail. ${STYLE}`,
   },
+  {
+    id: 'logo-spade-ring',
+    ratio: '16:9',
+    edit: true,
+    prompt: `Edit the first image. Keep everything exactly the same — the "FREECELL" capitals, the "Worlds" lettering, the gold finish, teal outline, glow, suit pips, layout, proportions and the flat #0d0806 background. Change only the globe that forms the "o" in "Worlds": replace it with the globe from the second image, a blue painted ocean globe with soft gouache waves and a thin gold rim, with one large solid gold spade pip in its center. No islands, statues or objects on the globe. Keep the same size and position, and keep the gold orbit ring sweeping behind the "W" and in front of the "r".`,
+  },
+  {
+    id: 'logo-spade-plain',
+    ratio: '16:9',
+    edit: true,
+    prompt: `Edit the first image. Keep everything exactly the same — the "FREECELL" capitals, the "Worlds" lettering, the gold finish, teal outline, glow, suit pips, layout, proportions and the flat #0d0806 background. Change only the globe that forms the "o" in "Worlds": replace it with the exact globe from the second image, a blue painted ocean globe with soft gouache waves, a thin gold rim and one large solid gold spade pip in its center. Remove the orbit ring entirely. No islands, statues or objects on the globe. Same size and position as the original globe.`,
+  },
+  {
+    id: 'logo-spade-ring-front',
+    ratio: '16:9',
+    edit: true,
+    prompt: `Edit the first image. Keep everything exactly the same — the "FREECELL" capitals, the "Worlds" lettering, the gold finish, teal outline, glow, suit pips, layout, proportions and the flat #0d0806 background. Change only the globe that forms the "o" in "Worlds": replace it with the globe from the second image, a blue painted ocean globe with soft gouache waves and one large solid gold spade pip in its center, sized to match the letter height of "Worlds" so it reads as a natural "o". Wrap it in a thin tilted gold orbit ring that passes in front of the lower globe and behind the top, never crossing the spade. No islands, statues or objects on the globe.`,
+  },
 ];
 
 async function gen(job) {
   const out = `${ROOT}/${job.id}.png`;
   if (!force && existsSync(out)) return console.log('skip', out);
+  const parts = job.edit
+    ? [...EDIT_REFS.map((ref) => ({ inlineData: { mimeType: 'image/png', data: readFileSync(ref).toString('base64') } })), { text: job.prompt }]
+    : null;
   const body = {
-    contents: [{ parts: [
+    contents: [{ parts: parts || [
       ...(job.refs || []).flatMap((ref) => [
         { inlineData: { mimeType: 'image/png', data: readFileSync(ref).toString('base64') } },
         { text: 'This attached image is the approved logo. Keep its typeface, gold finish and globe treatment unless the prompt changes them.' },

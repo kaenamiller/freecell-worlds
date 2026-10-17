@@ -14,18 +14,79 @@ LOGO_OUT = Path('assets/art/brand')
 ICON_OUT = Path('assets/icons')
 
 
+def tighten_w(img, bg, shift=100, seed=(621, 900)):
+    """Slide the "W" right so its right arm tucks behind the globe.
+
+    The W is flood-filled from a seed inside it, erased, redrawn `shift` px to
+    the right, and the globe, ring and other letters are laid back on top.
+    """
+    im = np.asarray(img).astype(np.float32)
+    d = np.sqrt(((im - bg) ** 2).sum(-1))
+    m = Image.fromarray(((d > 10) * 255).astype(np.uint8)).copy()
+    ImageDraw.floodfill(m, seed, 128)
+    w = np.array(m) == 128
+    w_mask = Image.fromarray((w * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3))
+    rest = Image.fromarray((((d > 6) & (np.array(w_mask) < 8)) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(1.5))
+    out = img.copy()
+    out.paste(Image.new('RGB', img.size, tuple(int(v) for v in bg)), (0, 0), w_mask)
+    out.paste(img, (shift, 0), w_mask)
+    out.paste(img, (0, 0), rest)
+    return out
+
+
+def ink_center(solid):
+    xs = np.nonzero(solid.sum(0) > 3)[0]
+    return (xs[0] + xs[-1]) / 2
+
+
+def center_worlds(out):
+    """Center the "Worlds" line (with its globe and ring) under "FREECELL".
+
+    Sliding the W shortens the line on the left. Each line's glow is assigned
+    by distance to that line's solid ink, so moving one line leaves no seam.
+    """
+    rgba = np.asarray(out).astype(np.float32) / 255
+    alpha = rgba[..., 3]
+    solid = alpha > 0.5
+    ys = np.nonzero(solid.sum(1) > 3)[0]
+    top, bottom = ys[0], ys[-1] + 1
+    lo, hi = top + (bottom - top) * 3 // 10, top + (bottom - top) * 11 // 20
+    split = lo + int(np.argmin(solid[lo:hi].sum(1)))
+    dx = round(ink_center(solid[top:split]) - ink_center(solid[split:bottom]))
+    if not dx:
+        return out
+
+    def reach(mask):
+        img = Image.fromarray((mask * 255).astype(np.uint8))
+        return np.asarray(img.filter(ImageFilter.MaxFilter(41)).filter(ImageFilter.GaussianBlur(12))).astype(np.float32)
+
+    rows = np.arange(alpha.shape[0])[:, None]
+    near_upper, near_lower = reach(solid & (rows < split)) ** 4, reach(solid & (rows >= split)) ** 4
+    weight = np.where(near_upper + near_lower > 0, near_lower / np.maximum(near_upper + near_lower, 1e-3), (rows >= split).astype(np.float32))
+    pre = np.dstack([rgba[..., :3] * alpha[..., None], alpha])
+    lower = np.roll(pre * weight[..., None], dx, axis=1)
+    merged = np.clip(pre * (1 - weight[..., None]) + lower, 0, 1)
+    a = merged[..., 3:]
+    rgb = merged[..., :3] / np.maximum(a, 1e-4)
+    print('centered Worlds by', dx, 'px')
+    return Image.fromarray((np.dstack([rgb, a]) * 255).round().astype(np.uint8), 'RGBA')
+
+
 def cut_logo():
-    im = np.asarray(Image.open(SRC / 'logo-o-bold.png').convert('RGB')).astype(np.float32)
+    src = Image.open(SRC / 'logo-spade-ring-front.png').convert('RGB')
+    raw = np.asarray(src).astype(np.float32)
     # Sample the backdrop from the corners rather than trusting the prompt hex.
+    bg = np.concatenate([raw[:40, :40], raw[:40, -40:], raw[-40:, :40], raw[-40:, -40:]]).reshape(-1, 3).mean(0)
+    im = np.asarray(tighten_w(src, bg)).astype(np.float32)
     h, w, _ = im.shape
-    bg = np.concatenate([im[:40, :40], im[:40, -40:], im[-40:, :40], im[-40:, -40:]]).reshape(-1, 3).mean(0)
     dist = np.sqrt(((im - bg) ** 2).sum(-1))
     alpha = np.clip((dist - 8) / 52, 0, 1)
     alpha[alpha < 0.06] = 0
     # Un-blend so soft edges carry the true ink colour instead of a dark fringe.
     safe = np.maximum(alpha, 1e-3)[..., None]
     rgb = np.clip(bg + (im - bg) / safe, 0, 255)
-    out = Image.fromarray(np.dstack([rgb, alpha * 255]).astype(np.uint8), 'RGBA')
+    out = center_worlds(Image.fromarray(np.dstack([rgb, alpha * 255]).astype(np.uint8), 'RGBA'))
+    alpha = np.asarray(out.getchannel('A')) / 255
     # Crop to rows/columns with real ink; faint backdrop texture would otherwise widen the box.
     solid = alpha > 0.5
     ys, xs = np.nonzero(solid.sum(1) > 3)[0], np.nonzero(solid.sum(0) > 3)[0]
