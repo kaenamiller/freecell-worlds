@@ -17,6 +17,8 @@ GOOGLE_CLIENT_SECRET=
 # Theme generation. GEN_MOCK=1 runs the whole pipeline with stand-in art and no API calls;
 # set it to 0 and fill in the keys to generate for real.
 GEN_MOCK=1
+# Local only. Staging's allowlist is ADMIN_EMAILS in wrangler.toml [env.staging.vars].
+ADMIN_EMAILS=admin@example.com
 ANTHROPIC_API_KEY=
 GEMINI_API_KEY=
 ELEVENLABS_API_KEY=

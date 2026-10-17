@@ -37,7 +37,7 @@ export function client() {
     const text = await res.text();
     let json = null;
     try { json = JSON.parse(text); } catch {}
-    return { status: res.status, json, headers: res.headers };
+    return { status: res.status, json, text, headers: res.headers };
   };
 }
 
