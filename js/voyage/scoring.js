@@ -80,7 +80,7 @@ export class ScoreBreakdown {
     return Math.max(0, Math.round(this.mults.reduce((s, m) => s * m.x, this.subtotal)));
   }
   toJSON() {
-    return { lines: this.lines, mults: this.mults, subtotal: this.subtotal, total: this.total, coinLines: this.coinLines, coinTotal: this.coinTotal };
+    return { lines: this.lines, mults: this.mults, subtotal: this.subtotal, total: this.total, coinLines: this.coinLines, coinTotal: this.coinTotal, ...(this.charmDeltas ? { charms: this.charmDeltas } : {}) };
   }
 }
 

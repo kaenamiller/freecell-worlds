@@ -1,0 +1,101 @@
+# FreeCell Worlds API. Secrets are not in this file; set them with
+#   npx wrangler secret put BETTER_AUTH_SECRET            (production)
+#   npx wrangler secret put BETTER_AUTH_SECRET --env staging
+# and the same for GOOGLE_CLIENT_SECRET, RESEND_API_KEY, TURNSTILE_SECRET_KEY,
+# ANTHROPIC_API_KEY, GEMINI_API_KEY, ELEVENLABS_API_KEY.
+# Local development reads .dev.vars instead (copy .dev.vars.example).
+# Bindings are not inherited by [env.staging]; that block repeats every one it needs.
+name = "freecell-worlds-api"
+account_id = "489793938d73b69a961a8b3795cc1f11"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+routes = [{ pattern = "api.freecellworlds.com", custom_domain = true }]
+
+[vars]
+BETTER_AUTH_URL = "https://api.freecellworlds.com"
+TRUSTED_ORIGINS = "https://freecellworlds.com,https://www.freecellworlds.com"
+# Parent-domain cookie so freecellworlds.com and api.freecellworlds.com share a session.
+# This cookie is sent to every subdomain, including staging, so staging uses another name.
+COOKIE_DOMAIN = "freecellworlds.com"
+COOKIE_PREFIX = "fcw"
+EMAIL_FROM = "FreeCell Worlds <accounts@mail.freecellworlds.com>"
+GOOGLE_CLIENT_ID = "895742309264-uprjg6dj8eliu9sr7mf9u866gpfnbuol.apps.googleusercontent.com"
+# Theme generation. LLM_MODEL / IMAGE_MODEL override the defaults in src/themes/ (leave
+# unset); GEN_MOCK = "1" swaps every model call for local stand-ins.
+GEN_MOCK = "0"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "freecell-worlds"
+database_id = "8d4f72c3-98ac-4ad1-af49-60b9252b27bb"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "THEME_ASSETS"
+bucket_name = "freecell-worlds-theme-assets"
+
+# Theme generation runs (src/themes/workflow.js).
+[[workflows]]
+name = "freecell-worlds-theme-generation"
+binding = "THEME_GEN"
+class_name = "ThemeGeneration"
+
+# Resizes generated art into the files the game loads.
+[images]
+binding = "IMAGES"
+
+[triggers]
+crons = ["17 * * * *"]
+
+[observability]
+enabled = true
+
+# Staging: api-staging.freecellworlds.com. Deployed on every push to main (and this
+# branch) by .github/workflows/deploy-api.yml. Theme generation stays on stand-ins.
+# Cookies are host-only and use a different prefix so production's Domain=freecellworlds.com
+# session is not accepted here. TURNSTILE_SECRET_KEY is a secret, not a var: a var of
+# the same name would overwrite the secret on every deploy.
+[env.staging]
+name = "freecell-worlds-api-staging"
+routes = [{ pattern = "api-staging.freecellworlds.com", custom_domain = true }]
+
+[env.staging.vars]
+BETTER_AUTH_URL = "https://api-staging.freecellworlds.com"
+TRUSTED_ORIGINS = "https://staging.freecellworlds.com,http://localhost:8080,http://127.0.0.1:8080"
+COOKIE_DOMAIN = ""
+COOKIE_PREFIX = "fcw-staging"
+EMAIL_FROM = "FreeCell Worlds <accounts@mail.freecellworlds.com>"
+GOOGLE_CLIENT_ID = "895742309264-uprjg6dj8eliu9sr7mf9u866gpfnbuol.apps.googleusercontent.com"
+GEN_MOCK = "1"
+# Comma-separated account emails allowed to open /admin. Not a secret: it grants
+# nothing by itself, and the signed-in session is still required. Kaena should
+# confirm kaena@redblindmedia.com is the email on her staging account.
+# Production is unset here, so a production deploy allows nobody until ADMIN_EMAILS
+# is added for that environment.
+ADMIN_EMAILS = "kaena@redblindmedia.com"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "freecell-worlds-staging"
+database_id = "c1af33a8-3b29-4146-b396-7ead7aa4b6e9"
+migrations_dir = "migrations"
+
+[[env.staging.r2_buckets]]
+binding = "THEME_ASSETS"
+bucket_name = "freecell-worlds-theme-assets-staging"
+
+[[env.staging.workflows]]
+name = "freecell-worlds-theme-generation-staging"
+binding = "THEME_GEN"
+class_name = "ThemeGeneration"
+
+[env.staging.images]
+binding = "IMAGES"
+
+[env.staging.triggers]
+crons = ["17 * * * *"]
+
+[env.staging.observability]
+enabled = true

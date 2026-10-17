@@ -31,7 +31,9 @@
 // sonar(): Promise<{steps, entries}|{steps:null}|null> finds the nearest earlier winnable position
 // (steps = player moves back, entries = history entries to rewind); rewind(n,{free:true}) is undo-free.
 // api (scoped to this charm; effects saved automatically):
-// addUndos(n), spendUndos(n), notify(text), badge(text), mark(cardIds,style),
+// addUndos(n), spendUndos(n), notify(text), badge(text), mark(cardIds,style), track(what, n=1)
+// (counts a moment worth analysing, e.g. a thaw milestone; notify and spendUndos are counted
+// automatically; see js/voyage/analytics.js),
 // unmark(cardIds), conceal(cardIds), reveal(cardIds), hint(): Promise<boolean>,
 // preview(n=3): Promise<Move[]|null>, solvable(): Promise<boolean|null>,
 // resetBoard(): boolean, openUndoWindow(): boolean, grantUse(id|'*',n=1): number,
@@ -153,6 +155,15 @@ export class BoardEffects {
       saved.marks ??= {}; saved.concealed ??= []; saved.revealed ??= [];
       const scoped = Object.create(api);
       scoped.addUndos = (n) => this.addUndos(n, ctx);
+      // Analytics: tally visible moments per charm (js/voyage/analytics.js). Replayed setup on
+      // resume is not a new moment, so it isn't counted.
+      scoped.track = (what, n = 1) => { if (!this.restoring) api.charmTrack?.(ctx.id, what, n); };
+      scoped.notify = (text) => { scoped.track('notify'); return api.notify?.(text); };
+      scoped.spendUndos = (n) => {
+        const spent = api.spendUndos?.(n);
+        if (spent) scoped.track('spend_undos', spent);
+        return spent;
+      };
       scoped.grantUse = (id = '*', n = 1) => this.grantUse(id, n);
       scoped.abilityUses = () => this.abilityUses();
       scoped.addCoins = (n) => {
@@ -210,7 +221,7 @@ export class BoardEffects {
       const granted = count(this.memo._undoGrants);
       const allowed = Math.min(n, Math.max(0, VOYAGE.charmUndoCap - granted));
       this.memo._undoGrants = granted + allowed;
-      if (allowed < n) this.api.notify?.('undo cap reached');
+      if (allowed < n) { this.api.notify?.('undo cap reached'); this.api.undoCapHit?.(ctx.id); }
       n = allowed;
     }
     if (n) {
@@ -330,7 +341,10 @@ export class BoardEffects {
         // Compatibility while these content hooks migrate to checking ev.free/reset.
         // Other undo hooks still run to restore visibility, anchors and X effects.
         if (event === 'undo' && (ev.free || ev.reset) && ['cyber.cache', 'canyon.echo', 'deepstorage.redundancy', 'cyber.challenge'].includes(a.id)) return;
-        if (CHARMS[a.id].on?.[event]?.(this.ctxs[i], ev) === true) cancelled = true;
+        const handler = CHARMS[a.id].on?.[event];
+        if (!handler) return;
+        if (event === 'stuck') this.stuckHandledBy = a.id;
+        if (handler(this.ctxs[i], ev) === true) { cancelled = true; if (event === 'stuck') this.stuckCancelledBy = a.id; }
       });
     } finally { this.events.pop(); this.eventPayloads.pop(); }
     return cancelled;
@@ -405,7 +419,18 @@ export class BoardEffects {
     return Math.max(1, Math.min(3, Math.floor(cap)));
   }
 
-  score(sb) { this.active.forEach((a, i) => CHARMS[a.id].score?.(sb, this.ctxs[i])); }
+  // Each charm's share of the score is kept on sb.charmDeltas for analytics (voyage_charm_score).
+  score(sb) {
+    sb.charmDeltas = null;
+    this.active.forEach((a, i) => {
+      const fn = CHARMS[a.id].score;
+      if (!fn) return;
+      const pts = sb.subtotal, coins = sb.coinTotal, mults = sb.mults.length;
+      fn(sb, this.ctxs[i]);
+      const d = { points: sb.subtotal - pts, coins: sb.coinTotal - coins, mult: sb.mults.slice(mults).reduce((m, x) => m * x.x, 1) };
+      if (d.points || d.coins || d.mult !== 1) (sb.charmDeltas ??= {})[a.id] = d;
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------

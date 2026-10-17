@@ -1,0 +1,30 @@
+{
+  "name": "freecell-worlds-api",
+  "private": true,
+  "description": "Accounts, sign-in, progress sync and custom theme generation for FreeCell Worlds (Cloudflare Worker + D1 + R2 + Workflows).",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --env=\"\"",
+    "db:migrate:local": "wrangler d1 migrations apply freecell-worlds --local",
+    "db:migrate": "wrangler d1 migrations apply freecell-worlds --remote",
+    "db:migrate:staging": "wrangler d1 migrations apply freecell-worlds-staging --remote --env staging",
+    "deploy:staging": "wrangler deploy --env staging",
+    "gen:schema": "node scripts/gen-schema.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
+    "grant": "node scripts/grant-tokens.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "better-auth": "^1.7.7",
+    "hono": "^4.13.13",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "wrangler": "^4.150.0"
+  },
+  "allowScripts": {
+    "workerd@1.20261006.1": true,
+    "esbuild@0.28.2": true
+  }
+}

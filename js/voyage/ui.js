@@ -1,11 +1,12 @@
 // Voyage's DOM layer. main.js owns the run and supplies RunView snapshots.
 import { THEMES } from '../themes.js';
-import { load, save, settings } from '../store.js';
+import { load, save, settings, track as trackLive } from '../store.js';
 import { ui } from '../ui.js';
 import { CHARMS } from './charms.js';
 import { VoyageChart } from './chart.js';
 import { explainScoreLine } from './scoring.js';
 import { voyageStats } from './stats.js';
+import { track, screen } from '../analytics.js';
 
 const $ = (id) => document.getElementById(id);
 const TARGET_HINT = 'Click a glowing target · or Tab, then Enter';
@@ -108,7 +109,7 @@ export const voyageUI = {
       charmArt,
     });
     this.syncMotion();
-    this.tutorialSeen = load('voyageTutorial', {});
+    this.tutorialSeen = trackLive('voyageTutorial', load('voyageTutorial', {}));
     $('btn-voyage')?.addEventListener('click', () => this.handlers[this.titleRun ? 'continueVoyage' : 'startVoyage']?.(this.titleRun ? undefined : { daily: false }));
     $('btn-voyage-new')?.addEventListener('click', () => this.handlers.startVoyage?.({ daily: false }));
     $('btn-voyage-daily')?.addEventListener('click', () => this.handlers.startVoyage?.({ daily: true }));
@@ -325,6 +326,7 @@ export const voyageUI = {
     $('voyage-result').hidden = true;
     $('voyage-end').hidden = true;
     $('voyage-map').hidden = false;
+    screen('voyage_map');
     $('voyage-map-sub').textContent = `${localDate(view.daily)} · ${num(view.score)} points · ${view.boons.filter((c) => !c.hidden).length} charms`;
     $('voyage-map-coins').innerHTML = purse(view.coins);
     $('voyage-map-progress').textContent = `${view.results.length} of ${view.boards} boards cleared · ${view.undos} shared undos`;
@@ -336,6 +338,7 @@ export const voyageUI = {
     this.highlightNode = null;
     this.selectedByUser = false;
     this.tappedNode = null;
+    this.inspected = 0; // tables the player opened before choosing (voyage_node_pick)
     this.renderChart();
     this.selectNode(this.selectedNode, false, false);
     this.setPreparing(this.preparing);
@@ -387,6 +390,7 @@ export const voyageUI = {
     }
     const node = this.mapView?.map.flat().find((n) => n.id === id);
     if (!node) return;
+    if (highlight && this.selectedNode !== id) this.inspected = (this.inspected || 0) + 1;
     if (this.selectedNode !== id) this.tappedNode = null;
     this.selectedNode = id;
     this.mapRouteNode = id;
@@ -435,6 +439,7 @@ export const voyageUI = {
     const focusKey = focused && [focused.dataset.portAction, focused.dataset.id, focused.dataset.offer];
     const scroll = $('voyage-port-stalls').scrollTop;
     this.hideAll();
+    screen('voyage_port');
     this.portView = view;
     const port = view.port;
     if (!port) return;
@@ -729,6 +734,7 @@ export const voyageUI = {
     this.resultTimers = [];
     const result = view.results.at(-1);
     if (!result) return;
+    screen('voyage_reward');
     const t = theme(result.theme);
     const lines = result.score?.lines || [];
     const mults = result.score?.mults || [];
@@ -755,6 +761,7 @@ export const voyageUI = {
 
   showRunEnd(view) {
     this.hideAll();
+    screen('voyage_run_end');
     const won = view.status === 'won';
     const reached = won ? view.boards : Math.min(view.boards, view.results.length + 1);
     const allCharms = new Map(view.boons.map((c) => [c.id, c]));
@@ -814,9 +821,12 @@ export const voyageUI = {
     $('voyage-tutorial').hidden = false;
     $('voyage-tutorial-done').textContent = this.tutorialQueue?.length ? 'Next' : 'Got it';
     $('voyage-tutorial-done').focus({ preventScroll: true });
+    track('tutorial_begin', { step, replay: !!force });
   },
   replayTutorial() { this.tutorialQueue = ['map', 'board', 'reward']; this.tutorial(this.tutorialQueue.shift(), true); },
   dismissTutorial(advance = false) {
+    const box = $('voyage-tutorial');
+    if (!box.hidden) track('tutorial_complete', { step: box.dataset.step, replay: !!this.tutorialQueue, skipped: !advance });
     $('voyage-tutorial').hidden = true;
     if (advance && this.tutorialQueue?.length) this.tutorial(this.tutorialQueue.shift(), true);
     else this.tutorialQueue = null;

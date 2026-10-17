@@ -1,5 +1,5 @@
 // Voyage statistics, kept apart from classic stats (js/stats.js).
-import { load, save } from '../store.js';
+import { load, save, track } from '../store.js';
 import { totalScore, totalStars } from './run.js';
 import { economy } from './port.js';
 
@@ -24,7 +24,7 @@ const blank = {
   recent: [], // last 10 runs: { seed, daily, won, board, score, stars, at }
 };
 
-export const voyageStats = load('voyageStats', JSON.parse(JSON.stringify(blank)));
+export const voyageStats = track('voyageStats', load('voyageStats', JSON.parse(JSON.stringify(blank))), blank);
 const persist = () => save('voyageStats', voyageStats);
 
 export function recordRunStart() {

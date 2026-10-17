@@ -27,12 +27,38 @@ export function load(key, fallback) {
   }
 }
 
-export function save(key, value) {
+// js/sync.js listens here to push signed-in players' changes to their account.
+const saveListeners = new Set();
+export const onSave = (fn) => saveListeners.add(fn);
+
+function write(key, value) {
   try {
     localStorage.setItem(PREFIX + key, JSON.stringify(value));
   } catch {
     /* storage unavailable (private mode / quota) — ignore */
   }
+}
+
+export function save(key, value) {
+  write(key, value);
+  for (const fn of saveListeners) fn(key, value);
+}
+
+// Modules that keep a key in memory (settings, stats, ...) register the live object
+// and its defaults, so a copy pulled from the account can replace it in place.
+const live = new Map();
+export function track(key, obj, fallback = {}) {
+  live.set(key, { obj, fallback });
+  return obj;
+}
+
+// Store a copy that came from the account: written locally without echoing back to sync.
+export function applyRemote(key, value) {
+  write(key, value);
+  const t = live.get(key);
+  if (!t) return;
+  for (const k of Object.keys(t.obj)) delete t.obj[k];
+  Object.assign(t.obj, JSON.parse(JSON.stringify(t.fallback)), value || {});
 }
 
 export const defaultSettings = {
@@ -50,9 +76,11 @@ export const defaultSettings = {
   highContrast: false,
   reducedMotion: false,
   cursorLight: true,
+  tapToPeek: false,
+  shareData: true, // Settings → Privacy; see js/consent.js
 };
 
-export const settings = load('settings', defaultSettings);
+export const settings = track('settings', load('settings', defaultSettings), defaultSettings);
 // Preserve the old pointer-effect preference when upgrading existing settings.
 const savedSettings = load('settings', {});
 if (savedSettings.cursorLight === undefined && savedSettings.parallax !== undefined) {
