@@ -219,10 +219,15 @@ export function buildTableLayer(theme, art, L, opts = {}) {
   // Theme-neutral rule markers, created lazily so classic tables render identically.
   const ruleMarkers = new Map();
   let ruleTime = 0;
+  // Frost Pattern tags sit in the gap between the free-cell row and the tableau, so they
+  // stay readable while the column is still full.
+  const FROST_TAG_W = .52, FROST_TAG_H = .2, FROST_TAG_Z = L.TABLEAU_Z - CARD.H / 2 - .15;
+  const frostTags = [];
   function marker(key, type, label = '') {
     if (ruleMarkers.has(key)) return ruleMarkers.get(key);
     const canvas = document.createElement('canvas');
-    canvas.width = 384; canvas.height = 256;
+    const wide = type === 'frosttag';
+    canvas.width = wide ? 512 : 384; canvas.height = wide ? 192 : 256;
     const ctx = canvas.getContext('2d');
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     if (type === 'frost') {
@@ -266,18 +271,25 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     } else if (type === 'pip') {
       ctx.fillStyle = label === 'red' ? '#efb1b1' : '#d0d9e1';
       ctx.font = '120px serif'; ctx.fillText(label === 'red' ? '♦' : '♠', 192, 128);
+    } else if (type === 'frosttag') {
+      // A frosted pill above the column: ❄ plus the colour an emptied column will accept.
+      const red = label === 'red';
+      ctx.fillStyle = '#e4f6fd'; ctx.strokeStyle = '#4fb6e3'; ctx.lineWidth = 14;
+      ctx.beginPath(); ctx.roundRect(8, 8, 496, 176, 88); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#2a7ea6'; ctx.font = 'bold 150px sans-serif'; ctx.fillText('❄', 148, 102);
+      ctx.fillStyle = red ? '#d0202c' : '#11171d'; ctx.font = 'bold 190px serif'; ctx.fillText(red ? '♦' : '♠', 358, 106);
     } else if (type === 'limit' || type === 'maxrank' || type === 'emptycolor' || type === 'stack' || type === 'spurcap') {
       ctx.fillStyle = 'rgba(230,235,239,.75)'; ctx.font = 'bold 92px serif'; ctx.fillText(label, 192, 128);
     } else {
       ctx.fillStyle = 'rgba(230,235,239,.65)'; ctx.font = 'bold 104px serif'; ctx.fillText(label + '+', 192, 128);
     }
     const tex = track(new THREE.CanvasTexture(canvas));
-    const mat = track(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: .85 }));
+    const mat = track(new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: wide ? 1 : .85 }));
     const g = new THREE.Group();
     const pieces = type === 'seal' || type === 'frost' ? 3 : 1;
-    const small = ['pip', 'limit', 'gate', 'stack', 'emptycolor', 'spurcap'].includes(type);
-    const width = small ? (type === 'gate' ? .52 : .34) : CARD.W * .92;
-    const height = type === 'seal' ? .23 : small ? .24 : CARD.H * .9;
+    const small = ['pip', 'limit', 'gate', 'stack', 'emptycolor', 'spurcap', 'frosttag'].includes(type);
+    const width = small ? (type === 'gate' ? .52 : type === 'frosttag' ? FROST_TAG_W : .34) : CARD.W * .92;
+    const height = type === 'seal' ? .23 : type === 'frosttag' ? FROST_TAG_H : small ? .24 : CARD.H * .9;
     for (let i = 0; i < pieces; i++) {
       const geo = new THREE.PlaneGeometry(width / pieces, height);
       const uv = geo.attributes.uv;
@@ -298,7 +310,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
     item.group.position.set(x, y, z);
     if (item.active && !active && (item.type === 'seal' || item.type === 'frost')) item.release = ruleTime;
     if (active) {
-      item.release = null; item.mat.opacity = .85;
+      item.release = null; item.mat.opacity = item.type === 'frosttag' ? 1 : .85;
       for (const mesh of item.group.children) { mesh.position.set(mesh.userData.restX, 0, 0); mesh.rotation.z = 0; }
     }
     item.active = active;
@@ -311,7 +323,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
   function setRules(game) {
     if (!game) return;
     const st = game.state, r = rulesForState(st, game.rules);
-    for (const item of ruleMarkers.values()) if (['limit', 'gate', 'maxrank', 'emptycolor', 'stack', 'spurcap', 'wet', 'shutter'].includes(item.type)) { item.active = false; item.group.visible = false; }
+    for (const item of ruleMarkers.values()) if (['limit', 'gate', 'maxrank', 'emptycolor', 'frosttag', 'stack', 'spurcap', 'wet', 'shutter'].includes(item.type)) { item.active = false; item.group.visible = false; }
     if (st.spur) {
       if (!spurSlot) { spurSlot = addSlot(L.SPUR_X ?? 4.75, L.SPUR_Z ?? -1, foundMats[st.spur.suit]); spurSlot.name = 'voyage-spur-slot'; }
       spurSlot.visible = true;
@@ -341,6 +353,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
       }
       if (i < r.cellStack) showMarker(marker(`stack:${i}`, 'stack', '→'), true, L.freeX(i), L.SURFACE_Y + .045, L.FREE_Z - CARD.H * .38);
     }
+    frostTags.length = 0;
     for (const [key, item] of ruleMarkers) if (item.type === 'pip' && !key.endsWith(':' + r.cellColors?.[Number(key.split(':')[1])])) item.group.visible = false;
     for (let c = 0; c < st.tableau.length; c++) {
       if (r.emptyCure && cardsHome(st) < r.emptyCure && !st.tableau[c].length) showMarker(marker(`wet:${c}`, 'wet'), true, L.colX(c), L.SURFACE_Y + .016, L.TABLEAU_Z);
@@ -353,7 +366,14 @@ export function buildTableLayer(theme, art, L, opts = {}) {
         const rank = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][r.emptyMaxRank] || String(r.emptyMaxRank);
         showMarker(marker(`maxrank:${c}:${r.emptyMaxRank}:${r.emptyKings ? 'K' : ''}`, 'maxrank', '≤' + rank + (r.emptyKings ? ' +K' : '')), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .014, L.TABLEAU_Z);
       }
-      if (r.emptyColors[c]) showMarker(marker(`emptycolor:${c}:${r.emptyColors[c]}`, 'emptycolor', r.emptyColors[c] === 'red' ? '♦' : '♠'), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .018, L.TABLEAU_Z + CARD.H * .35);
+      if (r.emptyColors[c]) {
+        showMarker(marker(`emptycolor:${c}:${r.emptyColors[c]}`, 'emptycolor', r.emptyColors[c] === 'red' ? '♦' : '♠'), !st.tableau[c].length, L.colX(c), L.SURFACE_Y + .018, L.TABLEAU_Z + CARD.H * .35);
+        // Step aside from a lane's top crest when another rule also binds this column.
+        const laned = (st.sealed & (1 << c)) || (r.noExitCols & (1 << c)) || (r.openCols & (1 << c));
+        const x = L.colX(c) + (laned ? .37 : 0);
+        showMarker(marker(`frosttag:${c}:${r.emptyColors[c]}`, 'frosttag', r.emptyColors[c]), true, x, L.SURFACE_Y + .02, FROST_TAG_Z);
+        frostTags.push({ col: c, color: r.emptyColors[c], x });
+      }
     }
     for (const [key, item] of ruleMarkers) if (item.type === 'rank' && !key.endsWith(':' + r.emptyMinRank)) item.group.visible = false;
     setLanes(st, r);
@@ -508,6 +528,7 @@ export function buildTableLayer(theme, art, L, opts = {}) {
   }
   // Active lane under a table-surface point, for hover tooltips.
   function laneAt(x, z) {
+    for (const tag of frostTags) if (Math.abs(x - tag.x) <= FROST_TAG_W / 2 && Math.abs(z - FROST_TAG_Z) <= FROST_TAG_H / 2) return { kind: 'frost-' + tag.color, col: tag.col };
     if (z < LANE_TOP || z > LANE_BOTTOM) return null;
     for (const item of lanes.values()) if (item.active && Math.abs(x - L.colX(item.col)) <= LANE_W / 2) return { kind: item.kind, col: item.col };
     return null;

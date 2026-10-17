@@ -62,7 +62,7 @@ defineCharm({
       paid = true;
       const inPlay = 52 - cardsHome(state);
       const coins = ctx.level >= 2 ? inPlay : Math.floor(inPlay / 2);
-      if (coins) sb.addCoins('laurel', 'Laurel Crown', coins);
+      if (coins) sb.addCoins('laurel', 'Laurel Crown', coins, move.card);
     });
   },
 });

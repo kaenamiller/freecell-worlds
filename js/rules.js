@@ -25,7 +25,7 @@ export const RULE_DEFAULTS = Object.freeze({
   cellExitWild: false, openCols: 0,
   twinStack: 0, shallowCols: 0,
   loneAccepts: 0, skipBuild: 0, fullCellsBonus: 0,
-  emptyCure: 0, cellsNeedEmpty: 0, sameColorRanks: 0, noExitCols: 0,
+  emptyCure: 0, cellsNeedEmpty: 0, sameColorRanks: 0, noExitCols: 0, cleansedCards: [],
 });
 
 export function compileRules(r = RULE_DEFAULTS) {
@@ -40,9 +40,9 @@ export function compileRules(r = RULE_DEFAULTS) {
     out.build = new Uint8Array(53 * 53);
     for (let parent = 1; parent <= 52; parent++) for (let child = 1; child <= 52; child++) {
       const pr = rankOf(parent) + (out.rankShift[parent] || 0), cr = rankOf(child) + (out.rankShift[child] || 0), ps = suitOf(parent);
-      const barred = out.barrenCards.includes(parent) || (out.barren && (out.barren.suits & (1 << ps)) && (out.barren.ranks & (1 << rankOf(parent))));
+      const barred = !cardIsCleansed(parent, out) && (out.barrenCards.includes(parent) || (out.barren && (out.barren.suits & (1 << ps)) && (out.barren.ranks & (1 << rankOf(parent)))));
       const same = colorOf(parent) === colorOf(child);
-      const colour = ((out.sameColorRanks & (1 << rankOf(child))) ? same : !same) || (out.wildRanks & ((1 << rankOf(parent)) | (1 << rankOf(child)))) ||
+      const colour = ((!cardIsCleansed(child, out) && (out.sameColorRanks & (1 << rankOf(child)))) ? same : !same) || (out.wildRanks & ((1 << rankOf(parent)) | (1 << rankOf(child)))) ||
         out.wildCards.includes(parent) || out.wildCards.includes(child) || ((out.suitBuild & (1 << ps)) && ps === suitOf(child));
       out.build[parent * 53 + child] = !barred && (out.anchorCards.includes(parent) ||
         (cr === pr && out.twinStack && (out.twinStack >= 2 || colour)) ||
@@ -103,9 +103,12 @@ export function cellIsOpen(st, i, rules, homeAdjustment = 0) {
   return i >= 0 && i < activeFreeCells(st, rules, homeAdjustment) && !cellIsClosed(st, i, rules, homeAdjustment);
 }
 
+// Broken Seal removes negative card effects for this board, including phase rules.
+export function cardIsCleansed(card, rules) { return !!rules?.cleansedCards?.includes(card); }
+
 export function isPinned(st, card, rules) {
   const p = resolved(rules).pinned;
-  return !!p && cardsHome(st) < p.until && p.cards.includes(card);
+  return !cardIsCleansed(card, rules) && !!p && cardsHome(st) < p.until && p.cards.includes(card);
 }
 
 export function canLeaveCell(st, i, rules) {
@@ -130,11 +133,11 @@ function sourceOf(st, card, count = 1) {
 }
 
 function noExit(st, src, r, count = 1) {
-  return src?.kind === 'col' && !!(r.noExitCols & (1 << src.i)) && st.tableau[src.i].length === count;
+  return src?.kind === 'col' && !cardIsCleansed(st.tableau[src.i][0], r) && !!(r.noExitCols & (1 << src.i)) && st.tableau[src.i].length === count;
 }
 
 function preservesEmptyLimit(st, src, count, to, r) {
-  if (!r.maxEmpty || src?.kind !== 'col' || st.tableau[src.i].length !== count) return true;
+  if (!r.maxEmpty || src?.kind !== 'col' || st.tableau[src.i].length !== count || cardIsCleansed(st.tableau[src.i][0], r)) return true;
   const before = st.tableau.filter((c) => !c.length).length;
   const after = before + 1 - (to != null && !st.tableau[to].length ? 1 : 0);
   return after <= r.maxEmpty || after <= before;
@@ -145,7 +148,7 @@ export function cellAccepts(st, i, card, rules, homeAdjustment = 0, override) {
   if (!card || i < 0 || i >= st.free.length || st.free[i] || !cellIsOpen(st, i, r, homeAdjustment)) return false;
   if ((!override?.ignoreRestrictions && noExit(st, sourceOf(st, card), r)) || isPinned(st, card, r) || !preservesEmptyLimit(st, sourceOf(st, card), 1, null, r)) return false;
   if (i < r.cellStack) for (let j = 0; j < i; j++) if (!st.free[j]) return false;
-  if (r.freeCards.includes(card) || override?.ignoreRestrictions) return true;
+  if (cardIsCleansed(card, r) || r.freeCards.includes(card) || override?.ignoreRestrictions) return true;
   if ((r.noCellRanks & (1 << rankOf(card))) || (card <= 32
     ? r.noCellLo & (1 << (card - 1)) : r.noCellHi & (1 << (card - 33)))) return false;
   const lock = r.cellColors[i];
@@ -296,7 +299,7 @@ export function canStackOn(column, card, rules, override, st) {
   const top = column[column.length - 1];
   if (r.loneAccepts && column.length <= r.loneAccepts) override = { ...override, ignoreRank: true, ignoreColour: true };
   if (!override) return builds(top, card, r);
-  if (!override.ignoreRestrictions && (r.barrenCards.includes(top) || (r.barren && (r.barren.suits & (1 << suitOf(top))) && (r.barren.ranks & (1 << rankOf(top)))))) return false;
+  if (!override.ignoreRestrictions && !cardIsCleansed(top, r) && (r.barrenCards.includes(top) || (r.barren && (r.barren.suits & (1 << suitOf(top))) && (r.barren.ranks & (1 << rankOf(top)))))) return false;
   if (r.anchorCards.includes(top)) return true;
   const pr = rankOf(top) + (r.rankShift[top] || 0), cr = rankOf(card) + (r.rankShift[card] || 0);
   if (!override.ignoreRank && cr !== pr - 1 && !(override.rankGap === 2 && cr === pr - 2) && !(cr === pr + 1 && (r.buildUp & (1 << suitOf(card)))) && !(cr === pr + 1 && (r.suitBuildUp & (1 << suitOf(card))) && suitOf(card) === suitOf(top)) && !(cr === pr && r.twinStack) && !(cr === pr - 2 && r.skipBuild)) return false;
@@ -305,7 +308,7 @@ export function canStackOn(column, card, rules, override, st) {
     if (override.rankGap !== 2) return false; // a two-rank ability still adds its ordinary colour link
   }
   if (cr === pr && r.twinStack >= 2) return true;
-  return override.ignoreColour || ((r.sameColorRanks & (1 << rankOf(card))) && !override.ignoreRestrictions ? colorOf(card) === colorOf(top) : colorOf(card) !== colorOf(top)) ||
+  return override.ignoreColour || ((r.sameColorRanks & (1 << rankOf(card))) && !cardIsCleansed(card, r) && !override.ignoreRestrictions ? colorOf(card) === colorOf(top) : colorOf(card) !== colorOf(top)) ||
     !!(r.wildRanks & ((1 << rankOf(card)) | (1 << rankOf(top)))) ||
     r.wildCards.includes(card) || r.wildCards.includes(top) ||
     !!((r.suitBuild & (1 << suitOf(card))) && suitOf(card) === suitOf(top)) ||
@@ -512,7 +515,7 @@ export function generateMoves(st, opts = {}) {
       moves.push({ t: 'F', src: { kind: 'free', i: fi }, card, score: 1200 + rankOf(card) });
     }
     for (let d = 0; d < nCols; d++) {
-      if ((r.freeCards.includes(card) || !(r.oneWayCellRanks & (1 << rankOf(card)))) && canPlaceTableau(st, d, card, 1, r)) {
+      if ((cardIsCleansed(card, r) || r.freeCards.includes(card) || !(r.oneWayCellRanks & (1 << rankOf(card)))) && canPlaceTableau(st, d, card, 1, r)) {
         const s = 800 + (st.tableau[d].length ? 40 : 0) + rankOf(card);
         moves.push({ t: 'T', src: { kind: 'free', i: fi }, count: 1, to: d, card, score: s });
       }
@@ -940,7 +943,7 @@ export class Game {
   canMoveFreeToTableau(fi, destCol) {
     const card = this.free[fi];
     const r = rulesForState(this.state, this.rules);
-    return !!card && (r.freeCards.includes(card) || !(r.oneWayCellRanks & (1 << rankOf(card)))) && this.canDropTableau(destCol, card, 1);
+    return !!card && (cardIsCleansed(card, r) || r.freeCards.includes(card) || !(r.oneWayCellRanks & (1 << rankOf(card)))) && this.canDropTableau(destCol, card, 1);
   }
 
   canReturnFoundation(suit, to, from) {

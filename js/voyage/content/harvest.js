@@ -67,7 +67,7 @@ defineCharm({
     let bonus = 0;
     replay(sb, (move) => {
       if (!move.auto) moves++;
-      if (move.t === 'F' && moves <= 10 && ranks.includes(rankOf(move.card))) bonus++;
+      if (move.t === 'F' && moves <= 10 && ranks.includes(rankOf(move.card))) { bonus++; sb.cardBonus?.('gleaning', move.card, per); }
     });
     if (bonus) sb.addCoins('gleaning', 'Gleaning', bonus * per);
   },

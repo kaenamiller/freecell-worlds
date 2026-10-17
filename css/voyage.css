@@ -219,11 +219,14 @@ body[data-mode='voyage'] #status-bar { bottom: calc(var(--voyage-dock-h, calc(14
 .voyage-island.upcoming .voyage-island-name, .voyage-island.skipped .voyage-island-name, .voyage-island.visited .voyage-island-name { opacity: .9; font-size: 9px; }
 .voyage-island-chips { position: absolute; z-index: 2; display: flex; gap: 2px; top: 6px; right: 6px; }
 .voyage-island-chips i { display: grid; place-items: center; width: 22px; min-width: 22px; height: 22px; padding: 0; border: 1px solid rgba(255,255,255,.48); border-radius: 99px; background: #173d43; color: #ecf0d2; font: normal 12px/1 system-ui,sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,.5); }
-.voyage-island-chips .storm { background: #263053; color: #dce8ff; }
-.voyage-island-chips .harbour { background: #173f3e; color: #ffd875; }
+.voyage-island-chips .storm { position: static; background: #263053; color: #dce8ff; }
+.voyage-island-chips i:has(img:not([hidden])) { width: 30px; min-width: 30px; height: 30px; }
+.voyage-island-chips img { width: 82%; height: 82%; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
+.voyage-island-chips img:not([hidden]) + b { display: none; }
+.voyage-island-chips b { font-weight: normal; }
 .voyage-harbour-mark { position: absolute; left: 8px; top: 58%; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #173f3e; color: #ffd875; box-shadow: 0 0 10px #ffd875; font-size: 15px; }
 .voyage-harbour-mark i { position: absolute; right: -2px; top: -4px; width: 6px; height: 6px; border-radius: 50%; background: #fff3ad; box-shadow: 0 0 9px 4px #ffc95c; }
-.voyage-storm-head { position: absolute; left: 50%; top: -6px; width: 58px; height: 26px; transform: translateX(-50%); background: radial-gradient(ellipse at 30% 70%, #3b4560, transparent 60%), radial-gradient(ellipse at 70% 60%, #5a6788, transparent 62%), radial-gradient(ellipse at 50% 90%, #2a3148, transparent 55%); filter: drop-shadow(0 4px 6px rgba(20,24,40,.55)); pointer-events: none; }
+.voyage-storm-head { position: absolute; left: 50%; top: -6px; width: 58px; height: 26px; transform: translateX(-50%); background: radial-gradient(closest-side, #56638a 78%, transparent) 6px 8px / 22px 18px no-repeat, radial-gradient(closest-side, #5f6d95 78%, transparent) 17px 0 / 26px 24px no-repeat, radial-gradient(closest-side, #4b5677 78%, transparent) 31px 7px / 22px 18px no-repeat, radial-gradient(closest-side, #3d4763 82%, transparent) 4px 12px / 50px 14px no-repeat; filter: drop-shadow(0 4px 6px rgba(20,24,40,.55)); pointer-events: none; }
 .voyage-storm-head::before, .voyage-storm-head::after { content: ''; position: absolute; background: #d7e4ff; }
 .voyage-storm-head::before { left: 18px; top: 18px; width: 2px; height: 12px; transform: rotate(18deg); box-shadow: 8px 2px 0 -1px #c9d7f5; }
 .voyage-finale-mark { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); font-size: 28px; color: #f1c27d; filter: drop-shadow(0 0 6px #9f3554); }
@@ -234,6 +237,13 @@ body[data-mode='voyage'] #status-bar { bottom: calc(var(--voyage-dock-h, calc(14
 .voyage-island.visited { --island-size: 120px; z-index: 5; opacity: .78; }
 .voyage-island.current { --island-size: 176px; z-index: 6; }
 .voyage-island:hover, .voyage-island:focus-visible { z-index: 8; transform: translate(-50%,-46%) scale(1.05); outline: none; }
+.voyage-island[aria-pressed='true'], .voyage-market[aria-pressed='true'] { z-index: 9; }
+.voyage-island[aria-pressed='true'] { transform: translate(-50%,-46%) scale(1.05); }
+/* Selected island: a gold ring on the water around its base and a gold name tag. */
+.voyage-island[aria-pressed='true'] .voyage-island-art::before, .voyage-market[aria-pressed='true'] .voyage-island-art::before { content: ''; position: absolute; z-index: -1; left: 4%; right: 4%; top: 52%; bottom: 2%; border: 2px solid #ffe08a; border-radius: 50%; box-shadow: 0 0 10px 2px rgba(255,214,110,.7), inset 0 0 10px 2px rgba(255,214,110,.45); pointer-events: none; animation: voyage-select-ring 1.6s ease-in-out infinite; }
+.voyage-island[aria-pressed='true'] .voyage-island-name, .voyage-market[aria-pressed='true'] .voyage-island-name { background: #ffe08a; color: #2a1a04; text-shadow: none; box-shadow: 0 0 10px rgba(255,214,110,.75); }
+@keyframes voyage-select-ring { 50% { transform: scale(1.06); opacity: .72; } }
+@media (prefers-reduced-motion: reduce) { .voyage-island-art::before { animation: none !important; } }
 .voyage-island.sail-target .voyage-island-glow { opacity: 1; background: radial-gradient(circle, #fff2a8 0%, transparent 70%); }
 .voyage-fog-isles { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .voyage-fog-isle { position: absolute; left: var(--chart-x); top: var(--chart-y); width: 70px; height: 52px; transform: translate(-50%,-50%); opacity: .32; filter: blur(.3px) saturate(.4); }
@@ -749,3 +759,24 @@ body.voyage-reduced-motion .voyage-coin-sheet { transition: none; }
   .voyage-intro-card.has-secondary { padding: 18px 14px; }
   .has-secondary h2 { font-size: 32px; }
 }
+
+/* Score feedback follows the affected card while its move animation settles. */
+.card-penalty {
+  position: fixed;
+  z-index: 45;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  text-align: center;
+  color: #ff666e;
+  font-family: system-ui, sans-serif;
+  line-height: 1.1;
+  text-shadow: 0 2px 3px #16060b, 0 0 5px #16060b, 0 0 12px #16060b;
+}
+.card-penalty strong { display: block; font-size: clamp(25px, 3.5vw, 34px); font-weight: 850; }
+.card-penalty span { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: #ffe0e2; white-space: nowrap; }
+
+.card-penalty.card-bonus { color: #8ff0a4; }
+.card-penalty.card-bonus span { color: #e3ffe8; }
+
+.card-penalty.card-cost { color: #b9bdc4; }
+.card-penalty.card-cost strong { font-size: clamp(16px, 2.2vw, 21px); font-weight: 600; }

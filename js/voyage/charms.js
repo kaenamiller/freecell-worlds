@@ -9,7 +9,7 @@
 // score(sb, ctx) computes points from final history (never score in events).
 // sb: history, par, elapsed (seconds), undosUsed, undosLeft, initial, rules, boardIdx,
 // stat; add(key,label,pts), scale(key,x), mult(label,x), lines, mults, total.
-// on: start, move({move,manual}), foundation({card,move,src,auto}),
+// on: start, resume, move({move,manual}), foundation({card,move,src,auto}),
 // freecell({card,move}), columnEmpty({col}), undo({move,moves,free,reset}), win({result}),
 // reveal({card}), stuck({}), ability({id}); handlers receive (ctx, ev).
 // stuck returning true cancels loss. Spend-based undo hooks ignore free/reset.
@@ -51,7 +51,8 @@
 // opens a small menu (anchored to card) for choices that are not places on the table.
 // markText(cardId, style, ctx) on a charm describes its mod-* tab in the card tooltip.
 // Read getters: abilityBonus, state, rules, history, concealed (card ids),
-// stickers (copy of run stickers), undoGrants, undoCap, undoWindowUsed;
+// negativeCards (card ids with harmful stamps), stickers (copy of run stickers),
+// undoGrants, undoCap, undoWindowUsed;
 // abilityUses(): frozen snapshot of all active abilities' remaining charges.
 // Extra primitive: rewind(count): boolean undoes a batch for one run undo (bookmark).
 // Marks: gold/star/glow/crack/frost/hot/curse/wanted/fragile/camera/crown/thorn/cap/
@@ -132,6 +133,10 @@ export function charmContext(a, { seed, boardIndex = 0, run = null, api = {}, me
   return ctx;
 }
 
+// Harmful upper-right stamps; boon marks, stickers and modification tabs survive cleansing.
+const NEGATIVE_STAMPS = new Set(['lock', 'bar', 'oneway', 'crack', 'hot', 'curse', 'fragile', 'fragile-used', 'crown', 'thorn', 'noexit']);
+const negativeStamp = (style) => NEGATIVE_STAMPS.has(style);
+
 export class BoardEffects {
   constructor(active, { seed, boardIndex, api = {}, memo = {}, run = null }) {
     this.active = active.filter((a) => CHARMS[a.id]);
@@ -140,6 +145,7 @@ export class BoardEffects {
     if (run?.status === 'board') memo._stickers ??= copy(run.stickers || {});
     this.run = run;
     this.events = [];
+    this.eventPayloads = [];
     this.using = null;
     this.ctxs = this.active.map((a) => {
       const ctx = charmContext(a, { seed, boardIndex, run, api, memo });
@@ -169,7 +175,7 @@ export class BoardEffects {
         }));
         if (!fresh.length) return;
         for (const id of fresh) saved.marks[id] = style;
-        api.mark?.(fresh, style); this.changed();
+        api.mark?.(fresh.filter((id) => !negativeStamp(style) || !Rules.cardIsCleansed(id, api.rules)), style); this.changed();
       };
       scoped.unmark = (ids) => {
         if (this.restoring) return;
@@ -184,6 +190,11 @@ export class BoardEffects {
         api.conceal?.(cards); this.changed();
       };
       scoped.reveal = (ids) => this.reveal(ids);
+      Object.defineProperty(scoped, 'negativeCards', { get: () => {
+        const cards = this.ctxs.flatMap((c) => Object.entries(c.memo._runtime.marks)
+          .filter(([, style]) => negativeStamp(style)).map(([id]) => Number(id)));
+        return [...new Set(cards)].filter((id) => !Rules.cardIsCleansed(id, api.rules));
+      } });
       Object.defineProperty(scoped, 'abilityBonus', { get: () => this.abilityBonus });
       Object.defineProperty(scoped, 'concealed', { get: () => [...new Set(this.ctxs.flatMap((c) => c.memo._runtime.concealed))] });
       ctx.api = scoped;
@@ -202,7 +213,14 @@ export class BoardEffects {
       if (allowed < n) this.api.notify?.('undo cap reached');
       n = allowed;
     }
-    if (n) this.api.addUndos?.(n);
+    if (n) {
+      this.api.addUndos?.(n);
+      const event = this.events.at(-1), payload = this.eventPayloads.at(-1);
+      const card = payload?.card || payload?.move?.card;
+      if (card && ['foundation', 'freecell', 'reveal', 'move'].includes(event)) {
+        this.api.cardBonus?.({ card, amount: n, unit: 'undos', label: ctx.id === 'voyage.stickers' ? 'Lucky sticker' : CHARMS[ctx.id].name });
+      }
+    }
     return n;
   }
 
@@ -247,7 +265,9 @@ export class BoardEffects {
   restoreVisuals() {
     this.api.clearMarks?.();
     for (const ctx of this.ctxs) {
-      for (const [id, style] of Object.entries(ctx.memo._runtime.marks)) this.api.mark?.([Number(id)], style);
+      for (const [id, style] of Object.entries(ctx.memo._runtime.marks)) {
+        if (!negativeStamp(style) || !Rules.cardIsCleansed(Number(id), this.api.rules)) this.api.mark?.([Number(id)], style);
+      }
       this.api.conceal?.(ctx.memo._runtime.concealed);
     }
   }
@@ -255,12 +275,13 @@ export class BoardEffects {
   // Charm that painted the upper-right seal on this card, if it has one.
   markTip(cardId, style = null) {
     const id = Number(cardId);
+    if (Rules.cardIsCleansed(id, this.api.rules) && negativeStamp(style)) return null;
     let fallback = null;
     for (const ctx of this.ctxs) {
       const mark = ctx.memo._runtime?.marks?.[id];
-      if (!mark || String(mark).startsWith('sticker-') || String(mark).startsWith('mod-')) continue;
+      if (!mark || (negativeStamp(mark) && Rules.cardIsCleansed(id, this.api.rules)) || String(mark).startsWith('sticker-') || String(mark).startsWith('mod-')) continue;
       const name = CHARMS[ctx.id]?.name;
-      const text = charmText(ctx.id, ctx.strength ?? 1, { seed: ctx.seed, level: ctx.level });
+      const text = CHARMS[ctx.id]?.markText?.(id, mark, ctx) || charmText(ctx.id, ctx.strength ?? 1, { seed: ctx.seed, level: ctx.level });
       if (!name || !text) continue;
       const tip = { style: mark, name, text };
       if (!style || mark === style) return tip;
@@ -299,8 +320,11 @@ export class BoardEffects {
 
   emit(event, ev = {}) {
     let cancelled = false;
+    if ((event === 'undo' && ev.moves?.some((m) => m.op === 'bloodmoon.seal' && m.action === 'cleanse')) ||
+        (event === 'move' && ev.move?.op === 'bloodmoon.seal' && ev.move.action === 'cleanse')) this.restoreVisuals();
     if (event === 'move' && ev.manual) this.memo._manualPlayed = true;
     this.events.push(event);
+    this.eventPayloads.push(ev);
     try {
       this.active.forEach((a, i) => {
         // Compatibility while these content hooks migrate to checking ev.free/reset.
@@ -308,7 +332,7 @@ export class BoardEffects {
         if (event === 'undo' && (ev.free || ev.reset) && ['cyber.cache', 'canyon.echo', 'deepstorage.redundancy', 'cyber.challenge'].includes(a.id)) return;
         if (CHARMS[a.id].on?.[event]?.(this.ctxs[i], ev) === true) cancelled = true;
       });
-    } finally { this.events.pop(); }
+    } finally { this.events.pop(); this.eventPayloads.pop(); }
     return cancelled;
   }
 
@@ -347,6 +371,7 @@ export class BoardEffects {
     try {
       if (await CHARMS[id].ability.use(ctx) === false) return false;
       consumed = true;
+      if (id === 'bloodmoon.seal') this.restoreVisuals();
       this.emit('ability', { id });
       return true;
     } finally {

@@ -1,13 +1,13 @@
 // Service worker: precache the app shell, runtime-cache art/audio (cache-first),
 // and keep code files network-first so updates arrive. Bump VERSION to invalidate.
-const VERSION = 'freecell-worlds-v34-court-selections';
+const VERSION = 'freecell-worlds-v35-transparent-icon';
 const SHELL = [
   './', './index.html', './css/style.css', './manifest.webmanifest',
   './js/main.js', './js/rules.js', './js/card.js', './js/animation.js', './js/textures.js', './js/themes.js', './js/theme-expansion.js', './js/object-court-themes.js',
   './js/table.js', './js/post.js', './js/fx.js', './js/audio.js', './js/ui.js', './js/fullscreen.js', './js/stats.js', './js/store.js',
   './js/solver.worker.js', './vendor/three.module.js',
   './css/voyage.css', './js/voyage/ui.js', './js/voyage/chart.js', './js/voyage/fog.js', './js/voyage/run.js', './js/voyage/map.js', './js/voyage/charms.js',
-  './js/voyage/scoring.js', './js/voyage/config.js', './js/voyage/rng.js', './js/voyage/stats.js',
+  './js/voyage/scoring.js', './js/voyage/penalties.js', './js/voyage/blocked.js', './js/voyage/config.js', './js/voyage/rng.js', './js/voyage/stats.js',
   './js/voyage/dealer.js', './js/voyage/dealer.worker.js',
   './js/voyage/registry.js',
   './js/voyage/boardrules.js', './js/voyage/boss-yields.json',

@@ -39,7 +39,7 @@ defineCharm({
       // when a foundation-return ability sends it home a second time.
       if (52 - state.found.reduce((sum, rank) => sum + rank, 0) >= 13) {
         paid.add(move.card);
-        sb.addCoins(`sticker.gold.${move.card}`, `Gold sticker · card ${move.card}`, 5);
+        sb.addCoins(`sticker.gold.${move.card}`, `Gold sticker · card ${move.card}`, 5, move.card);
       }
     });
   },

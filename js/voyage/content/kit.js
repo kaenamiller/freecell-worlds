@@ -1,4 +1,5 @@
 // Pure content helpers. Replay a COPY: hooks must never mutate the live board or history.
+// The callback receives (move, state, index, rules) after each move, including cleanses.
 import { applyMove, cardId, cloneState, rankOf, suitOf } from '../../rules.js';
 
 export function replay(sb, fn) {
@@ -8,7 +9,7 @@ export function replay(sb, fn) {
   sb.history.forEach((move, i) => {
     const m = JSON.parse(JSON.stringify(move));
     applyMove(state, m, rules);
-    fn(move, state, i);
+    fn(move, state, i, rules);
   });
   return state;
 }

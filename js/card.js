@@ -131,7 +131,8 @@ export const CARD_MARKS = {
   glow: { color: '#95d657', sigil: '✦' }, crack: { color: '#ad7255', sigil: 'ϟ' },
   frost: { color: '#67c8ef', sigil: '❄' }, hot: { color: '#ee7637', sigil: '▲' },
   curse: { color: '#b081e9', sigil: '☾' }, wanted: { color: '#ce9a60', sigil: '⊕' },
-  fragile: { color: '#e58eab', sigil: '◇' }, camera: { color: '#54b7a9', sigil: '▣' },
+  fragile: { color: '#e58eab', sigil: '◇' },
+  'fragile-used': { color: '#e58eab', sigil: '◇', cracked: true }, camera: { color: '#54b7a9', sigil: '▣' },
   crown: { color: '#c49b36', sigil: '♛' }, thorn: { color: '#8774a3', sigil: '⌁' },
   cap: { color: '#e8a317', paint: paintCap },
   lock: { color: '#2f6fad', paint: paintLock },
@@ -515,6 +516,14 @@ function markTexture(style) {
     ctx.fillStyle = mark.color; ctx.beginPath(); ctx.roundRect(202, 8, 44, 47, 10); ctx.fill();
     ctx.fillStyle = '#171821'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = 'bold 34px sans-serif'; ctx.fillText(mark.sigil, 224, 33);
+    if (mark.cracked) {
+      // A jagged split through the diamond, visible even in a fanned column.
+      ctx.strokeStyle = mark.color; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(225, 18); ctx.lineTo(219, 28);
+      ctx.lineTo(227, 34); ctx.lineTo(221, 47); ctx.stroke();
+      ctx.strokeStyle = '#171821'; ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
   markTextures.set(style, tex);
@@ -621,6 +630,14 @@ function topLane(sealed, stickered, mods = []) {
 }
 const RANK_LABEL = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K' };
 export const isModStyle = (style) => /^mod-(wild|anchor|rank-(up|down)-([1-9]|1[0-3]))$/.test(String(style));
+
+export function stickerHit(uv, sealed = true, mods = []) {
+  if (!uv) return false;
+  const { sticker: size } = topLane(sealed, true, mods);
+  const x = MOD_TAB.x0, y = MOD_TAB.y + (MOD_TAB.h - size) / 2;
+  return uv.x >= x / MARK_FACE.w && uv.x <= (x + size) / MARK_FACE.w
+    && uv.y >= 1 - (y + size) / MARK_FACE.h && uv.y <= 1 - y / MARK_FACE.h;
+}
 
 export function modHit(uv, sealed = true, stickered = false, mods = ['mod-wild']) {
   if (!uv) return false;

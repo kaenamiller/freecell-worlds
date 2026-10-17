@@ -9,6 +9,18 @@ function cardsInMove(move) {
   return [];
 }
 
+// Derive wear from history so undo, reset and resumed games show the same status.
+function fragileMoves(history, id) {
+  return history.filter((m) => !m.auto && m.t !== 'F' && cardsInMove(m).includes(id)).length;
+}
+
+function syncFragile(ctx) {
+  for (const id of ctx.memo.fragile || []) {
+    const style = fragileMoves(ctx.api.history || [], id) ? 'fragile-used' : 'fragile';
+    if (ctx.memo._runtime?.marks?.[id] !== style) ctx.api.mark([id], style);
+  }
+}
+
 function allDealtCards(state) {
   const ids = [];
   for (const col of state.tableau) ids.push(...col);
@@ -73,8 +85,20 @@ defineCharm({
     const need = 1 + ctx.strength;
     const pool = ctx.rng.shuffle(allDealtCards(board.state));
     const fragile = pool.slice(0, Math.min(need, pool.length));
-    ctx.memo.fragile = fragile;
-    if (fragile.length) ctx.api.mark(fragile, 'fragile');
+    ctx.memo.fragile ??= fragile;
+    syncFragile(ctx);
+  },
+  on: {
+    resume(ctx) { syncFragile(ctx); },
+    move(ctx) { syncFragile(ctx); },
+    undo(ctx) { syncFragile(ctx); },
+  },
+  markText(id, _style, ctx) {
+    const moves = fragileMoves(ctx.api.history || [], id);
+    if (!moves) return 'Intact exhibit: its first move is free. Later moves cost 25 points, up to twice. Sending it home is always free.';
+    const left = Math.max(0, 3 - moves);
+    return left ? `Cracked exhibit: free move used. Each further move costs 25 points (${left} charge${left === 1 ? '' : 's'} left). Sending it home is always free.`
+      : 'Cracked exhibit: both 25-point charges used. Further moves are free.';
   },
   score(sb, ctx) {
     const fragile = new Set(ctx.memo.fragile || []);
@@ -82,10 +106,10 @@ defineCharm({
     // Capped at two charges per card: carried along inside runs, an uncapped tax could zero a board.
     const moved = new Set(), charges = new Map();
     let penalty = 0;
-    replay(sb, (move) => {
+    replay(sb, (move, _state, _index, rules) => {
       if (move.auto) return;
       for (const id of cardsInMove(move)) {
-        if (!fragile.has(id)) continue;
+        if (!fragile.has(id) || rules.cleansedCards?.includes(id)) continue;
         if (move.t === 'F' && move.card === id) continue;
         if (!moved.has(id)) {
           moved.add(id);
@@ -94,6 +118,7 @@ defineCharm({
         if ((charges.get(id) || 0) >= 2) continue;
         charges.set(id, (charges.get(id) || 0) + 1);
         penalty += 25;
+        sb.cardPenalty('fragile', id, 25);
       }
     });
     if (penalty) sb.add('fragile', 'Fragile Exhibits', -penalty);

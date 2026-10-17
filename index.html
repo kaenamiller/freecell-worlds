@@ -89,6 +89,8 @@
             "acceptedAnswer": { "@type": "Answer", "text": "Yes. Choose “Play a specific deal” on the title screen and enter any deal from 1 to 1,000,000, or leave it blank for a random deal." } },
           { "@type": "Question", "name": "What is Voyage mode?",
             "acceptedAnswer": { "@type": "Answer", "text": "Voyage is a run of seven FreeCell tables in a row. Clear each table to continue. There is no restart, and undos are shared across the whole run. A Daily Voyage is also available." } },
+          { "@type": "Question", "name": "Can I move more than one card at a time?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Drag any card in an ordered run and the cards on top of it move with it, as long as you have enough empty free cells and empty columns to make the move by hand. Each empty free cell adds one card and each empty column doubles the total." } },
           { "@type": "Question", "name": "Are there hints and undo?",
             "acceptedAnswer": { "@type": "Answer", "text": "Yes. Press H for a hint and U to undo. A built-in solver powers the hints. You can also turn on auto-play to send safe cards to the foundations." } },
           { "@type": "Question", "name": "Is FreeCell Worlds accessible?",
@@ -121,7 +123,6 @@
     <div class="title-stage">
     <div class="title-scale">
     <div class="title-content">
-      <p class="eyebrow" id="title-eyebrow">The classic. Reimagined.</p>
       <h1 class="title-logo"><img src="./assets/art/brand/logo.webp" alt="FreeCell Worlds" width="1400" height="761" /><span class="sr-only"> – Free 3D FreeCell Solitaire</span></h1>
       <p class="title-tagline" id="title-tagline"></p>
       <div class="title-mode-tabs" role="tablist" aria-label="Game mode">
@@ -149,18 +150,18 @@
       <div class="title-foot">
         <button class="link" id="btn-title-stats">Stats</button>
         <button class="link" id="btn-title-settings">Settings</button>
-        <span class="hint" id="title-hint">Drag cards &middot; double-click to send home &middot; H hint &middot; U undo</span>
+        <span class="hint" id="title-hint" hidden></span>
       </div>
-      <nav class="title-legal" aria-label="About and legal">
-        <a href="#about">About</a>
-        <a href="terms/">Terms</a>
-        <a href="privacy/">Privacy</a>
-        <a href="refunds/">Refunds</a>
-        <a href="contact/">Contact</a>
-      </nav>
     </div>
     </div>
     </div>
+    <nav class="title-legal" aria-label="About and legal">
+      <a href="#about">About</a>
+      <a href="terms/">Terms</a>
+      <a href="privacy/">Privacy</a>
+      <a href="refunds/">Refunds</a>
+      <a href="contact/">Contact</a>
+    </nav>
   </section>
 
   <main id="about" class="seo-content">
@@ -179,6 +180,18 @@
         <li>Any card can go into an empty column. You win when every card is home.</li>
       </ol>
       <p><strong>Controls:</strong> drag cards to move them, double-click to send a card home, press <kbd>H</kbd> for a hint and <kbd>U</kbd> to undo.</p>
+    </section>
+
+    <section>
+      <h2>Keyboard shortcuts and time-savers</h2>
+      <p>Hold a rank key to light up every card of that rank on the table, so you can spot the card you need at a glance. Let go and the glow fades.</p>
+      <ul>
+        <li><kbd>A</kbd> or <kbd>1</kbd> highlights the Aces, <kbd>2</kbd> to <kbd>9</kbd> the number cards, <kbd>0</kbd> the 10s, and <kbd>J</kbd>, <kbd>Q</kbd> and <kbd>K</kbd> the Jacks, Queens and Kings.</li>
+        <li>Click a card to pick it up, then press <kbd>Shift</kbd> + <kbd>1</kbd>–<kbd>8</kbd> to drop it on that column.</li>
+        <li><kbd>U</kbd> or <kbd>Z</kbd> undoes, <kbd>H</kbd> shows a hint, <kbd>N</kbd> deals a new game and <kbd>M</kbd> mutes the sound.</li>
+      </ul>
+      <p><strong>Move whole stacks at once.</strong> Grab any card in an ordered run and the cards on top of it come along. FreeCell Worlds handles the card-by-card shuffling through your free cells and empty columns for you. How many cards you can carry depends on the space you have: (empty free cells + 1) × 2 for each empty column. With four free cells open you can move 5 cards, and an empty column doubles that to 10. When the destination is itself an empty column, that column doesn't count toward the total.</p>
+      <p><strong>More shortcuts.</strong> Double-click a card to send it to its foundation, or to a free cell if it can't go home yet. Turn on auto-play in Settings and safe cards go home on their own. While you drag, every legal destination lights up.</p>
     </section>
 
     <section>
@@ -204,6 +217,8 @@
       <p>Yes. Choose “Play a specific deal” on the title screen and enter any deal from 1 to 1,000,000, or leave it blank for a random deal.</p>
       <h3>What is Voyage mode?</h3>
       <p>Voyage is a run of seven FreeCell tables in a row. Clear each table to continue. There is no restart, and undos are shared across the whole run. A Daily Voyage is also available.</p>
+      <h3>Can I move more than one card at a time?</h3>
+      <p>Yes. Drag any card in an ordered run and the cards on top of it move with it, as long as you have enough empty free cells and empty columns to make the move by hand. Each empty free cell adds one card and each empty column doubles the total.</p>
       <h3>Are there hints and undo?</h3>
       <p>Yes. Press H for a hint and U to undo. A built-in solver powers the hints. You can also turn on auto-play to send safe cards to the foundations.</p>
       <h3>Is FreeCell Worlds accessible?</h3>

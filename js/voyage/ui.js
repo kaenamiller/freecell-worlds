@@ -105,6 +105,7 @@ export const voyageUI = {
       landmarkUrl: new URL('../../assets/art/chart/boss-landmark.webp', import.meta.url).href,
       silhouetteUrl: new URL('../../assets/art/chart/fog-isle.webp', import.meta.url).href,
       charmGlyph: (charm) => charm?.icon || '✦',
+      charmArt,
     });
     this.syncMotion();
     this.tutorialSeen = load('voyageTutorial', {});

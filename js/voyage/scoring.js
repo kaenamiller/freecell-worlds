@@ -37,12 +37,22 @@ export class ScoreBreakdown {
     this.stat = stat;
     this.lines = []; // { key, label, pts }
     this.mults = []; // { label, x }
+    this.cardBonuses = []; // Card-attributed rewards for floating collection feedback.
+    this.cardPenalties = []; // Attribution for floating loss feedback; never changes scoring.
     this.coinLines = []; // { key, label, coins }; independent of score multipliers
   }
   add(key, label, pts, extra) {
     const line = { key, label, pts: Math.round(pts) };
     if (extra) Object.assign(line, extra);
     this.lines.push(line);
+    return this;
+  }
+  cardBonus(key, card, amount, unit = 'coins') {
+    this.cardBonuses.push({ key, card, amount, unit });
+    return this;
+  }
+  cardPenalty(key, card, amount, unit = 'points') {
+    this.cardPenalties.push({ key, card, amount, unit });
     return this;
   }
   // Scale every line in a group (e.g. 'chains') in place.
@@ -54,7 +64,9 @@ export class ScoreBreakdown {
     this.mults.push({ label, x });
     return this;
   }
-  addCoins(key, label, n) {
+  // Attribute a cash-in to its card, including when several cards go home at once.
+  addCoins(key, label, n, card = null) {
+    if (card != null && n > 0) this.cardBonus(key, card, Math.round(n));
     this.coinLines.push({ key, label, coins: Number.isFinite(Number(n)) ? Math.round(Number(n)) : 0 });
     return this;
   }

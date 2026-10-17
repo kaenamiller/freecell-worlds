@@ -58,7 +58,7 @@ defineCharm({
     let coins = 0;
     replay(sb, (move) => {
       if (!move.auto) moves++;
-      if (move.t === 'F' && moves <= 30 && rankOf(move.card) <= 3) coins += per;
+      if (move.t === 'F' && moves <= 30 && rankOf(move.card) <= 3) { coins += per; sb.cardBonus?.('pastry', move.card, per); }
     });
     if (coins) sb.addCoins('pastry', 'Pastry Case', coins);
   },

@@ -14,6 +14,7 @@ defineCharm({
   score(sb, ctx) {
     const n = sb.history.filter((m) => m.t === 'F' && m.src?.kind === 'free').length;
     const rate = ctx.level >= 2 ? 2 : 1;
+    for (const m of sb.history) if (m.t === 'F' && m.src?.kind === 'free') sb.cardBonus?.('bankshot', m.card, rate);
     if (n) sb.addCoins('bankshot', 'Bank shots', n * rate);
   },
 });

@@ -1,6 +1,6 @@
 // DOM layer: title screen, HUD, modals, toasts and win overlay. It owns no game
 // state — main.js supplies handlers via ui.handlers.
-import { THEMES, THEME_ORDER } from './themes.js';
+import { THEMES, THEME_ORDER, THEME_LIST_ORDER } from './themes.js';
 import { settings, saveSettings, load } from './store.js';
 import { stats, ACHIEVEMENTS, fmtTime, dailyDone } from './stats.js';
 import { initFullscreen } from './fullscreen.js';
@@ -98,9 +98,9 @@ export const ui = {
     const classic = this.titleMode !== 'voyage';
     const id = classic ? document.body.dataset.theme || settings.theme : this.titleVoyageTheme || THEME_ORDER[Math.floor(Date.now() / 86400000) % THEME_ORDER.length];
     const chosen = THEMES[id] || THEMES.roman;
-    $('#title-eyebrow').textContent = classic ? 'The classic. Reimagined.' : 'A new world at every table';
     $('#title-tagline').textContent = classic ? chosen.tagline : 'Chart seven tables, collect charms, and face the final boss.';
-    $('#title-hint').textContent = classic ? 'Drag cards · double-click to send home · H hint · U undo' : 'Choose your route · collect charms · reach the final table';
+    $('#title-hint').textContent = classic ? '' : 'Choose your route · collect charms · reach the final table';
+    $('#title-hint').hidden = classic;
     if (this.titleHeroUrl !== chosen.art.hero) { this.titleHeroUrl = chosen.art.hero; this.setHero(chosen.art.hero, chosen.name); }
   },
   setTitleMode(mode, { persist = true } = {}) {
@@ -212,7 +212,7 @@ export const ui = {
       small.addEventListener('click', () => this.handlers.theme && this.handlers.theme(id));
       row.appendChild(small);
     }
-    for (const id of THEME_ORDER) {
+    for (const id of THEME_LIST_ORDER) {
       const t = THEMES[id];
       const big = document.createElement('button');
       big.type = 'button';

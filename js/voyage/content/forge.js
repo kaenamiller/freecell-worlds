@@ -64,6 +64,7 @@ defineCharm({
       for (let s = 0; s < 4; s++) {
         if (s !== suit && state.found[s] < 7) {
           kings++;
+          sb.cardBonus?.('ingot', m.card, pay);
           break;
         }
       }
@@ -99,7 +100,8 @@ defineCharm({
     const homed = new Set();
     const penalized = new Set();
     let n = 0;
-    replay(sb, (m) => {
+    replay(sb, (m, _state, _index, rules) => {
+      for (const id of rules.cleansedCards || []) { hot.delete(id); dueBy.delete(id); }
       n++;
       if (m.t === 'F') {
         homed.add(m.card);
@@ -114,6 +116,7 @@ defineCharm({
         if (!homed.has(id) && n > due) penalized.add(id);
       }
     });
+    for (const id of penalized) sb.cardPenalty('hotiron', id, 40);
     if (penalized.size) sb.add('hotiron', 'Iron cooled too slow', -40 * penalized.size);
   },
 });
