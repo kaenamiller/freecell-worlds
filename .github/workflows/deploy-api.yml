@@ -34,7 +34,7 @@ name: Deploy API
 
 on:
   push:
-    branches: [main, player-accounts, staging-integration]
+    branches: [main, player-accounts]
     paths:
       - 'server/**'
       - '.github/workflows/deploy-api.yml'
