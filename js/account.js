@@ -41,6 +41,9 @@ export async function api(path, { method = 'GET', body, captcha, keepalive } = {
 // Better Auth error codes, in words a player can act on.
 const MESSAGES = {
   INVALID_EMAIL_OR_PASSWORD: 'That email and password don’t match.',
+  INVALID_PASSWORD: 'That current password isn’t right.',
+  CREDENTIAL_ACCOUNT_NOT_FOUND: 'This account doesn’t have a password yet. Use the reset link to set one.',
+  PASSWORD_COMPROMISED: 'That password has appeared in a known data breach. Please choose a different one.',
   EMAIL_NOT_VERIFIED: 'Confirm your email first. We’ve sent the link again.',
   USER_ALREADY_EXISTS: 'An account with that email already exists. Sign in instead.',
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: 'An account with that email already exists. Sign in instead.',
@@ -103,7 +106,7 @@ function humanCheck(el) {
 
 // --- account state and modal ------------------------------------------------------------
 export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {} }) {
-  const state = { user: null, tokens: 0, google: false, view: 'signin', email: '', resetToken: '', syncing: false, lastSync: 0, error: '' };
+  const state = { user: null, tokens: 0, google: false, hasPassword: null, passwordNotice: '', view: 'signin', email: '', resetToken: '', syncing: false, lastSync: 0, error: '' };
   const sync = createSync({ api, onRemote, canReplaceSession });
   const body = $('#account-body');
   const titleBtn = $('#btn-title-account');
@@ -127,6 +130,12 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
     state.view = 'account';
     refreshButton();
     onUser(user);
+    const accounts = await api('/api/auth/list-accounts');
+    // A credential row is the password. Google-only accounts don't have one, so the panel
+    // offers the reset email instead of the current-password form.
+    state.hasPassword = accounts.status === 200 && Array.isArray(accounts.json)
+      ? accounts.json.some((row) => row.providerId === 'credential')
+      : true;
     await runSync(() => sync.start(user));
     const me = await api('/v1/me');
     if (me.status === 200) state.tokens = me.json.tokens;
@@ -136,6 +145,8 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
 
   function signedOut() {
     state.user = null;
+    state.hasPassword = null;
+    state.passwordNotice = '';
     state.view = 'signin';
     sync.stop();
     refreshButton();
@@ -235,7 +246,8 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
         <button type="button" class="btn" id="account-export">Download my data</button>
         <button type="button" class="btn" id="account-signout">Sign out</button>
       </div>
-      <p class="account-error" role="alert">${esc(state.error)}</p>
+      ${passwordSection(u)}
+      <p class="account-error" id="account-action-error" role="alert">${esc(state.error)}</p>
       <details class="account-danger">
         <summary>Delete account</summary>
         <p class="account-note">This permanently deletes your profile, synced progress, custom themes and unused tokens. Purchase records are kept for tax law. Progress on this device stays here. The link only works in this browser while you are still signed in.</p>
@@ -246,6 +258,36 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
       <p class="account-lead">We sent a link to <strong>${esc(state.user?.email)}</strong>. Open it in this browser while you are still signed in. Your account is deleted when you open it.</p>
       <button type="button" class="btn" data-view="account">Back</button>`,
   };
+
+  function passwordSection(u) {
+    if (state.hasPassword === false) {
+      if (state.passwordNotice === 'sent') {
+        return `
+        <h4>Password</h4>
+        <p class="account-lead">We sent a link to <strong>${esc(u.email)}</strong>. Open it to choose a password. You’ll be signed out everywhere else. It expires in one hour.</p>`;
+      }
+      return `
+      <h4>Password</h4>
+      <p class="account-note">This account signs in with Google and doesn’t have a password yet.</p>
+      <form class="account-form" id="account-set-password">
+        <div class="account-captcha"></div>
+        <p class="account-error" role="alert"></p>
+        <button type="submit" class="btn">Email me a link to set a password</button>
+      </form>`;
+    }
+    if (state.hasPassword !== true) return '';
+    return `
+    <h4>Password</h4>
+    <form class="account-form" id="account-password" novalidate>
+      <label>Current password<input name="current" type="password" autocomplete="current-password" required /></label>
+      <label>New password<input name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="128" /></label>
+      <label>Repeat it<input name="confirm" type="password" autocomplete="new-password" required /></label>
+      <label class="account-check"><input name="revoke" type="checkbox" checked /> Sign out other sessions</label>
+      <p class="account-note">At least 8 characters. We check new passwords against known data breaches. This device stays signed in.</p>
+      <p class="account-error" role="alert"></p>
+      <button type="submit" class="btn">Update password</button>
+    </form>`;
+  }
 
   function render() {
     const view = state.view === 'signup' ? 'signin' : state.view;
@@ -261,6 +303,8 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
     const form = body.querySelector('#account-form');
     const captchaEl = body.querySelector('.account-captcha');
     const check = captchaEl && humanCheck(captchaEl);
+    const setPasswordForm = body.querySelector('#account-set-password');
+    const passwordForm = body.querySelector('#account-password');
 
     body.querySelector('#account-google')?.addEventListener('click', async (e) => {
       e.currentTarget.disabled = true;
@@ -308,10 +352,37 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
       if (password !== confirm) return 'Those passwords don’t match.';
       const res = await api('/api/auth/reset-password', { method: 'POST', body: { token: state.resetToken, newPassword: password } });
       if (res.status !== 200) return errorText(res);
-      state.view = 'signin';
+      state.resetToken = '';
+      signedOut();
+      render();
+      ui.toast('✓', 'Password updated', 'Sign in with your new password.');
+    });
+
+    if (setPasswordForm) wireForm(setPasswordForm, check, async (_, captcha) => {
+      const res = await api('/api/auth/request-password-reset', {
+        method: 'POST',
+        captcha,
+        body: { email: state.user.email, redirectTo: `${APP_URL}?account=reset` },
+      });
+      if (res.status !== 200) return errorText(res);
+      state.passwordNotice = 'sent';
+      render();
+    });
+
+    if (passwordForm) wireForm(passwordForm, null, async ({ current, password, confirm, revoke }) => {
+      if (password !== confirm) return 'Those passwords don’t match.';
+      if (password.length < 8) return MESSAGES.PASSWORD_TOO_SHORT;
+      if (password.length > 128) return MESSAGES.PASSWORD_TOO_LONG;
+      const res = await api('/api/auth/change-password', {
+        method: 'POST',
+        body: { currentPassword: current, newPassword: password, revokeOtherSessions: revoke === 'on' },
+      });
+      if (res.status !== 200) return errorText(res);
       state.error = '';
       render();
-      ui.toast('✓', 'Password saved', 'Sign in with your new password.');
+      ui.toast('✓', 'Password updated', revoke === 'on'
+        ? 'Other sessions were signed out. This device stays signed in.'
+        : 'You’re still signed in on your other devices.');
     });
 
     if (view === 'account') {
@@ -326,7 +397,7 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
       });
       body.querySelector('#account-export').addEventListener('click', async () => {
         const res = await api('/v1/account/export');
-        if (res.status !== 200) return void (body.querySelector('.account-error').textContent = errorText(res));
+        if (res.status !== 200) return void (body.querySelector('#account-action-error').textContent = errorText(res));
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([JSON.stringify(res.json, null, 2)], { type: 'application/json' }));
         a.download = 'freecell-worlds-account.json';
@@ -335,12 +406,12 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
       });
       body.querySelector('#account-delete').addEventListener('click', async () => {
         const res = await api('/api/auth/delete-user', { method: 'POST', body: { callbackURL: `${APP_URL}?account=deleted` } });
-        if (res.status !== 200) return void (body.querySelector('.account-error').textContent = errorText(res));
+        if (res.status !== 200) return void (body.querySelector('#account-action-error').textContent = errorText(res));
         state.view = 'deleteSent';
         render();
       });
     }
-    body.querySelector('input')?.focus();
+    if (view !== 'account') body.querySelector('input')?.focus();
   }
 
   titleBtn.addEventListener('click', () => open(state.user ? 'account' : null));
@@ -386,7 +457,7 @@ export function initAccount({ ui, onRemote, canReplaceSession, onUser = () => {}
       } else open('forgot', MESSAGES.INVALID_TOKEN);
     } else if (landing === 'error' || (landing === 'verified' && !state.user)) {
       open('signin', MESSAGES[landingError] || (landing === 'verified' ? MESSAGES.INVALID_TOKEN : 'Google sign-in didn’t finish. Please try again.'));
-    } else if (landing === 'deleted') ui.toast('✓', 'Account deleted', 'Your account and its saved data are gone.');
+    } else if (landing === 'deleted') ui.toast('✓', 'Your account has been deleted', 'Your account and its saved data are gone.');
   })();
 
   refreshButton();

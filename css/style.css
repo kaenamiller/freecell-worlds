@@ -236,7 +236,7 @@ body:not(.title-open) .seo-content { z-index: 0; pointer-events: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ------------------------------ Toasts ------------------------------ */
-#toasts { position: fixed; top: calc(76px + var(--safe-top)); right: 16px; z-index: 60; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; pointer-events: none; }
+#toasts { position: fixed; top: calc(76px + var(--safe-top)); right: 16px; z-index: 80; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; pointer-events: none; }
 .toast { display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px; border-radius: calc(var(--radius) + 2px); background: var(--panel-solid); border: 1px solid var(--accent); box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 28px var(--glow); animation: toast-in 0.45s cubic-bezier(.2,1.2,.3,1) both; }
 .toast.out { animation: toast-out 0.35s ease both; }
 .toast .t-ico { width: 38px; height: 38px; display: grid; place-items: center; font-size: 20px; border-radius: 50%; background: radial-gradient(circle, var(--accent), color-mix(in srgb, var(--accent) 50%, #000)); color: #140c06; }
@@ -731,6 +731,8 @@ body.voyage-reduced-motion .title-mode-tab, body.voyage-reduced-motion .hero-lay
 .account-form input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .account-form .btn { justify-content: center; }
 .account-form .btn:disabled { opacity: 0.6; pointer-events: none; }
+.account-form label.account-check { flex-direction: row; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0.02em; font-size: 13px; color: var(--text); }
+.account-form label.account-check input { width: 16px; height: 16px; margin: 0; padding: 0; accent-color: var(--accent); }
 .account-captcha { min-height: 65px; }
 .account-error { margin: 0; min-height: 1em; font-size: 13px; line-height: 1.4; color: #ff9b8f; }
 .account-error:empty { min-height: 0; }

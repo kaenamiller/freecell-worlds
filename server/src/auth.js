@@ -75,6 +75,7 @@ export function authOptions(env, { database = env.DB, waitUntil = (p) => p } = {
         '/sign-up/email': { window: 60 * 60, max: 10 },
         '/request-password-reset': { window: 60 * 15, max: 3 },
         '/reset-password': { window: 60 * 15, max: 5 },
+        '/change-password': { window: 60 * 15, max: 5 },
         '/send-verification-email': { window: 60 * 15, max: 3 },
         '/delete-user': { window: 60 * 15, max: 3 },
       },
