@@ -27,9 +27,10 @@ The session cookie is issued by `api.freecellworlds.com` for the parent domain `
 - Passwords: scrypt (Better Auth default, native `node:crypto` in Workers), 8–128 characters, checked against Have I Been Pwned (k-anonymity: only a 5-character hash prefix is sent).
 - Email + password accounts can't sign in until the email is confirmed.
 - Cloudflare Turnstile on sign-up, password sign-in, password reset and resending the confirmation email.
-- Rate limits per IP (Better Auth, stored in D1): sign-in 5/min, sign-up 10/hour, reset 3 per 15 min.
+- Rate limits per IP (Better Auth, stored in D1): sign-in 5/min, sign-up 10/hour, reset 3 per 15 min, changing a password 5 per 15 min.
 - Per-account lockout: 8 wrong passwords within 15 minutes locks that email for 15 minutes, no matter how many IPs the guesses come from (`server/src/data.js`).
-- Password reset signs out every session. Account deletion is always confirmed by email, and the link only works in a browser that is still signed in to that account.
+- Password reset signs out every session. From the account panel, a player who already has a password can change it (current password, new password, and a confirmation). Other sessions are signed out unless they uncheck that option; the device they use stays signed in. An account that only signs in with Google has no password, so that panel emails the same reset link instead, and opening it signs every session out.
+- Account deletion is always confirmed by email, and the link only works in a browser that is still signed in to that account.
 
 ### Sync rules (`js/sync.js`)
 
