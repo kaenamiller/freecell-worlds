@@ -1,4 +1,5 @@
 # One-shot staging D1 read for the staging6 retest. Not a deploy.
+# Pass: seal the deletion token.
 
 name: Snap staging once
 
